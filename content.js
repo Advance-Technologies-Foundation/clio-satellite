@@ -40,8 +40,8 @@ function createScriptsMenu() {
   menuButton.style.left = '50%';
   menuButton.style.transform = 'translateX(-50%)';
   menuButton.style.zIndex = '9999';
-  menuButton.style.backgroundColor = '#FF8C00'; // Оранжевый цвет
-  menuButton.style.color = 'white';
+  menuButton.style.backgroundColor = '#FFFFFF'; // Белый цвет
+  menuButton.style.color = '#FFD700'; // Золотой цвет
   menuButton.style.border = 'none';
   menuButton.style.borderRadius = '4px';
   menuButton.style.padding = '10px 15px';
@@ -62,7 +62,7 @@ function createScriptsMenu() {
   
   // Добавляем текст к кнопке
   const buttonText = document.createElement('span');
-  buttonText.textContent = 'Scripts Menu';
+  buttonText.textContent = 'Clio Satelite (Try me....)';
   
   // Добавляем иконку и текст к кнопке
   menuButton.appendChild(iconImg);
