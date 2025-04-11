@@ -80,7 +80,7 @@ function createScriptsMenu() {
   // Script descriptions in English
   const scriptDescriptions = {
     'Features': 'Open system features management page',
-    'Install_package': 'Install packages and extensions',
+    'Application_Managment': 'Application managment (App Hub)',
     'Lookups': 'Open system lookups',
     'Process_library': 'Open process library',
     'Process_log': 'View process log',
@@ -91,7 +91,7 @@ function createScriptsMenu() {
   // Create menu items for each script
   const scriptFiles = [
     'Features.js', 
-    'Install_package.js', 
+    'Application_Managment.js', 
     'Lookups.js', 
     'Process_library.js', 
     'Process_log.js', 
