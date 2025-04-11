@@ -409,14 +409,7 @@ function isShellPage() {
   const shellIndicators = [
     document.getElementById('ShellContainerWithBackground'),
     document.querySelector('mainshell'),
-    document.querySelector('crt-schema-outlet'),
-    document.querySelector('.app-background'),
-    document.querySelector('crt-reusable-schema'),
-    document.querySelector('crt-page'),
-    document.querySelector('[id*="shell" i]'),
-    document.querySelector('[id*="Shell" i]'),
-    document.querySelector('[class*="shell" i]'),
-    document.querySelector('[class*="Shell" i]')
+    document.querySelector('crt-schema-outlet')
   ];
   
   return shellIndicators.some(indicator => indicator);
