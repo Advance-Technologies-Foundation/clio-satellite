@@ -102,6 +102,17 @@ function createScriptsMenu() {
   scriptFiles.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
     
+    // Определяем иконки для каждого пункта меню
+    const menuIcons = {
+      'Features': '⚙️', // шестеренка для функций
+      'Application_Managment': '🔧', // гаечный ключ для управления приложением
+      'Lookups': '🔍', // лупа для поиска
+      'Process_library': '📚', // книги для библиотеки процессов
+      'Process_log': '📋', // список для логов процессов
+      'SysSettings': '⚙️', // шестеренка для системных настроек
+      'Users': '👥'  // люди для управления пользователями
+    };
+    
     // Create menu item
     const menuItem = document.createElement('div');
     menuItem.className = 'scripts-menu-item';
@@ -109,12 +120,26 @@ function createScriptsMenu() {
     menuItem.style.borderBottom = '1px solid #eee';
     menuItem.style.cursor = 'pointer';
     menuItem.style.transition = 'background-color 0.2s';
+    menuItem.style.display = 'flex';
+    menuItem.style.alignItems = 'center';
+    
+    // Создаем элемент для иконки
+    const iconElement = document.createElement('span');
+    iconElement.textContent = menuIcons[scriptName] || '📄'; // Если иконка не найдена, используем документ
+    iconElement.style.marginRight = '10px';
+    iconElement.style.fontSize = '20px';
+    
+    // Создаем контейнер для текста
+    const textContainer = document.createElement('div');
+    textContainer.style.flex = '1';
     
     // Create title element
     const title = document.createElement('div');
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = 'bold';
+    title.style.fontWeight = '500';
     title.style.marginBottom = '5px';
+    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif'; // Соответствует шрифту кнопки
+    title.style.fontSize = '14px';
     
     // Create description element
     const description = document.createElement('div');
@@ -146,8 +171,10 @@ function createScriptsMenu() {
     });
     
     // Append elements
-    menuItem.appendChild(title);
-    menuItem.appendChild(description);
+    textContainer.appendChild(title);
+    textContainer.appendChild(description);
+    menuItem.appendChild(iconElement);
+    menuItem.appendChild(textContainer);
     menuContainer.appendChild(menuItem);
   });
 
