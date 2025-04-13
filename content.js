@@ -85,7 +85,8 @@ function createScriptsMenu() {
     'Process_library': 'Open process library',
     'Process_log': 'View process log',
     'SysSettings': 'System settings and parameters',
-    'Users': 'Manage system users'
+    'Users': 'Manage system users',
+    'Configuration':'Open configuration'
   };
 
   // Create menu items for each script
@@ -96,7 +97,8 @@ function createScriptsMenu() {
     'Process_library.js', 
     'Process_log.js', 
     'SysSettings.js', 
-    'Users.js'
+    'Users.js',
+    'Configuration.js'
   ];
 
   scriptFiles.forEach(scriptFile => {
@@ -110,7 +112,8 @@ function createScriptsMenu() {
       'Process_library': '📚', // книги для библиотеки процессов
       'Process_log': '📋', // список для логов процессов
       'SysSettings': '⚙️', // шестеренка для системных настроек
-      'Users': '👥'  // люди для управления пользователями
+      'Users': '👥',  // люди для управления пользователями
+      'Configuration': '⚙️' // шестеренка для конфигурации
     };
     
     // Create menu item
