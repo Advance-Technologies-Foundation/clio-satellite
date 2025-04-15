@@ -1,15 +1,90 @@
-// Ensure the styles.css file is included in the content script
-const styleLink = document.createElement('link');
-styleLink.rel = 'stylesheet';
-styleLink.href = chrome.runtime.getURL('styles.css');
-document.head.appendChild(styleLink);
-
 // Global flag to track if menu is already created
 let menuCreated = false;
+
+// Function to check if current page is the Shell page of Creatio
+function isShellPage() {
+  // Сначала проверяем URL - активируем плагин только на доменах, связанных с Creatio
+  const currentHost = window.location.hostname;
+  
+  // Список доменов, на которых НЕ должен работать плагин
+  const excludedDomains = [
+    'gitlab.com', 
+    'github.com',
+    'bitbucket.org',
+    'google.com',
+    'mail.google.com',
+    'youtube.com'
+  ];
+  
+  // Если текущий домен в списке исключений, не активируем плагин
+  for (const domain of excludedDomains) {
+    if (currentHost.includes(domain)) {
+      console.log(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
+      return false;
+    }
+  }
+  
+  // Дополнительные признаки Creatio, которые помогут точнее определить платформу
+  const creatioIndicators = [
+    // Элементы Shell
+    document.getElementById('ShellContainerWithBackground'),
+    document.querySelector('mainshell'),
+    document.querySelector('crt-schema-outlet'),
+    
+    // Дополнительные специфичные элементы Creatio
+    document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]'),
+    document.querySelector('crt-app-toolbar'),
+    document.querySelector('.creatio-logo'),
+    document.querySelector('[id*="Terrasoft"]'),
+    document.querySelector('[class*="Terrasoft"]'),
+    
+    // Проверка наличия конкретных скриптов и стилей Creatio
+    document.querySelector('script[src*="creatio"]'),
+    document.querySelector('script[src*="terrasoft"]'),
+    document.querySelector('link[href*="creatio"]'),
+    document.querySelector('link[href*="terrasoft"]')
+  ];
+  
+  // Устанавливаем минимальное количество индикаторов
+  const MIN_INDICATORS = 2; // Требуем хотя бы два совпадения для большей уверенности
+  
+  // Подсчитываем количество найденных индикаторов
+  const foundIndicators = creatioIndicators.filter(indicator => indicator);
+  
+  // Если найдено достаточное количество признаков Creatio, считаем что мы на нужной странице
+  const isCreatio = foundIndicators.length >= MIN_INDICATORS;
+  
+  if (!isCreatio) {
+    console.log(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Skipping activation.`);
+  } else {
+    console.log(`Found ${foundIndicators.length} Creatio indicators. Activating plugin.`);
+  }
+  
+  return isCreatio;
+}
+
+// Функция для загрузки стилей CSS
+function loadStyles() {
+  // Проверяем, не загружены ли уже стили
+  if (document.querySelector('link[href*="styles.css"]')) {
+    console.log("Styles already loaded");
+    return;
+  }
+  
+  // Загружаем стили
+  const styleLink = document.createElement('link');
+  styleLink.rel = 'stylesheet';
+  styleLink.href = chrome.runtime.getURL('styles.css');
+  document.head.appendChild(styleLink);
+  console.log("Styles loaded");
+}
 
 // Function to create the scripts menu directly from content script
 function createScriptsMenu() {
   console.log("Creating scripts menu");
+  
+  // Загружаем стили перед созданием меню
+  loadStyles();
   
   // Prevent duplicate menus
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
@@ -404,18 +479,6 @@ function placeButtonNextToSearch() {
   
   console.log("Button placed next to search element");
   return true;
-}
-
-// Function to check if current page is the Shell page
-function isShellPage() {
-  // Check for various indicators that this is the Shell page
-  const shellIndicators = [
-    document.getElementById('ShellContainerWithBackground'),
-    document.querySelector('mainshell'),
-    document.querySelector('crt-schema-outlet')
-  ];
-  
-  return shellIndicators.some(indicator => indicator);
 }
 
 // Function to check page and create menu if needed
