@@ -81,7 +81,7 @@ function loadStyles() {
   console.log("Styles loaded");
 }
 
-// Function to create the scripts menu directly from content script
+// Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
   console.log("Creating scripts menu");
   

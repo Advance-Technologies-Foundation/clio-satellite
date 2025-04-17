@@ -119,7 +119,7 @@ function createScriptsMenu() {
         // Use a custom event to communicate with content script instead of chrome.runtime API
         const customEvent = new CustomEvent('executeScript', {
           detail: {
-            scriptName: scriptFile
+            scriptName: 'navigation/' + scriptFile
           }
         });
         document.dispatchEvent(customEvent);
