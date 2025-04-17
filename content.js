@@ -427,6 +427,36 @@ function createScriptsMenu() {
   }
 }
 
+// Function to place button next to search element if it exists
+function placeButtonNextToSearch() {
+  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
+  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
+  
+  if (!buttonWrapper || !searchElement || !searchElement.parentElement) {
+    return false;
+  }
+  
+  // If button is already next to search, don't do anything
+  if (buttonWrapper.nextElementSibling === searchElement || 
+      buttonWrapper.previousElementSibling === searchElement) {
+    return true;
+  }
+  
+  // Place button next to search element
+  searchElement.insertAdjacentElement('afterend', buttonWrapper);
+  
+  // Update button styles for inline display
+  buttonWrapper.style.position = 'relative';
+  buttonWrapper.style.top = 'auto';
+  buttonWrapper.style.left = 'auto';
+  buttonWrapper.style.transform = 'none';
+  buttonWrapper.style.margin = '0 5px';
+  buttonWrapper.style.height = 'auto';
+  
+  console.log("Button placed next to search element dynamically");
+  return true;
+}
+
 // Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
 function updateMenuPosition() {
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
@@ -522,6 +552,16 @@ function moveButtonToToolbar() {
   return true;
 }
 
+// Наблюдаем за изменениями в DOM и обновляем позицию меню
+const positionObserver = new MutationObserver(() => {
+  if (placeButtonNextToSearch()) {
+    return;
+  }
+
+  updateMenuPosition();
+  moveButtonToToolbar();
+});
+
 // Function to check page and create menu if needed
 function checkShellAndCreateMenu() {
   console.log("Checking for Shell page");
@@ -549,15 +589,6 @@ window.addEventListener('load', () => {
 });
 
 // Наблюдаем за изменениями в DOM и обновляем позицию меню
-const positionObserver = new MutationObserver(() => {
-  if (placeButtonNextToSearch()) {
-    return;
-  }
-
-  updateMenuPosition();
-  moveButtonToToolbar();
-});
-
 setTimeout(() => {
   positionObserver.observe(document.body, { childList: true, subtree: true });
 }, 3000);

@@ -2,35 +2,190 @@
 // Script to flush Redis database in Creatio
 
 (function() {
-    // Define the URL for Redis flushing operation
-    // This assumes Creatio has an API endpoint for Redis operations
-    var redisFlushUrl = Terrasoft.getApplicationPath() + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
+    // Safety check to ensure we're in the correct context
+    if (typeof Terrasoft === 'undefined') {
+        console.error("Terrasoft object not found in the page context");
+        
+        // Create a notification to inform the user
+        var notification = document.createElement('div');
+        notification.textContent = 'Error: Terrasoft object not available. Redis flush failed.';
+        notification.style.position = 'fixed';
+        notification.style.top = '10px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.backgroundColor = '#f44336';
+        notification.style.color = 'white';
+        notification.style.padding = '10px 20px';
+        notification.style.borderRadius = '4px';
+        notification.style.zIndex = '10000';
+        notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        document.body.appendChild(notification);
+        
+        // Remove the notification after a few seconds
+        setTimeout(function() {
+            notification.remove();
+        }, 5000);
+        
+        return;
+    }
     
-    // Log for debugging
-    console.log("Attempting to flush Redis DB");
-    
-    // Show notification to user
-    Terrasoft.showInformation("Flushing Redis database...");
-    
-    // Execute the Redis flush operation
-    Terrasoft.AjaxProvider.request({
-        url: redisFlushUrl,
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        callback: function(response) {
-            if (response && response.success) {
-                // Operation succeeded
-                Terrasoft.showInformation("Redis database successfully flushed");
-                console.log("Redis flush operation completed successfully");
-            } else {
-                // Operation failed
-                var errorMessage = (response && response.errorInfo) ? 
-                    response.errorInfo : "Unknown error occurred";
-                Terrasoft.showError("Failed to flush Redis database: " + errorMessage);
-                console.error("Redis flush operation failed:", errorMessage);
-            }
+    try {
+        // Get the base URL in a more reliable way
+        var baseUrl = '';
+        
+        // Method 1: Try to get from workspaceBaseUrl or configuration
+        if (Terrasoft.workspaceBaseUrl) {
+            baseUrl = Terrasoft.workspaceBaseUrl;
+        } else if (Terrasoft.configuration && Terrasoft.configuration.serviceUrl) {
+            baseUrl = Terrasoft.configuration.serviceUrl;
+        } else {
+            // Method 2: Build from window.location
+            var loc = window.location;
+            baseUrl = loc.protocol + '//' + loc.host;
         }
-    });
+        
+        // Define the URL for Redis flushing operation
+        var redisFlushUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
+        
+        // Log for debugging
+        console.log("Attempting to flush Redis DB using URL: " + redisFlushUrl);
+        
+        // Show notification to user
+        if (typeof Terrasoft.showInformation === 'function') {
+            Terrasoft.showInformation("Flushing Redis database...");
+        } else {
+            console.log("Terrasoft.showInformation not available, using fallback notification");
+            
+            // Fallback notification
+            var notification = document.createElement('div');
+            notification.textContent = 'Flushing Redis database...';
+            notification.style.position = 'fixed';
+            notification.style.top = '10px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = '#4CAF50';
+            notification.style.color = 'white';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '4px';
+            notification.style.zIndex = '10000';
+            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            document.body.appendChild(notification);
+            
+            // Store the notification element for later removal
+            var notificationElement = notification;
+        }
+        
+        // Execute the Redis flush operation
+        if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
+            Terrasoft.AjaxProvider.request({
+                url: redisFlushUrl,
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                callback: function(response) {
+                    if (response && response.success) {
+                        // Operation succeeded
+                        if (typeof Terrasoft.showInformation === 'function') {
+                            Terrasoft.showInformation("Redis database successfully flushed");
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Redis database successfully flushed';
+                            notificationElement.style.backgroundColor = '#4CAF50';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 3000);
+                        }
+                        console.log("Redis flush operation completed successfully");
+                    } else {
+                        // Operation failed
+                        var errorMessage = (response && response.errorInfo) ? 
+                            response.errorInfo : "Unknown error occurred";
+                        
+                        if (typeof Terrasoft.showError === 'function') {
+                            Terrasoft.showError("Failed to flush Redis database: " + errorMessage);
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Failed to flush Redis database: ' + errorMessage;
+                            notificationElement.style.backgroundColor = '#f44336';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 5000);
+                        }
+                        console.error("Redis flush operation failed:", errorMessage);
+                    }
+                }
+            }, this);
+        } else {
+            // Fallback using standard fetch if Terrasoft.AjaxProvider is not available
+            console.warn("Terrasoft.AjaxProvider not available, using fetch fallback");
+            
+            fetch(redisFlushUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include' // Include cookies for authentication
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success) {
+                    // Operation succeeded
+                    if (notificationElement) {
+                        notificationElement.textContent = 'Redis database successfully flushed';
+                        notificationElement.style.backgroundColor = '#4CAF50';
+                        setTimeout(function() {
+                            notificationElement.remove();
+                        }, 3000);
+                    }
+                    console.log("Redis flush operation completed successfully");
+                } else {
+                    // Operation failed
+                    var errorMessage = (data && data.errorInfo) ? 
+                        data.errorInfo : "Unknown error occurred";
+                    
+                    if (notificationElement) {
+                        notificationElement.textContent = 'Failed to flush Redis database: ' + errorMessage;
+                        notificationElement.style.backgroundColor = '#f44336';
+                        setTimeout(function() {
+                            notificationElement.remove();
+                        }, 5000);
+                    }
+                    console.error("Redis flush operation failed:", errorMessage);
+                }
+            })
+            .catch(function(error) {
+                if (notificationElement) {
+                    notificationElement.textContent = 'Error executing Redis flush: ' + error.message;
+                    notificationElement.style.backgroundColor = '#f44336';
+                    setTimeout(function() {
+                        notificationElement.remove();
+                    }, 5000);
+                }
+                console.error("Redis flush operation error:", error);
+            });
+        }
+    } catch (error) {
+        console.error("Exception in FlushRedisDB script:", error);
+        
+        // Display error notification
+        var errorNotification = document.createElement('div');
+        errorNotification.textContent = 'Error in Redis flush operation: ' + error.message;
+        errorNotification.style.position = 'fixed';
+        errorNotification.style.top = '10px';
+        errorNotification.style.left = '50%';
+        errorNotification.style.transform = 'translateX(-50%)';
+        errorNotification.style.backgroundColor = '#f44336';
+        errorNotification.style.color = 'white';
+        errorNotification.style.padding = '10px 20px';
+        errorNotification.style.borderRadius = '4px';
+        errorNotification.style.zIndex = '10000';
+        errorNotification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        document.body.appendChild(errorNotification);
+        
+        // Remove the notification after a few seconds
+        setTimeout(function() {
+            errorNotification.remove();
+        }, 5000);
+    }
 })();

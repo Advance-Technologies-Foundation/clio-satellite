@@ -20,20 +20,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 scriptPath = `scripts/navigation/${message.scriptName}`;
             }
             
-            chrome.scripting.executeScript({
-                target: {tabId: activeTab.id},
-                files: [scriptPath]
-            })
-            .then(() => {
-                console.log(`Script ${scriptPath} executed successfully`);
-                sendResponse({ success: true });
-            })
-            .catch(error => {
-                console.error(`Error executing script ${scriptPath}:`, error);
-                sendResponse({ success: false, error: error.message });
-            });
+            // Instead of executing the script in the extension context,
+            // fetch the script content and inject it into the page context
+            fetch(chrome.runtime.getURL(scriptPath))
+                .then(response => response.text())
+                .then(scriptContent => {
+                    // Execute script by injecting it into the page context
+                    chrome.scripting.executeScript({
+                        target: {tabId: activeTab.id},
+                        world: "MAIN", // This is crucial - run in the same context as the page
+                        func: injectAndRunScript,
+                        args: [scriptContent]
+                    })
+                    .then(() => {
+                        console.log(`Script ${scriptPath} executed successfully in page context`);
+                        sendResponse({ success: true });
+                    })
+                    .catch(error => {
+                        console.error(`Error executing script ${scriptPath}:`, error);
+                        sendResponse({ success: false, error: error.message });
+                    });
+                })
+                .catch(error => {
+                    console.error(`Error fetching script ${scriptPath}:`, error);
+                    sendResponse({ success: false, error: error.message });
+                });
         });
         
         return true; // Keep the message channel open for asynchronous response
     }
 });
+
+// Function to inject and run script in page context
+function injectAndRunScript(scriptContent) {
+    try {
+        // Create a script element
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = scriptContent;
+        // Append to document to execute it in page context
+        document.head.appendChild(scriptElement);
+        // Remove after execution to keep the DOM clean
+        scriptElement.remove();
+        return true;
+    } catch (error) {
+        console.error('Error injecting script:', error);
+        return false;
+    }
+}
