@@ -1,22 +1,42 @@
 // RestartApp.js
-// Script to restart the Creatio application
+// Script to restart the Creatio application by unloading the app domain
 
 (function() {
-    // Get the current window location
-    var currentUrl = window.location.href;
-    
-    // Log for debugging
-    console.log("Restarting application from URL: " + currentUrl);
+    // Safety check to ensure we're in the correct context
+    if (typeof Terrasoft === 'undefined') {
+        console.error("Terrasoft object not found in the page context");
+        
+        // Create a notification to inform the user
+        var notification = document.createElement('div');
+        notification.textContent = 'Error: Terrasoft object not available. App restart failed.';
+        notification.style.position = 'fixed';
+        notification.style.top = '10px';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.backgroundColor = '#f44336';
+        notification.style.color = 'white';
+        notification.style.padding = '10px 20px';
+        notification.style.borderRadius = '4px';
+        notification.style.zIndex = '10000';
+        notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        document.body.appendChild(notification);
+        
+        // Remove the notification after a few seconds
+        setTimeout(function() {
+            notification.remove();
+        }, 5000);
+        
+        return;
+    }
     
     try {
-        // Show notification to user if Terrasoft is available, otherwise use standard browser alert
-        if (window.Terrasoft && typeof Terrasoft.showInformation === 'function') {
+        // Show notification to user
+        if (typeof Terrasoft.showInformation === 'function') {
             Terrasoft.showInformation("Restarting application...");
         } else {
-            // Fallback to a more generic notification if Terrasoft is not available
-            console.log("Terrasoft not available or showInformation method not found, using fallback notification");
+            console.log("Terrasoft.showInformation not available, using fallback notification");
             
-            // Create a simple notification on the page
+            // Fallback notification
             var notification = document.createElement('div');
             notification.textContent = 'Restarting application...';
             notification.style.position = 'fixed';
@@ -31,52 +51,169 @@
             notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
             document.body.appendChild(notification);
             
-            // Remove after delay
-            setTimeout(function() {
-                notification.remove();
-            }, 800); // Shorter time since page will reload
+            // Store the notification element for later removal
+            var notificationElement = notification;
         }
         
-        // Try to use Terrasoft-specific restart methods if available
-        var terraRestarted = false;
-        
-        if (window.Terrasoft) {
-            // Method 1: Try to use Terrasoft's core reload method if available
-            if (typeof Terrasoft.coreReload === 'function') {
-                console.log("Using Terrasoft.coreReload() method");
-                setTimeout(function() {
-                    Terrasoft.coreReload();
-                }, 1000);
-                terraRestarted = true;
-            }
-            // Method 2: Try to use sandbox reload if available
-            else if (Terrasoft.sandbox && typeof Terrasoft.sandbox.reload === 'function') {
-                console.log("Using Terrasoft.sandbox.reload() method");
-                setTimeout(function() {
-                    Terrasoft.sandbox.reload();
-                }, 1000);
-                terraRestarted = true;
-            }
-        }
-        
-        // Fallback to standard page reload if Terrasoft methods are not available
-        if (!terraRestarted) {
-            console.log("Using standard window.location.reload() method");
-            // Add a small delay before restarting to allow the notification to be seen
+        // Function to reload the page after successful operation
+        function reloadPage() {
+            console.log("Reloading page...");
             setTimeout(function() {
-                // Force reload the page with no cache
                 window.location.reload(true);
             }, 1000);
         }
         
-        // Log the action completion
-        console.log("Restart command executed");
+        // Use the Terrasoft.ServiceProvider approach which is more reliable
+        if (Terrasoft.ServiceProvider && typeof Terrasoft.ServiceProvider.callService === 'function') {
+            // Using Terrasoft's native service provider
+            console.log("Using Terrasoft.ServiceProvider to unload app domain");
+            
+            Terrasoft.ServiceProvider.callService({
+                serviceName: "AppInstallerService",
+                methodName: "UnloadAppDomain",
+                data: {},
+                callback: function(response) {
+                    if (response && response.success) {
+                        // Operation succeeded - perform page reload
+                        console.log("UnloadAppDomain successful, reloading page");
+                        reloadPage();
+                    } else {
+                        // Operation failed
+                        var errorMessage = (response && response.errorInfo) ? 
+                            response.errorInfo : "Unknown error occurred";
+                        
+                        if (typeof Terrasoft.showError === 'function') {
+                            Terrasoft.showError("Failed to restart application: " + errorMessage);
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Failed to restart application: ' + errorMessage;
+                            notificationElement.style.backgroundColor = '#f44336';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 5000);
+                        }
+                        console.error("Restart operation failed:", errorMessage);
+                        
+                        // Try fallback reload method
+                        console.log("Attempting fallback restart method");
+                        reloadPage();
+                    }
+                }
+            });
+        } else if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
+            // Get the base URL in a more reliable way
+            var baseUrl = '';
+            
+            // Method 1: Try to get from workspaceBaseUrl or configuration
+            if (Terrasoft.workspaceBaseUrl) {
+                baseUrl = Terrasoft.workspaceBaseUrl;
+            } else if (Terrasoft.configuration && Terrasoft.configuration.serviceUrl) {
+                baseUrl = Terrasoft.configuration.serviceUrl;
+            } else {
+                // Method 2: Build from window.location
+                var loc = window.location;
+                baseUrl = loc.protocol + '//' + loc.host;
+            }
+            
+            // Define the URL for app domain unloading
+            var unloadAppDomainUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/UnloadAppDomain";
+            console.log("Using Terrasoft.AjaxProvider to restart app at URL: " + unloadAppDomainUrl);
+            
+            // Execute the restart operation
+            Terrasoft.AjaxProvider.request({
+                url: unloadAppDomainUrl,
+                method: "POST",
+                data: JSON.stringify({}), // Empty JSON object as data
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                callback: function(response) {
+                    if (response && response.success) {
+                        // Operation succeeded - perform page reload
+                        console.log("UnloadAppDomain successful, reloading page");
+                        reloadPage();
+                    } else {
+                        // Operation failed
+                        var errorMessage = (response && response.errorInfo) ? 
+                            response.errorInfo : "Unknown error occurred";
+                        
+                        if (typeof Terrasoft.showError === 'function') {
+                            Terrasoft.showError("Failed to restart application: " + errorMessage);
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Failed to restart application: ' + errorMessage;
+                            notificationElement.style.backgroundColor = '#f44336';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 5000);
+                        }
+                        console.error("Restart operation failed:", errorMessage);
+                        
+                        // Try fallback reload method
+                        console.log("Attempting fallback restart method");
+                        reloadPage();
+                    }
+                }
+            });
+        } else {
+            // Fallback using standard fetch if Terrasoft.AjaxProvider is not available
+            console.warn("Terrasoft service methods not available, using fetch fallback");
+            
+            var baseUrl = window.location.protocol + '//' + window.location.host;
+            var unloadAppDomainUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/UnloadAppDomain";
+            
+            fetch(unloadAppDomainUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({}), // Empty JSON object
+                credentials: 'include' // Include cookies for authentication
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success) {
+                    // Operation succeeded
+                    console.log("UnloadAppDomain successful, reloading page");
+                    reloadPage();
+                } else {
+                    // Operation failed
+                    var errorMessage = (data && data.errorInfo) ? 
+                        data.errorInfo : "Unknown error occurred";
+                    
+                    if (notificationElement) {
+                        notificationElement.textContent = 'Failed to restart application: ' + errorMessage;
+                        notificationElement.style.backgroundColor = '#f44336';
+                        setTimeout(function() {
+                            notificationElement.remove();
+                        }, 3000);
+                    }
+                    console.error("Restart operation failed:", errorMessage);
+                    
+                    // Try fallback reload method
+                    reloadPage();
+                }
+            })
+            .catch(function(error) {
+                if (notificationElement) {
+                    notificationElement.textContent = 'Error executing restart: ' + error.message;
+                    notificationElement.style.backgroundColor = '#f44336';
+                    setTimeout(function() {
+                        notificationElement.remove();
+                    }, 3000);
+                }
+                console.error("Restart operation error:", error);
+                
+                // Try fallback reload method
+                reloadPage();
+            });
+        }
     } catch (error) {
-        console.error("Error during application restart:", error);
+        console.error("Exception in RestartApp script:", error);
         
-        // Show error notification
+        // Display error notification
         var errorNotification = document.createElement('div');
-        errorNotification.textContent = 'Error during restart: ' + error.message;
+        errorNotification.textContent = 'Error in restart operation: ' + error.message;
         errorNotification.style.position = 'fixed';
         errorNotification.style.top = '10px';
         errorNotification.style.left = '50%';
@@ -89,9 +226,14 @@
         errorNotification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
         document.body.appendChild(errorNotification);
         
-        // Remove after delay
+        // Remove the notification after a few seconds
         setTimeout(function() {
             errorNotification.remove();
-        }, 5000);
+        }, 3000);
+        
+        // Try fallback reload method
+        setTimeout(function() {
+            window.location.reload(true);
+        }, 1500);
     }
 })();

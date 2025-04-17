@@ -30,26 +30,6 @@
     }
     
     try {
-        // Get the base URL in a more reliable way
-        var baseUrl = '';
-        
-        // Method 1: Try to get from workspaceBaseUrl or configuration
-        if (Terrasoft.workspaceBaseUrl) {
-            baseUrl = Terrasoft.workspaceBaseUrl;
-        } else if (Terrasoft.configuration && Terrasoft.configuration.serviceUrl) {
-            baseUrl = Terrasoft.configuration.serviceUrl;
-        } else {
-            // Method 2: Build from window.location
-            var loc = window.location;
-            baseUrl = loc.protocol + '//' + loc.host;
-        }
-        
-        // Define the URL for Redis flushing operation
-        var redisFlushUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
-        
-        // Log for debugging
-        console.log("Attempting to flush Redis DB using URL: " + redisFlushUrl);
-        
         // Show notification to user
         if (typeof Terrasoft.showInformation === 'function') {
             Terrasoft.showInformation("Flushing Redis database...");
@@ -74,12 +54,71 @@
             // Store the notification element for later removal
             var notificationElement = notification;
         }
-        
-        // Execute the Redis flush operation
-        if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
+
+        // Use the Terrasoft.ServiceProvider approach which is more reliable
+        if (Terrasoft.ServiceProvider && typeof Terrasoft.ServiceProvider.callService === 'function') {
+            // Using Terrasoft's native service provider
+            console.log("Using Terrasoft.ServiceProvider to flush Redis");
+            
+            Terrasoft.ServiceProvider.callService({
+                serviceName: "AppInstallerService",
+                methodName: "ClearRedisDb",
+                data: {},
+                callback: function(response) {
+                    if (response && response.success) {
+                        // Operation succeeded
+                        if (typeof Terrasoft.showInformation === 'function') {
+                            Terrasoft.showInformation("Redis database successfully flushed");
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Redis database successfully flushed';
+                            notificationElement.style.backgroundColor = '#4CAF50';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 3000);
+                        }
+                        console.log("Redis flush operation completed successfully");
+                    } else {
+                        // Operation failed
+                        var errorMessage = (response && response.errorInfo) ? 
+                            response.errorInfo : "Unknown error occurred";
+                        
+                        if (typeof Terrasoft.showError === 'function') {
+                            Terrasoft.showError("Failed to flush Redis database: " + errorMessage);
+                        } else if (notificationElement) {
+                            notificationElement.textContent = 'Failed to flush Redis database: ' + errorMessage;
+                            notificationElement.style.backgroundColor = '#f44336';
+                            setTimeout(function() {
+                                notificationElement.remove();
+                            }, 5000);
+                        }
+                        console.error("Redis flush operation failed:", errorMessage);
+                    }
+                }
+            });
+        } else if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
+            // Get the base URL in a more reliable way
+            var baseUrl = '';
+            
+            // Method 1: Try to get from workspaceBaseUrl or configuration
+            if (Terrasoft.workspaceBaseUrl) {
+                baseUrl = Terrasoft.workspaceBaseUrl;
+            } else if (Terrasoft.configuration && Terrasoft.configuration.serviceUrl) {
+                baseUrl = Terrasoft.configuration.serviceUrl;
+            } else {
+                // Method 2: Build from window.location
+                var loc = window.location;
+                baseUrl = loc.protocol + '//' + loc.host;
+            }
+            
+            // Define the URL for Redis flushing operation
+            var redisFlushUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
+            console.log("Using Terrasoft.AjaxProvider to flush Redis at URL: " + redisFlushUrl);
+            
+            // Try with application/json content type
             Terrasoft.AjaxProvider.request({
                 url: redisFlushUrl,
                 method: "POST",
+                data: JSON.stringify({}), // Empty JSON object as data
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -113,16 +152,20 @@
                         console.error("Redis flush operation failed:", errorMessage);
                     }
                 }
-            }, this);
+            });
         } else {
-            // Fallback using standard fetch if Terrasoft.AjaxProvider is not available
-            console.warn("Terrasoft.AjaxProvider not available, using fetch fallback");
+            // Fallback using standard fetch if Terrasoft methods are not available
+            console.warn("Terrasoft service methods not available, using fetch fallback");
+            
+            var baseUrl = window.location.protocol + '//' + window.location.host;
+            var redisFlushUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
             
             fetch(redisFlushUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                body: JSON.stringify({}), // Empty JSON object
                 credentials: 'include' // Include cookies for authentication
             })
             .then(function(response) {
