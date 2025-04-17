@@ -13,7 +13,8 @@ function isShellPage() {
     'bitbucket.org',
     'google.com',
     'mail.google.com',
-    'youtube.com'
+    'youtube.com',
+    'atlassian.net'
   ];
   
   // Если текущий домен в списке исключений, не активируем плагин
