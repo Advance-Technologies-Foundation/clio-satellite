@@ -10,18 +10,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             const activeTab = tabs[0];
             
+            // Handle both script path formats
+            let scriptPath;
+            if (message.scriptPath) {
+                // If scriptPath is provided, use it directly (for actions scripts)
+                scriptPath = `scripts/${message.scriptPath}`;
+            } else {
+                // For backward compatibility with navigation scripts
+                scriptPath = `scripts/navigation/${message.scriptName}`;
+            }
+            
             chrome.scripting.executeScript({
                 target: {tabId: activeTab.id},
-                files: [`scripts/navigation/${message.scriptName}`]
+                files: [scriptPath]
             })
             .then(() => {
-                console.log(`Script ${message.scriptName} executed successfully`);
+                console.log(`Script ${scriptPath} executed successfully`);
+                sendResponse({ success: true });
             })
             .catch(error => {
-                console.error(`Error executing script ${message.scriptName}:`, error);
+                console.error(`Error executing script ${scriptPath}:`, error);
+                sendResponse({ success: false, error: error.message });
             });
         });
+        
+        return true; // Keep the message channel open for asynchronous response
     }
-    
-    return true; // Keep the message channel open for asynchronous response
 });
