@@ -328,6 +328,75 @@ function createScriptsMenu() {
         menuButton.style.transform = 'none';
         menuButton.style.pointerEvents = 'auto'; // Возвращаем возможность кликать
         menuButton.style.margin = 'auto'; // Центрируем по вертикали
+
+        // Append the second button to the same container as the first button
+        if (centerContainer) {
+          const secondMenuButton = document.createElement('button');
+          secondMenuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
+          secondMenuButton.style.marginLeft = '10px'; // Add spacing between buttons
+          secondMenuButton.style.display = 'inline-flex';
+          secondMenuButton.style.alignItems = 'center';
+          secondMenuButton.style.justifyContent = 'center';
+
+          // Add icon to the second button
+          const secondIconImg = document.createElement('img');
+          secondIconImg.src = chrome.runtime.getURL('icon128.png');
+          secondIconImg.style.width = '24px';
+          secondIconImg.style.height = '24px';
+          secondIconImg.style.marginRight = '8px';
+
+          // Add text to the second button
+          const secondButtonText = document.createElement('span');
+          secondButtonText.textContent = 'Clio Satellite 2';
+
+          // Append icon and text to the second button
+          secondMenuButton.appendChild(secondIconImg);
+          secondMenuButton.appendChild(secondButtonText);
+
+          // Append the second button to the center container
+          centerContainer.appendChild(secondMenuButton);
+
+          console.log("Second button added successfully");
+
+          // Add event listeners and logic for the second button
+          const secondMenuContainer = document.createElement('div');
+          secondMenuContainer.className = 'scripts-menu-container';
+          secondMenuContainer.style.position = 'fixed';
+          secondMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px'; // Below the button
+          secondMenuContainer.style.left = '50%';
+          secondMenuContainer.style.transform = 'translateX(-50%)';
+          secondMenuContainer.style.zIndex = '9999';
+          secondMenuContainer.style.backgroundColor = 'white';
+          secondMenuContainer.style.borderRadius = '4px';
+          secondMenuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+          secondMenuContainer.style.display = 'none';
+          secondMenuContainer.style.flexDirection = 'column';
+          secondMenuContainer.style.width = '250px';
+          secondMenuContainer.style.maxHeight = '80vh';
+          secondMenuContainer.style.overflowY = 'auto';
+
+          secondMenuButton.addEventListener('click', () => {
+            if (secondMenuContainer.style.display === 'none') {
+              secondMenuContainer.style.display = 'flex';
+            } else {
+              secondMenuContainer.style.display = 'none';
+            }
+          });
+
+          document.addEventListener('click', (event) => {
+            if (!secondMenuButton.contains(event.target) && !secondMenuContainer.contains(event.target)) {
+              secondMenuContainer.style.display = 'none';
+            }
+          });
+
+          // Append the second menu container to the document
+          try {
+            document.body.appendChild(secondMenuContainer);
+            console.log("Second menu container added successfully");
+          } catch (error) {
+            console.error("Error appending second menu container:", error);
+          }
+        }
       } else {
         // Если toolbar не найден, добавляем кнопку в body как раньше
         document.body.appendChild(menuButton);
