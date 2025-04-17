@@ -109,15 +109,27 @@ function createScriptsMenu() {
     console.log(`Found search element, position: ${topPosition}`);
   }
   
-  // Create the main menu button
+  // Create a wrapper for buttons
+  const buttonWrapper = document.createElement('div');
+  buttonWrapper.style.display = 'flex';
+  buttonWrapper.style.alignItems = 'center';
+  buttonWrapper.style.justifyContent = 'center';
+  buttonWrapper.style.position = 'fixed';
+  buttonWrapper.style.top = topPosition; // Используем позицию элемента поиска
+  buttonWrapper.style.left = '50%';
+  buttonWrapper.style.transform = 'translateX(-50%)';
+  buttonWrapper.style.zIndex = '9999';
+
+  // Create the main menu button (now without positioning styles)
   const menuButton = document.createElement('button');
   menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
-  menuButton.style.position = 'fixed';
-  menuButton.style.top = topPosition; // Используем позицию элемента поиска
-  menuButton.style.left = '50%';
-  menuButton.style.transform = 'translateX(-50%)';
-  menuButton.style.zIndex = '9999';
-  // Удаляем встроенные стили, которые будут переопределены классами mat-flat-button.mat-primary
+  // Remove positioning styles as they're handled by the wrapper
+  menuButton.style.position = 'relative';
+  menuButton.style.top = 'auto';
+  menuButton.style.left = 'auto';
+  menuButton.style.transform = 'none';
+  menuButton.style.zIndex = 'inherit';
+  // Удаляем встроенные стили, которые будут переопределены классами мат-flat-button.mat-primary
   menuButton.style.display = 'flex';
   menuButton.style.alignItems = 'center';
   menuButton.style.justifyContent = 'center';
@@ -136,6 +148,28 @@ function createScriptsMenu() {
   // Добавляем иконку и текст к кнопке
   menuButton.appendChild(iconImg);
   menuButton.appendChild(buttonText);
+  
+  // Создаем кнопку Actions
+  const actionsButton = document.createElement('button');
+  actionsButton.className = 'actions-button mat-flat-button mat-accent';
+  actionsButton.style.position = 'relative';
+  actionsButton.style.top = 'auto';
+  actionsButton.style.left = 'auto';
+  actionsButton.style.transform = 'none';
+  actionsButton.style.zIndex = 'inherit';
+  actionsButton.style.display = 'flex';
+  actionsButton.style.alignItems = 'center';
+  actionsButton.style.justifyContent = 'center';
+  actionsButton.style.marginLeft = '10px'; // Отступ от первой кнопки
+  
+  // Добавляем текст к кнопке Actions
+  const actionsButtonText = document.createElement('span');
+  actionsButtonText.textContent = 'Actions';
+  actionsButton.appendChild(actionsButtonText);
+  
+  // Add buttons to the wrapper
+  buttonWrapper.appendChild(menuButton);
+  buttonWrapper.appendChild(actionsButton);
 
   // Create the dropdown menu container
   const menuContainer = document.createElement('div');
@@ -282,15 +316,15 @@ function createScriptsMenu() {
     if (searchElement && searchElement.parentElement) {
       // Если найден элемент поиска, добавляем кнопку в его родительский элемент сразу после него
       const searchParent = searchElement.parentElement;
-      searchElement.insertAdjacentElement('afterend', menuButton);
+      searchElement.insertAdjacentElement('afterend', buttonWrapper);
       
       // Обновляем стили кнопки для размещения рядом с полем поиска
-      menuButton.style.position = 'relative';
-      menuButton.style.top = 'auto';
-      menuButton.style.left = 'auto';
-      menuButton.style.transform = 'none';
-      menuButton.style.margin = '0 5px';
-      menuButton.style.height = 'auto';
+      buttonWrapper.style.position = 'relative';
+      buttonWrapper.style.top = 'auto';
+      buttonWrapper.style.left = 'auto';
+      buttonWrapper.style.transform = 'none';
+      buttonWrapper.style.margin = '0 5px';
+      buttonWrapper.style.height = 'auto';
       
       console.log("Button placed next to search element on initial creation");
     }
@@ -301,7 +335,7 @@ function createScriptsMenu() {
       
       if (appToolbar) {
         // Если toolbar найден, вставляем кнопку в него
-        appToolbar.appendChild(menuButton);
+        appToolbar.appendChild(buttonWrapper);
         console.log("Button inserted into crt-app-toolbar");
         
         // Создаем контейнер для центрирования кнопки внутри toolbar
@@ -317,20 +351,20 @@ function createScriptsMenu() {
         centerContainer.style.zIndex = '1'; // Чтобы был ниже, чем другие элементы toolbar
         
         // Перемещаем кнопку внутрь контейнера для центрирования
-        menuButton.remove(); // Убираем кнопку из toolbar
-        centerContainer.appendChild(menuButton);
+        buttonWrapper.remove(); // Убираем кнопку из toolbar
+        centerContainer.appendChild(buttonWrapper);
         appToolbar.appendChild(centerContainer);
         
         // Обновляем стили кнопки
-        menuButton.style.position = 'relative';
-        menuButton.style.top = 'auto';
-        menuButton.style.left = 'auto';
-        menuButton.style.transform = 'none';
-        menuButton.style.pointerEvents = 'auto'; // Возвращаем возможность кликать
-        menuButton.style.margin = 'auto'; // Центрируем по вертикали
+        buttonWrapper.style.position = 'relative';
+        buttonWrapper.style.top = 'auto';
+        buttonWrapper.style.left = 'auto';
+        buttonWrapper.style.transform = 'none';
+        buttonWrapper.style.pointerEvents = 'auto'; // Возвращаем возможность кликать
+        buttonWrapper.style.margin = 'auto'; // Центрируем по вертикали
       } else {
         // Если toolbar не найден, добавляем кнопку в body как раньше
-        document.body.appendChild(menuButton);
+        document.body.appendChild(buttonWrapper);
         console.log("crt-app-toolbar not found, button added to body");
       }
     }
@@ -347,32 +381,32 @@ function createScriptsMenu() {
 
 // Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
 function updateMenuPosition() {
-  const menuButton = document.querySelector('.scripts-menu-button');
+  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
   const menuContainer = document.querySelector('.scripts-menu-container');
   
-  if (!menuButton || !menuContainer) return;
+  if (!buttonWrapper || !menuContainer) return;
   
-  // Проверяем, находится ли кнопка внутри app-toolbar
-  const isInToolbar = !!menuButton.closest('crt-app-toolbar');
+  // Проверяем, находится ли wrapper внутри app-toolbar
+  const isInToolbar = !!buttonWrapper.closest('crt-app-toolbar');
   
-  // Если кнопка уже в тулбаре, обновляем только позицию выпадающего меню
+  // Если wrapper уже в тулбаре, обновляем только позицию выпадающего меню
   if (isInToolbar) {
     // Обновляем позицию контейнера меню относительно центра экрана
-    const buttonRect = menuButton.getBoundingClientRect();
+    const buttonRect = buttonWrapper.getBoundingClientRect();
     menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
     menuContainer.style.left = '50%'; // По центру экрана
     menuContainer.style.transform = 'translateX(-50%)'; // Смещаем на половину своей ширины влево
     return;
   }
   
-  // Если кнопка не в тулбаре, используем старую логику
-  const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') || 
+  // Если wrapper не в тулбаре, используем старую логику
+  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]') || 
                        document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
                        document.querySelector('.global-search');
   
   if (searchElement) {
     const searchRect = searchElement.getBoundingClientRect();
-    menuButton.style.top = searchRect.top + 'px';
+    buttonWrapper.style.top = searchRect.top + 'px';
     menuContainer.style.top = (searchRect.top + 40) + 'px';
     console.log(`Updated menu position to match search element: ${searchRect.top}px`);
   }
