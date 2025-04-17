@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             
             chrome.scripting.executeScript({
                 target: {tabId: activeTab.id},
-                files: [`scripts/${message.scriptName}`]
+                files: [`scripts/Navigations/${message.scriptName}`]
             })
             .then(() => {
                 console.log(`Script ${message.scriptName} executed successfully`);

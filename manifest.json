@@ -16,7 +16,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "scripts/*", "icon48.png", "icon128.png"],
+      "resources": ["styles.css", "scripts/Navigations/*", "icon48.png", "icon128.png"],
       "matches": ["<all_urls>"]
     }
   ],
