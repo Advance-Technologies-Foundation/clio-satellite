@@ -14,7 +14,8 @@ function isShellPage() {
     'google.com',
     'mail.google.com',
     'youtube.com',
-    'atlassian.net'
+    'atlassian.net',
+    'upsource.creatio.com'
   ];
   
   // Если текущий домен в списке исключений, не активируем плагин
