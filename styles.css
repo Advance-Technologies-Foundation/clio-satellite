@@ -17,17 +17,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 32px;
     z-index: inherit;
     height: 32px; /* Стандартная высота поля поиска в Creatio */
     padding: 0 12px;
-    vertical-align: middle;
+    line-height: 1;
+    box-sizing: border-box;
+    min-width: 140px; /* Минимальная ширина для предотвращения переноса текста */
+    white-space: nowrap; /* Предотвращение переноса текста */
+    flex-direction: row; /* Принудительное горизонтальное расположение */
 }
 
-.scripts-menu-button img {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
+.scripts-menu-button .button-text {
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 /* Styles for actions button */
@@ -36,16 +39,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 32px;
     margin-left: 10px;
     z-index: inherit;
     height: 32px; /* Стандартная высота поля поиска в Creatio */
     padding: 0 12px;
-    vertical-align: middle;
+    line-height: 1;
+    box-sizing: border-box;
 }
 
-.actions-button span {
+.actions-button .actions-icon {
     font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 /* Styles for button wrapper */
@@ -60,6 +67,7 @@
     z-index: 9999;
     background-color: transparent;
     height: 32px; /* Соответствует высоте поля поиска */
+    box-sizing: border-box;
 }
 
 /* Button wrapper when in toolbar */
@@ -177,6 +185,13 @@
     justify-content: center;
     gap: 10px;
     height: 32px; /* Соответствует высоте поля поиска */
+    box-sizing: border-box;
+}
+
+/* Добавляем стили для кнопок в центрированном тулбаре */
+.centered-toolbar .scripts-menu-button,
+.centered-toolbar .actions-button {
+    flex-direction: row;
 }
 
 /* Styles for login button */

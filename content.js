@@ -15,7 +15,12 @@ function isShellPage() {
     'youtube.com',
     'atlassian.net',
     'upsource.creatio.com',
-    'work.creatio.com'
+    'work.creatio.com',
+    'creatio.atlassian.nеt',
+    'creatio.com',
+    'community.creatio.com',
+    'academy.creatio.com',
+    'studio.creatio.com',
   ];
 
   for (const domain of excludedDomains) {
@@ -53,6 +58,26 @@ function isShellPage() {
   }
 
   return isCreatio;
+}
+
+// Функция для определения страницы логина
+function isLoginPage() {
+  // Проверяем наличие элементов формы логина
+  const loginElements = [
+    document.querySelector('#loginEdit-el'),
+    document.querySelector('#passwordEdit-el'),
+    document.querySelector('.login-button-login')
+  ];
+  
+  // Если найдено хотя бы 2 из 3 элементов, считаем что это страница логина
+  const foundElements = loginElements.filter(element => element);
+  const isLogin = foundElements.length >= 2;
+  
+  if (isLogin) {
+    console.log("Login page detected");
+  }
+  
+  return isLogin;
 }
 
 // Функция для загрузки стилей CSS
@@ -99,23 +124,25 @@ function createScriptsMenu() {
 
   const menuButton = document.createElement('button');
   menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
+  // Добавляем подсказку на английском
+  menuButton.title = "Navigation menu added by Clio Satellite plugin to enhance advanced user experience with Creatio platform";
 
-  const iconImg = document.createElement('img');
-  iconImg.src = chrome.runtime.getURL('icon128.png');
-
+  // Создаем только текст кнопки без иконки
   const buttonText = document.createElement('span');
-  buttonText.textContent = 'Clio Satelite : Try me!';
+  buttonText.textContent = 'Navigation';
+  buttonText.className = 'button-text';
 
-  menuButton.appendChild(iconImg);
   menuButton.appendChild(buttonText);
 
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
+  // Добавляем подсказку на английском
+  actionsButton.title = "Actions menu added by Clio Satellite plugin to enhance advanced user experience with Creatio platform";
 
   // Replace text with an icon
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon symbolizing actions/operations
-  actionsButtonIcon.title = 'Actions'; // Add tooltip to explain what the button does
+  actionsButtonIcon.className = 'actions-icon';
   actionsButton.appendChild(actionsButtonIcon);
 
   buttonWrapper.appendChild(menuButton);
@@ -355,23 +382,25 @@ function createCenteredToolbar() {
   // Создаем кнопку скриптов для центрированного тулбара
   const scriptsButton = document.createElement('button');
   scriptsButton.className = 'scripts-menu-button mat-flat-button mat-primary';
+  // Добавляем подсказку на английском
+  scriptsButton.title = "Navigation menu added by Clio Satellite plugin to enhance advanced user experience with Creatio platform";
 
-  const iconImg = document.createElement('img');
-  iconImg.src = chrome.runtime.getURL('icon128.png');
-
+  // Создаем только текст кнопки без иконки
   const buttonText = document.createElement('span');
-  buttonText.textContent = 'Clio Satelite';
+  buttonText.textContent = 'Navigation';
+  buttonText.className = 'button-text';
 
-  scriptsButton.appendChild(iconImg);
   scriptsButton.appendChild(buttonText);
 
   // Создаем кнопку действий
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
+  // Добавляем подсказку на английском
+  actionsButton.title = "Actions menu added by Clio Satellite plugin to enhance advanced user experience with Creatio platform";
 
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.textContent = '⚡'; 
-  actionsButtonIcon.title = 'Actions';
+  actionsButtonIcon.className = 'actions-icon';
   actionsButton.appendChild(actionsButtonIcon);
 
   // Добавляем кнопки в тулбар
@@ -696,6 +725,13 @@ const positionObserver = new MutationObserver(() => {
 // Function to check page and create menu if needed
 function checkShellAndCreateMenu() {
   console.log("Checking for Shell page");
+  
+  // Проверяем, не является ли страница страницей логина
+  if (isLoginPage()) {
+    console.log("Login page detected, not adding navigation and actions buttons");
+    return false;
+  }
+  
   if (isShellPage() && !menuCreated) {
     console.log("Shell page detected, creating scripts menu");
     createScriptsMenu();
