@@ -136,9 +136,12 @@ function createScriptsMenu() {
   actionsButton.style.justifyContent = 'center';
   actionsButton.style.marginLeft = '10px';
 
-  const actionsButtonText = document.createElement('span');
-  actionsButtonText.textContent = 'Actions';
-  actionsButton.appendChild(actionsButtonText);
+  // Replace text with an icon
+  const actionsButtonIcon = document.createElement('span');
+  actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon symbolizing actions/operations
+  actionsButtonIcon.style.fontSize = '20px';
+  actionsButtonIcon.title = 'Actions'; // Add tooltip to explain what the button does
+  actionsButton.appendChild(actionsButtonIcon);
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);

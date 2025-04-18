@@ -30,6 +30,14 @@
     }
     
     try {
+        // Function to reload the page after successful operation
+        function reloadPage() {
+            console.log("Reloading page after Redis flush...");
+            setTimeout(function() {
+                window.location.reload(true);
+            }, 1500);
+        }
+        
         // Show notification to user
         if (typeof Terrasoft.showInformation === 'function') {
             Terrasoft.showInformation("Flushing Redis database...");
@@ -68,15 +76,18 @@
                     if (response && response.success) {
                         // Operation succeeded
                         if (typeof Terrasoft.showInformation === 'function') {
-                            Terrasoft.showInformation("Redis database successfully flushed");
+                            Terrasoft.showInformation("Redis database successfully flushed. Reloading page...");
                         } else if (notificationElement) {
-                            notificationElement.textContent = 'Redis database successfully flushed';
+                            notificationElement.textContent = 'Redis database successfully flushed. Reloading page...';
                             notificationElement.style.backgroundColor = '#4CAF50';
                             setTimeout(function() {
                                 notificationElement.remove();
                             }, 3000);
                         }
                         console.log("Redis flush operation completed successfully");
+                        
+                        // Reload the page after successful Redis flush
+                        
                     } else {
                         // Operation failed
                         var errorMessage = (response && response.errorInfo) ? 
@@ -93,6 +104,7 @@
                         }
                         console.error("Redis flush operation failed:", errorMessage);
                     }
+                    reloadPage();
                 }
             });
         } else if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
@@ -126,9 +138,9 @@
                     if (response && response.success) {
                         // Operation succeeded
                         if (typeof Terrasoft.showInformation === 'function') {
-                            Terrasoft.showInformation("Redis database successfully flushed");
+                            Terrasoft.showInformation("Redis database successfully flushed. Reloading page...");
                         } else if (notificationElement) {
-                            notificationElement.textContent = 'Redis database successfully flushed';
+                            notificationElement.textContent = 'Redis database successfully flushed. Reloading page...';
                             notificationElement.style.backgroundColor = '#4CAF50';
                             setTimeout(function() {
                                 notificationElement.remove();
@@ -151,6 +163,7 @@
                         }
                         console.error("Redis flush operation failed:", errorMessage);
                     }
+                    reloadPage();
                 }
             });
         } else {
@@ -175,13 +188,13 @@
                 if (data && data.success) {
                     // Operation succeeded
                     if (notificationElement) {
-                        notificationElement.textContent = 'Redis database successfully flushed';
+                        notificationElement.textContent = 'Redis database successfully flushed. Reloading page...';
                         notificationElement.style.backgroundColor = '#4CAF50';
                         setTimeout(function() {
                             notificationElement.remove();
                         }, 3000);
                     }
-                    console.log("Redis flush operation completed successfully");
+                    console.log("Redis flush operation completed successfully");                    
                 } else {
                     // Operation failed
                     var errorMessage = (data && data.errorInfo) ? 
@@ -196,6 +209,7 @@
                     }
                     console.error("Redis flush operation failed:", errorMessage);
                 }
+                reloadPage();
             })
             .catch(function(error) {
                 if (notificationElement) {
