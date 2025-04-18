@@ -1,7 +1,18 @@
-// FlushRedisDB.js
-// Script to flush Redis database in Creatio
+/**
+ * FlushRedisDB.js
+ * Script to flush Redis database in Creatio
+ * 
+ * This script clears the Redis database cache in Creatio, which helps
+ * resolve issues related to cached data and configuration.
+ */
 
 (function() {
+    /**
+     * Self-executing function that performs Redis database flush
+     * Uses multiple approaches to ensure compatibility with different
+     * Creatio versions and configurations
+     */
+    
     // Safety check to ensure we're in the correct context
     if (typeof Terrasoft === 'undefined') {
         console.error("Terrasoft object not found in the page context");
@@ -30,7 +41,10 @@
     }
     
     try {
-        // Function to reload the page after successful operation
+        /**
+         * Reloads the page after successful operation
+         * This ensures the application loads with fresh data after the cache is cleared
+         */
         function reloadPage() {
             console.log("Reloading page after Redis flush...");
             setTimeout(function() {

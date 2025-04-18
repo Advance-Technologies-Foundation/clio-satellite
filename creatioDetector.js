@@ -1,11 +1,11 @@
 /**
- * Модуль для определения страниц Creatio
- * Содержит функции для проверки признаков Creatio на странице
+ * Creatio page detection module
+ * Contains functions for detecting Creatio-specific elements on the page
  */
 
 /**
- * Список индикаторов, указывающих на то, что страница относится к Creatio
- * @returns {Array} Массив найденных элементов-индикаторов Creatio
+ * Gets a list of indicators that suggest the page is a Creatio application
+ * @returns {Array} Array of found Creatio indicator elements
  */
 function getCreatioIndicators() {
   return [
@@ -25,11 +25,11 @@ function getCreatioIndicators() {
 }
 
 /**
- * Функция проверки наличия минимального количества признаков Creatio на странице
- * @returns {boolean} True если страница относится к Creatio, иначе False
+ * Checks if the current page has the minimum required Creatio indicators
+ * @returns {boolean} True if the page is a Creatio application, otherwise False
  */
 function isCreatioPage() {
-  // Сначала проверяем, исключен ли домен
+  // First check if the domain is excluded
   if (typeof isExcludedDomain === 'function' && isExcludedDomain()) {
     return false;
   }
@@ -50,17 +50,17 @@ function isCreatioPage() {
 }
 
 /**
- * Функция проверки является ли страница Shell-страницей Creatio
- * Shell страница - основной интерфейс системы с тулбаром и меню
- * @returns {boolean} True если страница является Shell-страницей Creatio, иначе False
+ * Checks if the current page is a Creatio Shell page
+ * Shell page is the main interface of the system with toolbar and menu
+ * @returns {boolean} True if the page is a Creatio Shell page, otherwise False
  */
 function isShellPage() {
-  // Проверяем признаки Creatio
+  // Check for Creatio indicators first
   if (!isCreatioPage()) {
     return false;
   }
 
-  // Дополнительно проверяем наличие элементов Shell
+  // Additionally check for Shell-specific elements
   const shellSpecificIndicators = [
     document.querySelector('crt-app-toolbar'),
     document.getElementById('ShellContainerWithBackground'),
@@ -79,11 +79,11 @@ function isShellPage() {
 }
 
 /**
- * Функция проверки является ли текущая страница страницей логина Creatio
- * @returns {boolean} True если страница является страницей логина, иначе False
+ * Checks if the current page is a Creatio login page
+ * @returns {boolean} True if the page is a login page, otherwise False
  */
 function isLoginPage() {
-  // Проверяем наличие элементов формы логина
+  // Check for login form elements
   const usernameField = document.querySelector('#loginEdit-el');
   const passwordField = document.querySelector('#passwordEdit-el');
   const loginButton = document.querySelector('.login-button-login');
@@ -97,7 +97,7 @@ function isLoginPage() {
   return isLogin;
 }
 
-// Экспорт функций для использования в других файлах
+// Export functions for use in other files
 window.isCreatioPage = isCreatioPage;
 window.isShellPage = isShellPage;
 window.isLoginPage = isLoginPage;

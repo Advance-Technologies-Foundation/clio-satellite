@@ -2,7 +2,10 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-// Функция для загрузки стилей CSS
+/**
+ * Loads CSS styles for the extension UI
+ * Adds the styles.css file to the page if it hasn't been loaded yet
+ */
 function loadStyles() {
   if (document.querySelector('link[href*="styles.css"]')) {
     console.log("Styles already loaded");
@@ -16,7 +19,12 @@ function loadStyles() {
   console.log("Styles loaded");
 }
 
-// Функция для создания меню скриптов напрямую из content script
+/**
+ * Creates the main scripts navigation menu
+ * This function builds the primary UI for the extension, including the main navigation
+ * button and the actions button, with their respective dropdown menus
+ * @returns {boolean} True if menu was created successfully, false if creation was skipped or failed
+ */
 function createScriptsMenu() {
   console.log("Creating scripts menu");
   
@@ -47,7 +55,6 @@ function createScriptsMenu() {
 
   const buttonWrapper = document.createElement('div');
   buttonWrapper.className = 'button-wrapper';
-  // Устанавливаем только динамические свойства
   buttonWrapper.style.top = topPosition;
 
   const menuButton = document.createElement('button');
@@ -65,7 +72,6 @@ function createScriptsMenu() {
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
 
-  // Replace text with an icon
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon symbolizing actions/operations
   actionsButtonIcon.title = 'Actions'; // Add tooltip to explain what the button does
@@ -76,7 +82,6 @@ function createScriptsMenu() {
 
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container';
-  // Устанавливаем только динамические свойства
   menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
   const scriptDescriptions = {
@@ -152,7 +157,6 @@ function createScriptsMenu() {
 
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.className = 'actions-menu-container';
-  // Устанавливаем только динамические свойства
   actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
   const actionsScriptDescriptions = {
@@ -273,14 +277,21 @@ function createScriptsMenu() {
     console.log("Scripts menu created successfully");
     menuCreated = true;
     actionsMenuCreated = true;
+    return true;
   } catch (error) {
     console.error("Error appending menu elements:", error);
     menuCreated = false;
     actionsMenuCreated = false;
+    return false;
   }
 }
 
-// Функция для создания центрального тулбара на страницах, где нет обычного тулбара или search элемента
+/**
+ * Creates a centered toolbar for pages without standard toolbar
+ * This function is used as a fallback when the standard Creatio toolbar
+ * or search element is not present on the page
+ * @returns {boolean} True if the centered toolbar was created, false otherwise
+ */
 function createCenteredToolbar() {
   console.log("Creating centered toolbar for pages without standard toolbar");
   
@@ -297,21 +308,17 @@ function createCenteredToolbar() {
     return;
   }
 
-  // Проверяем наличие стандартного тулбара или поиска
   const hasToolbar = !!document.querySelector('crt-app-toolbar');
   const hasSearch = !!document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
   
-  // Если уже есть тулбар или поиск, не создаем новый центрированный тулбар
   if (hasToolbar || hasSearch) {
     console.log("Standard toolbar or search element found, not creating centered toolbar");
     return;
   }
 
-  // Создаем контейнер для центрированного тулбара
   const centeredToolbar = document.createElement('div');
   centeredToolbar.className = 'centered-toolbar';
 
-  // Создаем кнопку скриптов для центрированного тулбара
   const scriptsButton = document.createElement('button');
   scriptsButton.className = 'scripts-menu-button mat-flat-button mat-primary';
 
@@ -324,7 +331,6 @@ function createCenteredToolbar() {
   scriptsButton.appendChild(iconImg);
   scriptsButton.appendChild(buttonText);
 
-  // Создаем кнопку действий
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
 
@@ -333,15 +339,12 @@ function createCenteredToolbar() {
   actionsButtonIcon.title = 'Actions';
   actionsButton.appendChild(actionsButtonIcon);
 
-  // Добавляем кнопки в тулбар
   centeredToolbar.appendChild(scriptsButton);
   centeredToolbar.appendChild(actionsButton);
 
-  // Создаем меню скриптов
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container';
 
-  // Копирование настроек меню скриптов из существующей функции createScriptsMenu
   const scriptDescriptions = {
     'Features': 'Open system features management page',
     'Application_Managment': 'Application managment (App Hub)',
@@ -413,7 +416,6 @@ function createCenteredToolbar() {
     menuContainer.appendChild(menuItem);
   });
 
-  // Создаем меню действий
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.className = 'actions-menu-container';
 
@@ -470,7 +472,6 @@ function createCenteredToolbar() {
     actionsMenuContainer.appendChild(menuItem);
   });
 
-  // Обработчики событий для кнопок
   scriptsButton.addEventListener('click', () => {
     if (menuContainer.style.display === 'none') {
       menuContainer.style.display = 'flex';
@@ -489,7 +490,6 @@ function createCenteredToolbar() {
     }
   });
 
-  // Закрытие меню при клике вне
   document.addEventListener('click', (event) => {
     if (!scriptsButton.contains(event.target) && !menuContainer.contains(event.target)) {
       menuContainer.style.display = 'none';
@@ -499,7 +499,6 @@ function createCenteredToolbar() {
     }
   });
 
-  // Добавляем созданные элементы на страницу
   document.body.appendChild(centeredToolbar);
   document.body.appendChild(menuContainer);
   document.body.appendChild(actionsMenuContainer);
@@ -508,7 +507,11 @@ function createCenteredToolbar() {
   return true;
 }
 
-// Function to place button next to search element if it exists
+/**
+ * Places the extension button next to the search element if it exists
+ * This improves UI integration by positioning our controls near existing UI elements
+ * @returns {boolean} True if button was successfully placed next to search, false otherwise
+ */
 function placeButtonNextToSearch() {
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
   const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
@@ -517,26 +520,21 @@ function placeButtonNextToSearch() {
     return false;
   }
   
-  // If button is already next to search, don't do anything
   if (buttonWrapper.nextElementSibling === searchElement || 
       buttonWrapper.previousElementSibling === searchElement) {
     return true;
   }
   
   try {
-    // Place button next to search element
     searchElement.insertAdjacentElement('afterend', buttonWrapper);
     
-    // Update button styles for inline display
     buttonWrapper.classList.add('button-wrapper-in-toolbar');
     buttonWrapper.classList.remove('button-wrapper');
     
-    // Выравнивание по вертикали с полем поиска
     const searchRect = searchElement.getBoundingClientRect();
     const searchInput = searchElement.querySelector('input') || searchElement;
     if (searchInput) {
       const inputRect = searchInput.getBoundingClientRect();
-      // Центрируем кнопки по вертикали относительно поля ввода
       const verticalCenter = inputRect.top + (inputRect.height / 2);
       const buttonHeight = buttonWrapper.offsetHeight;
       buttonWrapper.style.marginTop = ((verticalCenter - searchRect.top) - (buttonHeight / 2)) + 'px';
@@ -550,7 +548,10 @@ function placeButtonNextToSearch() {
   }
 }
 
-// Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
+/**
+ * Updates the position of the extension menu
+ * Finds the search element and adjusts the position of the scripts button accordingly
+ */
 function updateMenuPosition() {
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
   const menuContainer = document.querySelector('.scripts-menu-container');
@@ -581,11 +582,9 @@ function updateMenuPosition() {
   if (searchElement) {
     const searchRect = searchElement.getBoundingClientRect();
     
-    // Пробуем найти поле ввода внутри элемента поиска
     const searchInput = searchElement.querySelector('input') || searchElement;
     if (searchInput) {
       const inputRect = searchInput.getBoundingClientRect();
-      // Устанавливаем вертикальное положение кнопок на уровне поля ввода
       const verticalCenter = inputRect.top + (inputRect.height / 2);
       const buttonHeight = buttonWrapper.offsetHeight;
       buttonWrapper.style.top = (verticalCenter - (buttonHeight / 2)) + 'px';
@@ -603,7 +602,11 @@ function updateMenuPosition() {
   }
 }
 
-// Функция для перемещения кнопки в toolbar, если он появился
+/**
+ * Moves the extension button to toolbar if it appears
+ * This ensures proper integration with dynamically loaded Creatio UI
+ * @returns {boolean} True if button was moved successfully, false otherwise
+ */
 function moveButtonToToolbar() {
   const menuButton = document.querySelector('.scripts-menu-button');
   const menuContainer = document.querySelector('.scripts-menu-container');
@@ -642,7 +645,7 @@ function moveButtonToToolbar() {
   return true;
 }
 
-// Наблюдаем за изменениями в DOM и обновляем позицию меню
+// Observer to update menu position when DOM changes
 const positionObserver = new MutationObserver(() => {
   if (placeButtonNextToSearch()) {
     return;
@@ -652,11 +655,15 @@ const positionObserver = new MutationObserver(() => {
   moveButtonToToolbar();
 });
 
-// Function to check page and create menu if needed
+/**
+ * Checks the page type and creates appropriate menu
+ * This function determines whether to create standard menu or centered toolbar
+ * based on page content
+ * @returns {boolean} True if menu was created, false otherwise
+ */
 function checkShellAndCreateMenu() {
   console.log("Checking for Shell page");
   
-  // Не добавляем кнопки навигации и действий на странице логина
   if (typeof isLoginPage === 'function' && isLoginPage()) {
     console.log("Login page detected, skipping scripts menu creation");
     return false;
@@ -665,10 +672,12 @@ function checkShellAndCreateMenu() {
   if (isShellPage() && !menuCreated) {
     console.log("Shell page detected, creating scripts menu");
     createScriptsMenu();
+    return true;
   } else if (!menuCreated) {
     console.log("Shell page not detected, checking for toolbar-less page");
-    createCenteredToolbar();
+    return createCenteredToolbar();
   }
+  return false;
 }
 
 // Initial check with slight delay to let page load
@@ -688,7 +697,7 @@ window.addEventListener('load', () => {
   setTimeout(updateMenuPosition, 2000);
 });
 
-// Наблюдаем за изменениями в DOM и обновляем позицию меню
+// Observe DOM changes and update menu position
 setTimeout(() => {
   positionObserver.observe(document.body, { childList: true, subtree: true });
 }, 3000);
@@ -706,13 +715,11 @@ const checkInterval = setInterval(() => {
   }
 }, 1000);
 
-// Also observe DOM changes to detect login page loading
+// Observer to detect login page loading
 const loginObserver = new MutationObserver(() => {
-  // Проверяем, не появилась ли страница логина
   if (typeof isLoginPage === 'function' && isLoginPage()) {
     console.log("Login page detected via mutation observer, removing navigation buttons");
     
-    // Удаляем кнопки навигации и действий, если они есть
     const buttonsToRemove = [
       '.scripts-menu-button',
       '.actions-button',
@@ -730,18 +737,17 @@ const loginObserver = new MutationObserver(() => {
       });
     });
     
-    // Сбрасываем флаги создания меню
     menuCreated = false;
     actionsMenuCreated = false;
   }
 });
 
-// Запускаем наблюдатель за DOM для отслеживания появления страницы логина
+// Start observer to track appearance of login page
 setTimeout(() => {
   loginObserver.observe(document.body, { childList: true, subtree: true });
 }, 1000);
 
-// Also observe DOM changes to detect Shell page loading
+// Observer to detect Shell page loading
 const observer = new MutationObserver(mutations => {
   let shouldCheck = false;
 

@@ -1,13 +1,14 @@
 /**
- * Модуль для добавления вспомогательных элементов на странице логина
- * Позволяет быстро войти в систему под учетной записью Supervisor
+ * Login helper module
+ * Adds helper elements to the login page for quick system access with Supervisor account
  */
 
 /**
- * Функция ожидает загрузки элементов формы логина и добавляет кнопку для входа под Supervisor
+ * Waits for login form elements to load and adds a button for Supervisor login
+ * @returns {boolean} False if domain is excluded, otherwise no return value
  */
 function waitForLoginElements() {
-  // Сначала проверяем, исключен ли домен
+  // First check if domain is excluded
   if (typeof isExcludedDomain === 'function' && isExcludedDomain()) {
     console.log("Domain is in exclusion list, not adding login helper button");
     return false;
@@ -22,7 +23,7 @@ function waitForLoginElements() {
     autoLoginButton.textContent = 'LOGIN AS SUPERVISOR';
     autoLoginButton.className = 'auto-login-button btn';
     
-    // Копируем только динамические атрибуты, которые нельзя вынести в CSS
+    // Copy only dynamic attributes that can't be extracted to CSS
     autoLoginButton.style.width = loginButton.offsetWidth + 'px';
     autoLoginButton.style.height = loginButton.offsetHeight + 'px';
     autoLoginButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
@@ -44,19 +45,21 @@ function waitForLoginElements() {
     
     console.log("Login form elements found and auto login button added");
   } else {
-    // Если элементы формы еще не загружены, пробуем снова через 500мс
+    // If form elements aren't loaded yet, try again in 500ms
     setTimeout(waitForLoginElements, 500);
   }
 }
 
-// Инициализация функционала входа на странице логина
+/**
+ * Initializes the login helper functionality
+ */
 function initLoginHelper() {
   console.log("Initializing login helper");
   waitForLoginElements();
 }
 
-// Экспорт функции для использования в других файлах
+// Export function for use in other files
 window.initLoginHelper = initLoginHelper;
 
-// Автоматически запускаем инициализацию
+// Automatically start initialization
 initLoginHelper();

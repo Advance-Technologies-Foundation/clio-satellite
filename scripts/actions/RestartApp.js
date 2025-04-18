@@ -1,7 +1,18 @@
-// RestartApp.js
-// Script to restart the Creatio application by unloading the app domain
+/**
+ * RestartApp.js
+ * Script to restart the Creatio application by unloading the app domain
+ * 
+ * This script triggers a restart of the Creatio application instance by calling
+ * the UnloadAppDomain method, which clears application cache and refreshes the app.
+ */
 
 (function() {
+    /**
+     * Self-executing function that performs application restart
+     * Uses multiple approaches to ensure compatibility with different
+     * Creatio versions and configurations
+     */
+    
     // Safety check to ensure we're in the correct context
     if (typeof Terrasoft === 'undefined') {
         console.error("Terrasoft object not found in the page context");
@@ -55,7 +66,10 @@
             var notificationElement = notification;
         }
         
-        // Function to reload the page after successful operation
+        /**
+         * Reloads the page after successful operation
+         * This ensures the application restarts with a fresh instance
+         */
         function reloadPage() {
             console.log("Reloading page...");
             setTimeout(function() {
@@ -68,6 +82,10 @@
             // Using Terrasoft's native service provider
             console.log("Using Terrasoft.ServiceProvider to unload app domain");
             
+            /**
+             * Call the UnloadAppDomain method using Terrasoft.ServiceProvider
+             * This is the preferred method in newer Creatio versions
+             */
             Terrasoft.ServiceProvider.callService({
                 serviceName: "AppInstallerService",
                 methodName: "UnloadAppDomain",
@@ -100,6 +118,11 @@
                 }
             });
         } else if (Terrasoft.AjaxProvider && typeof Terrasoft.AjaxProvider.request === 'function') {
+            /**
+             * Alternative method using Terrasoft.AjaxProvider
+             * Used in older versions of Creatio or when ServiceProvider is not available
+             */
+            
             // Get the base URL in a more reliable way
             var baseUrl = '';
             
@@ -154,7 +177,10 @@
                 }
             });
         } else {
-            // Fallback using standard fetch if Terrasoft.AjaxProvider is not available
+            /**
+             * Last resort method using fetch API
+             * Used when no Terrasoft-specific methods are available
+             */
             console.warn("Terrasoft service methods not available, using fetch fallback");
             
             var baseUrl = window.location.protocol + '//' + window.location.host;

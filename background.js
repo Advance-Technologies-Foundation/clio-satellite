@@ -1,9 +1,18 @@
-// This is the background script for the Chrome extension
+/**
+ * Background script for the Chrome extension
+ * Handles communication between the extension and web pages
+ * Acts as a bridge for executing scripts in the context of the active tab
+ */
+
+// Initialize on extension installation
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Background script is running");
 });
 
-// Listen for messages from content script
+/**
+ * Listen for messages from content script
+ * Handles script execution requests from the UI
+ */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'executeScript') {
         // Execute the selected script in the current tab
@@ -51,7 +60,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-// Function to inject and run script in page context
+/**
+ * Injects and executes a script in the page context
+ * @param {string} scriptContent - The content of the script to execute
+ * @returns {boolean} - True if execution successful, false otherwise
+ */
 function injectAndRunScript(scriptContent) {
     try {
         // Create a script element

@@ -1,10 +1,10 @@
 /**
- * Модуль для проверки исключенных доменов
- * Содержит единый список исключенных доменов и функцию для их проверки
+ * Domain exclusion module
+ * Contains a unified list of excluded domains and functions to check them
  */
 
 /**
- * Список доменов, на которых расширение не должно активироваться
+ * List of domains where the extension should not be activated
  */
 const excludedDomains = [
   'gitlab.com', 
@@ -24,8 +24,8 @@ const excludedDomains = [
 ];
 
 /**
- * Функция проверяет, входит ли текущий домен в список исключений
- * @returns {boolean} True если домен в списке исключений, иначе False
+ * Checks if the current domain is in the exclusion list
+ * @returns {boolean} True if domain is in the exclusion list, otherwise False
  */
 function isExcludedDomain() {
   const currentHost = window.location.hostname;
@@ -41,5 +41,5 @@ function isExcludedDomain() {
   return false;
 }
 
-// Экспорт функции для использования в других файлах
+// Export function for use in other files
 window.isExcludedDomain = isExcludedDomain;
