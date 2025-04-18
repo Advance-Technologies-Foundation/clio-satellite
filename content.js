@@ -2,8 +2,11 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-// Function to check if current page is the Shell page of Creatio
-function isShellPage() {
+/**
+ * Function to check if current domain is in the exclusion list
+ * @returns {boolean} True if domain should be excluded, false otherwise
+ */
+function isExcludedDomain() {
   const currentHost = window.location.hostname;
 
   const excludedDomains = [
@@ -15,14 +18,30 @@ function isShellPage() {
     'youtube.com',
     'atlassian.net',
     'upsource.creatio.com',
-    'work.creatio.com'
+    'work.creatio.com',
+    'creatio.workplace.com',
+    'community.creatio.com',
+    'studio.creatio.com',
+    'academy.creatio.com',
+    'tscore-git.creatio.com'
   ];
 
   for (const domain of excludedDomains) {
     if (currentHost.includes(domain)) {
       console.log(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
-      return false;
+      return true;
     }
+  }
+  
+  console.log(`Domain ${currentHost} is NOT in the exclusion list.`);
+  return false;
+}
+
+// Function to check if current page is the Shell page of Creatio
+function isShellPage() {
+  // First check if domain is excluded
+  if (isExcludedDomain()) {
+    return false;
   }
 
   const creatioIndicators = [
@@ -72,6 +91,12 @@ function loadStyles() {
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
   console.log("Creating scripts menu");
+  
+  // First check if domain is in exclusion list
+  if (isExcludedDomain()) {
+    console.log("Domain is in exclusion list, not creating scripts menu");
+    return false;
+  }
 
   loadStyles();
 
@@ -330,6 +355,12 @@ function createScriptsMenu() {
 // Функция для создания центрального тулбара на страницах, где нет обычного тулбара или search элемента
 function createCenteredToolbar() {
   console.log("Creating centered toolbar for pages without standard toolbar");
+  
+  // First check if domain is in exclusion list
+  if (isExcludedDomain()) {
+    console.log("Domain is in exclusion list, not creating centered toolbar");
+    return false;
+  }
   
   loadStyles();
 
@@ -761,6 +792,12 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 // Login page functionality (separate from Shell page logic)
 function waitForLoginElements() {
+  // First check if domain is in exclusion list
+  if (isExcludedDomain()) {
+    console.log("Domain is in exclusion list, not adding login helper button");
+    return false;
+  }
+
   const usernameField = document.querySelector('#loginEdit-el');
   const passwordField = document.querySelector('#passwordEdit-el');
   const loginButton = document.querySelector('.login-button-login');
