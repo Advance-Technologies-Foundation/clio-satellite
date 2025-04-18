@@ -433,6 +433,313 @@ function createScriptsMenu() {
   }
 }
 
+// Функция для создания центрального тулбара на страницах, где нет обычного тулбара или search элемента
+function createCenteredToolbar() {
+  console.log("Creating centered toolbar for pages without standard toolbar");
+  
+  loadStyles();
+
+  if (document.querySelector('.centered-toolbar')) {
+    console.log("Centered toolbar already exists, skipping creation");
+    return;
+  }
+
+  // Проверяем наличие стандартного тулбара или поиска
+  const hasToolbar = !!document.querySelector('crt-app-toolbar');
+  const hasSearch = !!document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
+  
+  // Если уже есть тулбар или поиск, не создаем новый центрированный тулбар
+  if (hasToolbar || hasSearch) {
+    console.log("Standard toolbar or search element found, not creating centered toolbar");
+    return;
+  }
+
+  // Создаем контейнер для центрированного тулбара
+  const centeredToolbar = document.createElement('div');
+  centeredToolbar.className = 'centered-toolbar';
+  centeredToolbar.style.position = 'fixed';
+  centeredToolbar.style.top = '10px';
+  centeredToolbar.style.left = '50%';
+  centeredToolbar.style.transform = 'translateX(-50%)';
+  centeredToolbar.style.zIndex = '9999';
+  centeredToolbar.style.backgroundColor = 'white';
+  centeredToolbar.style.borderRadius = '4px';
+  centeredToolbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+  centeredToolbar.style.padding = '5px 15px';
+  centeredToolbar.style.display = 'flex';
+  centeredToolbar.style.alignItems = 'center';
+  centeredToolbar.style.justifyContent = 'center';
+  centeredToolbar.style.gap = '10px';
+
+  // Создаем кнопку скриптов для центрированного тулбара
+  const scriptsButton = document.createElement('button');
+  scriptsButton.className = 'scripts-menu-button mat-flat-button mat-primary';
+  scriptsButton.style.lineHeight = '32px';
+
+  const iconImg = document.createElement('img');
+  iconImg.src = chrome.runtime.getURL('icon128.png');
+  iconImg.style.width = '24px';
+  iconImg.style.height = '24px';
+  iconImg.style.marginRight = '8px';
+
+  const buttonText = document.createElement('span');
+  buttonText.textContent = 'Clio Satelite';
+
+  scriptsButton.appendChild(iconImg);
+  scriptsButton.appendChild(buttonText);
+
+  // Создаем кнопку действий
+  const actionsButton = document.createElement('button');
+  actionsButton.className = 'actions-button mat-flat-button mat-accent';
+  actionsButton.style.lineHeight = '32px';
+
+  const actionsButtonIcon = document.createElement('span');
+  actionsButtonIcon.textContent = '⚡'; 
+  actionsButtonIcon.style.fontSize = '20px';
+  actionsButtonIcon.title = 'Actions';
+  actionsButton.appendChild(actionsButtonIcon);
+
+  // Добавляем кнопки в тулбар
+  centeredToolbar.appendChild(scriptsButton);
+  centeredToolbar.appendChild(actionsButton);
+
+  // Создаем меню скриптов
+  const menuContainer = document.createElement('div');
+  menuContainer.className = 'scripts-menu-container';
+  menuContainer.style.position = 'fixed';
+  menuContainer.style.top = '50px'; // Под тулбаром
+  menuContainer.style.left = '50%';
+  menuContainer.style.transform = 'translateX(-50%)';
+  menuContainer.style.zIndex = '9999';
+  menuContainer.style.backgroundColor = 'white';
+  menuContainer.style.borderRadius = '4px';
+  menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+  menuContainer.style.display = 'none';
+  menuContainer.style.flexDirection = 'column';
+  menuContainer.style.width = '250px';
+  menuContainer.style.maxHeight = '80vh';
+  menuContainer.style.overflowY = 'auto';
+
+  // Копирование настроек меню скриптов из существующей функции createScriptsMenu
+  const scriptDescriptions = {
+    'Features': 'Open system features management page',
+    'Application_Managment': 'Application managment (App Hub)',
+    'Lookups': 'Open system lookups',
+    'Process_library': 'Open process library',
+    'Process_log': 'View process log',
+    'SysSettings': 'System settings and parameters',
+    'Users': 'Manage system users',
+    'Configuration':'Open configuration'
+  };
+
+  const scriptFiles = [
+    'Features.js', 
+    'Application_Managment.js', 
+    'Lookups.js', 
+    'Process_library.js', 
+    'Process_log.js', 
+    'SysSettings.js', 
+    'Users.js',
+    'Configuration.js'
+  ];
+
+  const menuIcons = {
+    'Features': '⚙️',
+    'Application_Managment': '🔧',
+    'Lookups': '🔍',
+    'Process_library': '📚',
+    'Process_log': '📋',
+    'SysSettings': '⚙️',
+    'Users': '👥',
+    'Configuration': '⚙️'
+  };
+
+  scriptFiles.forEach(scriptFile => {
+    const scriptName = scriptFile.replace('.js', '');
+
+    const menuItem = document.createElement('div');
+    menuItem.className = 'scripts-menu-item';
+    menuItem.style.padding = '12px 15px';
+    menuItem.style.borderBottom = '1px solid #eee';
+    menuItem.style.cursor = 'pointer';
+    menuItem.style.transition = 'background-color 0.2s';
+    menuItem.style.display = 'flex';
+    menuItem.style.alignItems = 'center';
+
+    const iconElement = document.createElement('span');
+    iconElement.textContent = menuIcons[scriptName] || '📄';
+    iconElement.style.marginRight = '10px';
+    iconElement.style.fontSize = '20px';
+
+    const textContainer = document.createElement('div');
+    textContainer.style.flex = '1';
+
+    const title = document.createElement('div');
+    title.textContent = scriptName.replace('_', ' ');
+    title.style.fontWeight = '500';
+    title.style.marginBottom = '5px';
+    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
+    title.style.fontSize = '14px';
+
+    const description = document.createElement('div');
+    description.textContent = scriptDescriptions[scriptName] || 'Run script ' + scriptName;
+    description.style.fontSize = '12px';
+    description.style.color = '#666';
+
+    menuItem.addEventListener('mouseover', () => {
+      menuItem.style.backgroundColor = '#f5f5f5';
+    });
+
+    menuItem.addEventListener('mouseout', () => {
+      menuItem.style.backgroundColor = 'white';
+    });
+
+    menuItem.addEventListener('click', () => {
+      chrome.runtime.sendMessage({
+        action: 'executeScript',
+        scriptName: scriptFile
+      }, response => {
+        console.log('Message sent to background script');
+      });
+
+      menuContainer.style.display = 'none';
+    });
+
+    textContainer.appendChild(title);
+    textContainer.appendChild(description);
+    menuItem.appendChild(iconElement);
+    menuItem.appendChild(textContainer);
+    menuContainer.appendChild(menuItem);
+  });
+
+  // Создаем меню действий
+  const actionsMenuContainer = document.createElement('div');
+  actionsMenuContainer.className = 'actions-menu-container';
+  actionsMenuContainer.style.position = 'fixed';
+  actionsMenuContainer.style.top = '50px'; // Под тулбаром
+  actionsMenuContainer.style.left = '50%';
+  actionsMenuContainer.style.transform = 'translateX(-50%)';
+  actionsMenuContainer.style.zIndex = '9999';
+  actionsMenuContainer.style.backgroundColor = 'white';
+  actionsMenuContainer.style.borderRadius = '4px';
+  actionsMenuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+  actionsMenuContainer.style.display = 'none';
+  actionsMenuContainer.style.flexDirection = 'column';
+  actionsMenuContainer.style.width = '250px';
+  actionsMenuContainer.style.maxHeight = '80vh';
+  actionsMenuContainer.style.overflowY = 'auto';
+
+  const actionsScriptDescriptions = {
+    'RestartApp': 'Reload the Creatio application',
+    'FlushRedisDB': 'Clear Redis database'
+  };
+
+  const actionsIcons = {
+    'RestartApp': '🔄',
+    'FlushRedisDB': '🗑️'
+  };
+
+  const actionsScriptFiles = [
+    'RestartApp.js',
+    'FlushRedisDB.js'
+  ];
+
+  actionsScriptFiles.forEach(scriptFile => {
+    const scriptName = scriptFile.replace('.js', '');
+
+    const menuItem = document.createElement('div');
+    menuItem.className = 'actions-menu-item';
+    menuItem.style.padding = '12px 15px';
+    menuItem.style.borderBottom = '1px solid #eee';
+    menuItem.style.cursor = 'pointer';
+    menuItem.style.transition = 'background-color 0.2s';
+    menuItem.style.display = 'flex';
+    menuItem.style.alignItems = 'center';
+
+    const iconElement = document.createElement('span');
+    iconElement.textContent = actionsIcons[scriptName] || '⚙️';
+    iconElement.style.marginRight = '10px';
+    iconElement.style.fontSize = '20px';
+
+    const textContainer = document.createElement('div');
+    textContainer.style.flex = '1';
+
+    const title = document.createElement('div');
+    title.textContent = scriptName.replace('_', ' ');
+    title.style.fontWeight = '500';
+    title.style.marginBottom = '5px';
+    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
+    title.style.fontSize = '14px';
+
+    const description = document.createElement('div');
+    description.textContent = actionsScriptDescriptions[scriptName] || 'Run action ' + scriptName;
+    description.style.fontSize = '12px';
+    description.style.color = '#666';
+
+    menuItem.addEventListener('mouseover', () => {
+      menuItem.style.backgroundColor = '#f5f5f5';
+    });
+
+    menuItem.addEventListener('mouseout', () => {
+      menuItem.style.backgroundColor = 'white';
+    });
+
+    menuItem.addEventListener('click', () => {
+      chrome.runtime.sendMessage({
+        action: 'executeScript',
+        scriptPath: 'actions/' + scriptFile
+      }, response => {
+        console.log('Message sent to background script to execute action script: actions/' + scriptFile);
+      });
+
+      actionsMenuContainer.style.display = 'none';
+    });
+
+    textContainer.appendChild(title);
+    textContainer.appendChild(description);
+    menuItem.appendChild(iconElement);
+    menuItem.appendChild(textContainer);
+    actionsMenuContainer.appendChild(menuItem);
+  });
+
+  // Обработчики событий для кнопок
+  scriptsButton.addEventListener('click', () => {
+    if (menuContainer.style.display === 'none') {
+      menuContainer.style.display = 'flex';
+      actionsMenuContainer.style.display = 'none';
+    } else {
+      menuContainer.style.display = 'none';
+    }
+  });
+
+  actionsButton.addEventListener('click', () => {
+    if (actionsMenuContainer.style.display === 'none') {
+      actionsMenuContainer.style.display = 'flex';
+      menuContainer.style.display = 'none';
+    } else {
+      actionsMenuContainer.style.display = 'none';
+    }
+  });
+
+  // Закрытие меню при клике вне
+  document.addEventListener('click', (event) => {
+    if (!scriptsButton.contains(event.target) && !menuContainer.contains(event.target)) {
+      menuContainer.style.display = 'none';
+    }
+    if (!actionsButton.contains(event.target) && !actionsMenuContainer.contains(event.target)) {
+      actionsMenuContainer.style.display = 'none';
+    }
+  });
+
+  // Добавляем созданные элементы на страницу
+  document.body.appendChild(centeredToolbar);
+  document.body.appendChild(menuContainer);
+  document.body.appendChild(actionsMenuContainer);
+  
+  console.log("Centered toolbar created successfully");
+  return true;
+}
+
 // Function to place button next to search element if it exists
 function placeButtonNextToSearch() {
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
@@ -579,6 +886,9 @@ function checkShellAndCreateMenu() {
   if (isShellPage() && !menuCreated) {
     console.log("Shell page detected, creating scripts menu");
     createScriptsMenu();
+  } else if (!menuCreated) {
+    console.log("Shell page not detected, checking for toolbar-less page");
+    createCenteredToolbar();
   }
 }
 
