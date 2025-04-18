@@ -15,7 +15,8 @@ function isShellPage() {
     'youtube.com',
     'atlassian.net',
     'upsource.creatio.com',
-    'work.creatio.com'
+    'work.creatio.com',
+    'community.creatio.com'
   ];
 
   for (const domain of excludedDomains) {
