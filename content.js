@@ -2,10 +2,11 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-// Function to check if current page is the Shell page of Creatio
-function isShellPage() {
+// Function to check if current domain is in the exclusion list
+function isExcludedDomain() {
   const currentHost = window.location.hostname;
 
+  // Расширяем список исключенных доменов, добавляя больше сайтов Creatio и убеждаясь что work.creatio.com в списке
   const excludedDomains = [
     'gitlab.com', 
     'github.com',
@@ -16,18 +17,27 @@ function isShellPage() {
     'atlassian.net',
     'upsource.creatio.com',
     'work.creatio.com',
-    'creatio.atlassian.nеt',
-    'creatio.com',
     'community.creatio.com',
-    'academy.creatio.com',
     'studio.creatio.com',
+    'academy.creatio.com',
   ];
 
   for (const domain of excludedDomains) {
     if (currentHost.includes(domain)) {
-      console.log(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
-      return false;
+      console.log(`Domain ${currentHost} is in the exclusion list. Skipping activation. isExcludedDomain = true`);
+      return true;
     }
+  }
+  
+  console.log(`Domain ${currentHost} is NOT in the exclusion list. isExcludedDomain = false`);
+  return false;
+}
+
+// Function to check if current page is the Shell page of Creatio
+function isShellPage() {
+  // Используем уже созданную функцию для проверки исключенных доменов
+  if (isExcludedDomain()) {
+    return false;
   }
 
   const creatioIndicators = [
@@ -726,6 +736,12 @@ const positionObserver = new MutationObserver(() => {
 function checkShellAndCreateMenu() {
   console.log("Checking for Shell page");
   
+  // Проверяем, находится ли текущий домен в списке исключений
+  if (isExcludedDomain()) {
+    console.log("Domain is in exclusion list, not adding any plugin buttons");
+    return false;
+  }
+  
   // Проверяем, не является ли страница страницей логина
   if (isLoginPage()) {
     console.log("Login page detected, not adding navigation and actions buttons");
@@ -797,6 +813,12 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 // Login page functionality (separate from Shell page logic)
 function waitForLoginElements() {
+  // Проверяем, не находится ли текущий домен в списке исключений
+  if (isExcludedDomain()) {
+    console.log("Domain is in exclusion list, not adding auto-login button");
+    return;
+  }
+
   const usernameField = document.querySelector('#loginEdit-el');
   const passwordField = document.querySelector('#passwordEdit-el');
   const loginButton = document.querySelector('.login-button-login');
@@ -832,4 +854,13 @@ function waitForLoginElements() {
   }
 }
 
-waitForLoginElements();
+// Изменяем способ вызова функции waitForLoginElements, чтобы она не запускалась сразу
+// а запускалась только после проверки домена, и только если домен не в списке исключений
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired, checking domain before adding login button');
+  if (!isExcludedDomain()) {
+    waitForLoginElements();
+  } else {
+    console.log('Domain is excluded, skipping login button creation');
+  }
+});
