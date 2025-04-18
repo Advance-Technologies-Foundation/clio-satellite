@@ -445,19 +445,24 @@ function placeButtonNextToSearch() {
     return true;
   }
   
-  // Place button next to search element
-  searchElement.insertAdjacentElement('afterend', buttonWrapper);
-  
-  // Update button styles for inline display
-  buttonWrapper.style.position = 'relative';
-  buttonWrapper.style.top = 'auto';
-  buttonWrapper.style.left = 'auto';
-  buttonWrapper.style.transform = 'none';
-  buttonWrapper.style.margin = '0 5px';
-  buttonWrapper.style.height = 'auto';
-  
-  console.log("Button placed next to search element dynamically");
-  return true;
+  try {
+    // Place button next to search element
+    searchElement.insertAdjacentElement('afterend', buttonWrapper);
+    
+    // Update button styles for inline display
+    buttonWrapper.style.position = 'relative';
+    buttonWrapper.style.top = 'auto';
+    buttonWrapper.style.left = 'auto';
+    buttonWrapper.style.transform = 'none';
+    buttonWrapper.style.margin = '0 5px';
+    buttonWrapper.style.height = 'auto';
+    
+    console.log("Button placed next to search element dynamically");
+    return true;
+  } catch (error) {
+    console.error("Error placing button next to search:", error);
+    return false;
+  }
 }
 
 // Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
