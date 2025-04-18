@@ -111,6 +111,7 @@ function createScriptsMenu() {
   menuButton.style.display = 'flex';
   menuButton.style.alignItems = 'center';
   menuButton.style.justifyContent = 'center';
+  menuButton.style.lineHeight = '32px';
 
   const iconImg = document.createElement('img');
   iconImg.src = chrome.runtime.getURL('icon128.png');
@@ -134,6 +135,7 @@ function createScriptsMenu() {
   actionsButton.style.display = 'flex';
   actionsButton.style.alignItems = 'center';
   actionsButton.style.justifyContent = 'center';
+  actionsButton.style.lineHeight = '32px';
   actionsButton.style.marginLeft = '10px';
 
   // Replace text with an icon
