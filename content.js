@@ -655,6 +655,13 @@ const positionObserver = new MutationObserver(() => {
 // Function to check page and create menu if needed
 function checkShellAndCreateMenu() {
   console.log("Checking for Shell page");
+  
+  // Не добавляем кнопки навигации и действий на странице логина
+  if (typeof isLoginPage === 'function' && isLoginPage()) {
+    console.log("Login page detected, skipping scripts menu creation");
+    return false;
+  }
+  
   if (isShellPage() && !menuCreated) {
     console.log("Shell page detected, creating scripts menu");
     createScriptsMenu();
@@ -697,6 +704,41 @@ const checkInterval = setInterval(() => {
     console.log('Clearing check interval');
     clearInterval(checkInterval);
   }
+}, 1000);
+
+// Also observe DOM changes to detect login page loading
+const loginObserver = new MutationObserver(() => {
+  // Проверяем, не появилась ли страница логина
+  if (typeof isLoginPage === 'function' && isLoginPage()) {
+    console.log("Login page detected via mutation observer, removing navigation buttons");
+    
+    // Удаляем кнопки навигации и действий, если они есть
+    const buttonsToRemove = [
+      '.scripts-menu-button',
+      '.actions-button',
+      '.button-wrapper',
+      '.scripts-menu-container',
+      '.actions-menu-container',
+      '.centered-toolbar'
+    ];
+    
+    buttonsToRemove.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        element.remove();
+        console.log(`Removed element: ${selector}`);
+      });
+    });
+    
+    // Сбрасываем флаги создания меню
+    menuCreated = false;
+    actionsMenuCreated = false;
+  }
+});
+
+// Запускаем наблюдатель за DOM для отслеживания появления страницы логина
+setTimeout(() => {
+  loginObserver.observe(document.body, { childList: true, subtree: true });
 }, 1000);
 
 // Also observe DOM changes to detect Shell page loading

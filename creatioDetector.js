@@ -78,6 +78,26 @@ function isShellPage() {
   return hasShellIndicator;
 }
 
+/**
+ * Функция проверки является ли текущая страница страницей логина Creatio
+ * @returns {boolean} True если страница является страницей логина, иначе False
+ */
+function isLoginPage() {
+  // Проверяем наличие элементов формы логина
+  const usernameField = document.querySelector('#loginEdit-el');
+  const passwordField = document.querySelector('#passwordEdit-el');
+  const loginButton = document.querySelector('.login-button-login');
+  
+  const isLogin = !!(usernameField && passwordField && loginButton);
+  
+  if (isLogin) {
+    console.log("Login page detected");
+  }
+  
+  return isLogin;
+}
+
 // Экспорт функций для использования в других файлах
 window.isCreatioPage = isCreatioPage;
 window.isShellPage = isShellPage;
+window.isLoginPage = isLoginPage;
