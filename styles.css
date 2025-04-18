@@ -10,3 +10,184 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+/* Styles for scripts menu button */
+.scripts-menu-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 32px;
+    z-index: inherit;
+    height: 32px; /* Стандартная высота поля поиска в Creatio */
+    padding: 0 12px;
+    vertical-align: middle;
+}
+
+.scripts-menu-button img {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+}
+
+/* Styles for actions button */
+.actions-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 32px;
+    margin-left: 10px;
+    z-index: inherit;
+    height: 32px; /* Стандартная высота поля поиска в Creatio */
+    padding: 0 12px;
+    vertical-align: middle;
+}
+
+.actions-button span {
+    font-size: 20px;
+}
+
+/* Styles for button wrapper */
+.button-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background-color: transparent;
+    height: 32px; /* Соответствует высоте поля поиска */
+}
+
+/* Button wrapper when in toolbar */
+.button-wrapper-in-toolbar {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 0 5px;
+    height: 32px; /* Соответствует высоте поля поиска */
+    pointer-events: auto;
+    background-color: transparent;
+    display: flex;
+    align-items: center; /* Вертикальное центрирование содержимого */
+}
+
+/* Center container for toolbar */
+.center-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Styles for scripts menu container */
+.scripts-menu-container {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: none;
+    flex-direction: column;
+    width: 250px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Styles for actions menu container */
+.actions-menu-container {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: none;
+    flex-direction: column;
+    width: 250px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Styles for menu items */
+.scripts-menu-item,
+.actions-menu-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.scripts-menu-item:hover,
+.actions-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.scripts-menu-item span,
+.actions-menu-item span {
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.menu-item-text {
+    flex: 1;
+}
+
+.menu-item-title {
+    font-weight: 500;
+    margin-bottom: 5px;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+}
+
+.menu-item-description {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Styles for centered toolbar */
+.centered-toolbar {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background-color: transparent;
+    border-radius: 4px;
+    box-shadow: none;
+    padding: 5px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 32px; /* Соответствует высоте поля поиска */
+}
+
+/* Styles for login button */
+.auto-login-button {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    color: #ffffff;
+    border-radius: 4px;
+    border: none;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: red;
+}

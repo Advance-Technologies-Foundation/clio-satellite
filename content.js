@@ -93,32 +93,15 @@ function createScriptsMenu() {
   }
 
   const buttonWrapper = document.createElement('div');
-  buttonWrapper.style.display = 'flex';
-  buttonWrapper.style.alignItems = 'center';
-  buttonWrapper.style.justifyContent = 'center';
-  buttonWrapper.style.position = 'fixed';
+  buttonWrapper.className = 'button-wrapper';
+  // Устанавливаем только динамические свойства
   buttonWrapper.style.top = topPosition;
-  buttonWrapper.style.left = '50%';
-  buttonWrapper.style.transform = 'translateX(-50%)';
-  buttonWrapper.style.zIndex = '9999';
 
   const menuButton = document.createElement('button');
   menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
-  menuButton.style.position = 'relative';
-  menuButton.style.top = 'auto';
-  menuButton.style.left = 'auto';
-  menuButton.style.transform = 'none';
-  menuButton.style.zIndex = 'inherit';
-  menuButton.style.display = 'flex';
-  menuButton.style.alignItems = 'center';
-  menuButton.style.justifyContent = 'center';
-  menuButton.style.lineHeight = '32px';
 
   const iconImg = document.createElement('img');
   iconImg.src = chrome.runtime.getURL('icon128.png');
-  iconImg.style.width = '24px';
-  iconImg.style.height = '24px';
-  iconImg.style.marginRight = '8px';
 
   const buttonText = document.createElement('span');
   buttonText.textContent = 'Clio Satelite : Try me!';
@@ -128,21 +111,10 @@ function createScriptsMenu() {
 
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
-  actionsButton.style.position = 'relative';
-  actionsButton.style.top = 'auto';
-  actionsButton.style.left = 'auto';
-  actionsButton.style.transform = 'none';
-  actionsButton.style.zIndex = 'inherit';
-  actionsButton.style.display = 'flex';
-  actionsButton.style.alignItems = 'center';
-  actionsButton.style.justifyContent = 'center';
-  actionsButton.style.lineHeight = '32px';
-  actionsButton.style.marginLeft = '10px';
 
   // Replace text with an icon
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon symbolizing actions/operations
-  actionsButtonIcon.style.fontSize = '20px';
   actionsButtonIcon.title = 'Actions'; // Add tooltip to explain what the button does
   actionsButton.appendChild(actionsButtonIcon);
 
@@ -151,19 +123,8 @@ function createScriptsMenu() {
 
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container';
-  menuContainer.style.position = 'fixed';
+  // Устанавливаем только динамические свойства
   menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
-  menuContainer.style.left = '50%';
-  menuContainer.style.transform = 'translateX(-50%)';
-  menuContainer.style.zIndex = '9999';
-  menuContainer.style.backgroundColor = 'white';
-  menuContainer.style.borderRadius = '4px';
-  menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  menuContainer.style.display = 'none';
-  menuContainer.style.flexDirection = 'column';
-  menuContainer.style.width = '250px';
-  menuContainer.style.maxHeight = '80vh';
-  menuContainer.style.overflowY = 'auto';
 
   const scriptDescriptions = {
     'Features': 'Open system features management page',
@@ -203,40 +164,20 @@ function createScriptsMenu() {
 
     const menuItem = document.createElement('div');
     menuItem.className = 'scripts-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
 
     const iconElement = document.createElement('span');
     iconElement.textContent = menuIcons[scriptName] || '📄';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
 
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
+    textContainer.className = 'menu-item-text';
 
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
 
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = scriptDescriptions[scriptName] || 'Run script ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -258,19 +199,8 @@ function createScriptsMenu() {
 
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.className = 'actions-menu-container';
-  actionsMenuContainer.style.position = 'fixed';
+  // Устанавливаем только динамические свойства
   actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
-  actionsMenuContainer.style.left = '50%';
-  actionsMenuContainer.style.transform = 'translateX(-50%)';
-  actionsMenuContainer.style.zIndex = '9999';
-  actionsMenuContainer.style.backgroundColor = 'white';
-  actionsMenuContainer.style.borderRadius = '4px';
-  actionsMenuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  actionsMenuContainer.style.display = 'none';
-  actionsMenuContainer.style.flexDirection = 'column';
-  actionsMenuContainer.style.width = '250px';
-  actionsMenuContainer.style.maxHeight = '80vh';
-  actionsMenuContainer.style.overflowY = 'auto';
 
   const actionsScriptDescriptions = {
     'RestartApp': 'Reload the Creatio application',
@@ -292,40 +222,20 @@ function createScriptsMenu() {
 
     const menuItem = document.createElement('div');
     menuItem.className = 'actions-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
 
     const iconElement = document.createElement('span');
     iconElement.textContent = actionsIcons[scriptName] || '⚙️';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
 
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
+    textContainer.className = 'menu-item-text';
 
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
 
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = actionsScriptDescriptions[scriptName] || 'Run action ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -379,12 +289,8 @@ function createScriptsMenu() {
       const searchParent = searchElement.parentElement;
       searchElement.insertAdjacentElement('afterend', buttonWrapper);
 
-      buttonWrapper.style.position = 'relative';
-      buttonWrapper.style.top = 'auto';
-      buttonWrapper.style.left = 'auto';
-      buttonWrapper.style.transform = 'none';
-      buttonWrapper.style.margin = '0 5px';
-      buttonWrapper.style.height = 'auto';
+      buttonWrapper.classList.add('button-wrapper-in-toolbar');
+      buttonWrapper.classList.remove('button-wrapper');
 
       console.log("Button placed next to search element on initial creation");
     } else {
@@ -395,26 +301,14 @@ function createScriptsMenu() {
         console.log("Button inserted into crt-app-toolbar");
 
         const centerContainer = document.createElement('div');
-        centerContainer.style.width = '100%';
-        centerContainer.style.display = 'flex';
-        centerContainer.style.justifyContent = 'center';
-        centerContainer.style.position = 'absolute';
-        centerContainer.style.left = '0';
-        centerContainer.style.top = '0';
-        centerContainer.style.height = '100%';
-        centerContainer.style.pointerEvents = 'none';
-        centerContainer.style.zIndex = '1';
+        centerContainer.className = 'center-container';
 
         buttonWrapper.remove();
         centerContainer.appendChild(buttonWrapper);
         appToolbar.appendChild(centerContainer);
 
-        buttonWrapper.style.position = 'relative';
-        buttonWrapper.style.top = 'auto';
-        buttonWrapper.style.left = 'auto';
-        buttonWrapper.style.transform = 'none';
-        buttonWrapper.style.pointerEvents = 'auto';
-        buttonWrapper.style.margin = 'auto';
+        buttonWrapper.classList.add('button-wrapper-in-toolbar');
+        buttonWrapper.classList.remove('button-wrapper');
       } else {
         document.body.appendChild(buttonWrapper);
         console.log("crt-app-toolbar not found, button added to body");
@@ -457,30 +351,13 @@ function createCenteredToolbar() {
   // Создаем контейнер для центрированного тулбара
   const centeredToolbar = document.createElement('div');
   centeredToolbar.className = 'centered-toolbar';
-  centeredToolbar.style.position = 'fixed';
-  centeredToolbar.style.top = '10px';
-  centeredToolbar.style.left = '50%';
-  centeredToolbar.style.transform = 'translateX(-50%)';
-  centeredToolbar.style.zIndex = '9999';
-  centeredToolbar.style.backgroundColor = 'white';
-  centeredToolbar.style.borderRadius = '4px';
-  centeredToolbar.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-  centeredToolbar.style.padding = '5px 15px';
-  centeredToolbar.style.display = 'flex';
-  centeredToolbar.style.alignItems = 'center';
-  centeredToolbar.style.justifyContent = 'center';
-  centeredToolbar.style.gap = '10px';
 
   // Создаем кнопку скриптов для центрированного тулбара
   const scriptsButton = document.createElement('button');
   scriptsButton.className = 'scripts-menu-button mat-flat-button mat-primary';
-  scriptsButton.style.lineHeight = '32px';
 
   const iconImg = document.createElement('img');
   iconImg.src = chrome.runtime.getURL('icon128.png');
-  iconImg.style.width = '24px';
-  iconImg.style.height = '24px';
-  iconImg.style.marginRight = '8px';
 
   const buttonText = document.createElement('span');
   buttonText.textContent = 'Clio Satelite';
@@ -491,11 +368,9 @@ function createCenteredToolbar() {
   // Создаем кнопку действий
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
-  actionsButton.style.lineHeight = '32px';
 
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.textContent = '⚡'; 
-  actionsButtonIcon.style.fontSize = '20px';
   actionsButtonIcon.title = 'Actions';
   actionsButton.appendChild(actionsButtonIcon);
 
@@ -506,19 +381,6 @@ function createCenteredToolbar() {
   // Создаем меню скриптов
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container';
-  menuContainer.style.position = 'fixed';
-  menuContainer.style.top = '50px'; // Под тулбаром
-  menuContainer.style.left = '50%';
-  menuContainer.style.transform = 'translateX(-50%)';
-  menuContainer.style.zIndex = '9999';
-  menuContainer.style.backgroundColor = 'white';
-  menuContainer.style.borderRadius = '4px';
-  menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  menuContainer.style.display = 'none';
-  menuContainer.style.flexDirection = 'column';
-  menuContainer.style.width = '250px';
-  menuContainer.style.maxHeight = '80vh';
-  menuContainer.style.overflowY = 'auto';
 
   // Копирование настроек меню скриптов из существующей функции createScriptsMenu
   const scriptDescriptions = {
@@ -559,40 +421,20 @@ function createCenteredToolbar() {
 
     const menuItem = document.createElement('div');
     menuItem.className = 'scripts-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
 
     const iconElement = document.createElement('span');
     iconElement.textContent = menuIcons[scriptName] || '📄';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
 
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
+    textContainer.className = 'menu-item-text';
 
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
 
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = scriptDescriptions[scriptName] || 'Run script ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -615,19 +457,6 @@ function createCenteredToolbar() {
   // Создаем меню действий
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.className = 'actions-menu-container';
-  actionsMenuContainer.style.position = 'fixed';
-  actionsMenuContainer.style.top = '50px'; // Под тулбаром
-  actionsMenuContainer.style.left = '50%';
-  actionsMenuContainer.style.transform = 'translateX(-50%)';
-  actionsMenuContainer.style.zIndex = '9999';
-  actionsMenuContainer.style.backgroundColor = 'white';
-  actionsMenuContainer.style.borderRadius = '4px';
-  actionsMenuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  actionsMenuContainer.style.display = 'none';
-  actionsMenuContainer.style.flexDirection = 'column';
-  actionsMenuContainer.style.width = '250px';
-  actionsMenuContainer.style.maxHeight = '80vh';
-  actionsMenuContainer.style.overflowY = 'auto';
 
   const actionsScriptDescriptions = {
     'RestartApp': 'Reload the Creatio application',
@@ -649,40 +478,20 @@ function createCenteredToolbar() {
 
     const menuItem = document.createElement('div');
     menuItem.className = 'actions-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
 
     const iconElement = document.createElement('span');
     iconElement.textContent = actionsIcons[scriptName] || '⚙️';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
 
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
+    textContainer.className = 'menu-item-text';
 
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
 
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = actionsScriptDescriptions[scriptName] || 'Run action ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -760,14 +569,21 @@ function placeButtonNextToSearch() {
     searchElement.insertAdjacentElement('afterend', buttonWrapper);
     
     // Update button styles for inline display
-    buttonWrapper.style.position = 'relative';
-    buttonWrapper.style.top = 'auto';
-    buttonWrapper.style.left = 'auto';
-    buttonWrapper.style.transform = 'none';
-    buttonWrapper.style.margin = '0 5px';
-    buttonWrapper.style.height = 'auto';
+    buttonWrapper.classList.add('button-wrapper-in-toolbar');
+    buttonWrapper.classList.remove('button-wrapper');
     
-    console.log("Button placed next to search element dynamically");
+    // Выравнивание по вертикали с полем поиска
+    const searchRect = searchElement.getBoundingClientRect();
+    const searchInput = searchElement.querySelector('input') || searchElement;
+    if (searchInput) {
+      const inputRect = searchInput.getBoundingClientRect();
+      // Центрируем кнопки по вертикали относительно поля ввода
+      const verticalCenter = inputRect.top + (inputRect.height / 2);
+      const buttonHeight = buttonWrapper.offsetHeight;
+      buttonWrapper.style.marginTop = ((verticalCenter - searchRect.top) - (buttonHeight / 2)) + 'px';
+    }
+    
+    console.log("Button placed next to search element dynamically and aligned vertically");
     return true;
   } catch (error) {
     console.error("Error placing button next to search:", error);
@@ -805,14 +621,26 @@ function updateMenuPosition() {
 
   if (searchElement) {
     const searchRect = searchElement.getBoundingClientRect();
-    buttonWrapper.style.top = searchRect.top + 'px';
-    menuContainer.style.top = (searchRect.top + 40) + 'px';
+    
+    // Пробуем найти поле ввода внутри элемента поиска
+    const searchInput = searchElement.querySelector('input') || searchElement;
+    if (searchInput) {
+      const inputRect = searchInput.getBoundingClientRect();
+      // Устанавливаем вертикальное положение кнопок на уровне поля ввода
+      const verticalCenter = inputRect.top + (inputRect.height / 2);
+      const buttonHeight = buttonWrapper.offsetHeight;
+      buttonWrapper.style.top = (verticalCenter - (buttonHeight / 2)) + 'px';
+    } else {
+      buttonWrapper.style.top = searchRect.top + 'px';
+    }
+    
+    menuContainer.style.top = (searchRect.bottom + 5) + 'px';
 
     if (actionsMenuContainer) {
-      actionsMenuContainer.style.top = (searchRect.top + 40) + 'px';
+      actionsMenuContainer.style.top = (searchRect.bottom + 5) + 'px';
     }
 
-    console.log(`Updated menu position to match search element: ${searchRect.top}px`);
+    console.log(`Updated menu position to match search element: ${buttonWrapper.style.top}`);
   }
 }
 
@@ -831,39 +659,24 @@ function moveButtonToToolbar() {
   if (!appToolbar) return false;
 
   const centerContainer = document.createElement('div');
-  centerContainer.style.width = '100%';
-  centerContainer.style.display = 'flex';
-  centerContainer.style.justifyContent = 'center';
-  centerContainer.style.position = 'absolute';
-  centerContainer.style.left = '0';
-  centerContainer.style.top = '0';
-  centerContainer.style.height = '100%';
-  centerContainer.style.pointerEvents = 'none';
-  centerContainer.style.zIndex = '1';
+  centerContainer.className = 'center-container';
 
   menuButton.remove();
   centerContainer.appendChild(menuButton);
   appToolbar.appendChild(centerContainer);
 
-  menuButton.style.position = 'relative';
-  menuButton.style.top = 'auto';
-  menuButton.style.left = 'auto';
-  menuButton.style.transform = 'none';
-  menuButton.style.pointerEvents = 'auto';
-  menuButton.style.margin = 'auto';
+  const buttonWrapper = menuButton.parentElement;
+  buttonWrapper.classList.add('button-wrapper-in-toolbar');
+  buttonWrapper.classList.remove('button-wrapper');
 
   if (menuContainer) {
     const buttonRect = menuButton.getBoundingClientRect();
     menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    menuContainer.style.left = '50%';
-    menuContainer.style.transform = 'translateX(-50%)';
   }
 
   if (actionsMenuContainer) {
     const buttonRect = menuButton.getBoundingClientRect();
     actionsMenuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    actionsMenuContainer.style.left = '50%';
-    actionsMenuContainer.style.transform = 'translateX(-50%)';
   }
 
   console.log("Button moved to crt-app-toolbar and centered");
@@ -955,26 +768,13 @@ function waitForLoginElements() {
   if (usernameField && passwordField && loginButton) {
     const autoLoginButton = document.createElement('button');
     autoLoginButton.textContent = 'LOGIN AS SUPERVISOR';
-    autoLoginButton.classList.add('auto-login-button');
-    autoLoginButton.classList.add('btn');
-    autoLoginButton.style.cssText = loginButton.style.cssText;
-    autoLoginButton.style.backgroundColor = 'red';
-    autoLoginButton.style.display = 'block';
-    autoLoginButton.style.color = 'white';
-
+    autoLoginButton.className = 'auto-login-button btn';
+    
+    // Копируем только динамические атрибуты, которые нельзя вынести в CSS
     autoLoginButton.style.width = loginButton.offsetWidth + 'px';
     autoLoginButton.style.height = loginButton.offsetHeight + 'px';
     autoLoginButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     autoLoginButton.style.padding = window.getComputedStyle(loginButton).padding;
-    autoLoginButton.style.border = window.getComputedStyle(loginButton).border;
-
-    autoLoginButton.style.fontFamily = 'Montserrat, sans-serif';
-    autoLoginButton.style.fontWeight = '500';
-    autoLoginButton.style.color = '#ffffff';
-    autoLoginButton.style.borderRadius = '4px';
-    autoLoginButton.style.border = 'none';
-    autoLoginButton.style.marginLeft = 'auto';
-    autoLoginButton.style.marginRight = 'auto';
 
     autoLoginButton.addEventListener('click', () => {
       usernameField.value = 'Supervisor';
