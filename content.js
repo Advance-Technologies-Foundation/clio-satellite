@@ -34,6 +34,12 @@ function createScriptsMenu() {
     return false;
   }
 
+  // Check if the current URL contains 'NuiLogin.aspx' (case-insensitive) and skip adding buttons if true
+  if (window.location.href.toLowerCase().includes('nuilogin.aspx')) {
+    console.log("Login page detected, skipping button creation");
+    return false; // Explicitly return false to indicate no buttons should be created
+  }
+
   loadStyles();
 
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
@@ -301,6 +307,12 @@ function createCenteredToolbar() {
     return false;
   }
   
+  // Check if the current URL contains 'NuiLogin.aspx' (case-insensitive) and skip adding buttons if true
+  if (window.location.href.toLowerCase().includes('nuilogin.aspx')) {
+    console.log("Login page detected, skipping button creation");
+    return false; // Explicitly return false to indicate no buttons should be created
+  }
+
   loadStyles();
 
   if (document.querySelector('.centered-toolbar')) {
