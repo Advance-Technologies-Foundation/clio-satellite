@@ -4,17 +4,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    /* position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999; */ */
+    gap: 8px;
 
     /* Define the style for the button */
     .btn {
-        font-family: "Montserrat", sans-serif;
-        font-weight: 500;
         color: #ffffff;
         border-radius: 4px;
         border: none;
@@ -25,7 +18,7 @@
     }
 
     /* Scripts Menu Button */
-    .scripts-menu-button {
+    .scripts-menu-button, .actions-button {
         position: relative;
         top: auto;
         left: auto;
@@ -35,15 +28,21 @@
         align-items: center;
         justify-content: center;
         line-height: 32px;
-        background-color: #0066cc;
         color: white;
         border: none;
         border-radius: 4px;
-        padding: 10px 15px;
-        font-family: "Montserrat", sans-serif;
-        font-weight: 500;
+        padding: 0px 6px;
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .scripts-menu-button {
+        background-color: #0066cc;
+    }
+
+    /* Actions Button */
+    .actions-button {
+        background-color: #ff5722;
     }
 
     /* Scripts Menu Button Icon */
@@ -53,92 +52,9 @@
         margin-right: 8px;
     }
 
-    /* Actions Button */
-    .actions-button {
-        position: relative;
-        top: auto;
-        left: auto;
-        transform: none;
-        z-index: inherit;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 32px;
-        margin-left: 10px;
-        background-color: #ff5722;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
-        font-family: "Montserrat", sans-serif;
-        font-weight: 500;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
     /* Actions Button Icon */
     .actions-button-icon {
         font-size: 20px;
-    }
-
-    /* Menu Container */
-    .scripts-menu-container, .actions-menu-container {
-        position: fixed;
-        top: 60px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9999;
-        background-color: white;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        display: none;
-        flex-direction: column;
-        width: 250px;
-        max-height: 80vh;
-        overflow-y: auto;
-    }
-
-    /* Menu Items */
-    .scripts-menu-item, .actions-menu-item {
-        padding: 12px 15px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: center;
-    }
-
-    .scripts-menu-item:hover, .actions-menu-item:hover {
-        background-color: #f5f5f5;
-    }
-
-    .scripts-menu-item:last-child, .actions-menu-item:last-child {
-        border-bottom: none;
-    }
-
-    /* Menu Item Icon */
-    .menu-item-icon {
-        margin-right: 10px;
-        font-size: 20px;
-    }
-
-    /* Menu Item Text Container */
-    .menu-item-text {
-        flex: 1;
-    }
-
-    /* Menu Item Title */
-    .menu-item-title {
-        font-weight: 500;
-        margin-bottom: 5px;
-        font-family: "Roboto", "Helvetica Neue", sans-serif;
-        font-size: 14px;
-    }
-
-    /* Menu Item Description */
-    .menu-item-description {
-        font-size: 12px;
-        color: #666;
     }
 
     /* Auto Login Button */
@@ -201,4 +117,75 @@
     transform: none;
     margin: 0 5px;
     height: 32px;
+}
+
+.creatio-satelite-menu-container {
+
+    .hidden {
+        display: none;
+    }
+
+    .visible {
+        display: flex;
+    }
+
+    /* Menu Container */
+    .scripts-menu-container, .actions-menu-container {
+        position: fixed;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background-color: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        flex-direction: column;
+        width: 250px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Menu Items */
+    .scripts-menu-item, .actions-menu-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+    }
+
+    .scripts-menu-item:hover, .actions-menu-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .scripts-menu-item:last-child, .actions-menu-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Menu Item Icon */
+    .menu-item-icon {
+        margin-right: 10px;
+        font-size: 20px;
+    }
+
+    /* Menu Item Text Container */
+    .menu-item-text {
+        flex: 1;
+    }
+
+    /* Menu Item Title */
+    .menu-item-title {
+        font-weight: 500;
+        margin-bottom: 5px;
+        font-family: "Roboto", "Helvetica Neue", sans-serif;
+        font-size: 14px;
+    }
+
+    /* Menu Item Description */
+    .menu-item-description {
+        font-size: 12px;
+        color: #666;
+    }
+
 }

@@ -2,6 +2,16 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
+function hideMenuContainer(menuContainer) {
+  menuContainer.classList.remove('visible');
+  menuContainer.classList.add('hidden');
+}
+
+function showMenuContainer(menuContainer) {
+  menuContainer.classList.remove('hidden');
+  menuContainer.classList.add('visible');
+}
+
 // Function to check if current page is the Shell page of Creatio
 function isShellPage() {
   const currentHost = window.location.hostname;
@@ -112,7 +122,8 @@ function createScriptsMenu() {
 
   // Create menu container with CSS class
   const menuContainer = document.createElement('div');
-  menuContainer.className = 'scripts-menu-container';
+  menuContainer.classList.add('scripts-menu-container');
+  hideMenuContainer(menuContainer); // Initially hidden
   // Only set dynamic position based on search element
   menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
@@ -197,7 +208,8 @@ function createScriptsMenu() {
 
   // Create actions menu container with CSS class
   const actionsMenuContainer = document.createElement('div');
-  actionsMenuContainer.className = 'actions-menu-container';
+  actionsMenuContainer.classList.add('actions-menu-container');
+  hideMenuContainer(actionsMenuContainer); // Initially hidden
   // Only set dynamic position based on search element
   actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
@@ -262,30 +274,26 @@ function createScriptsMenu() {
     actionsMenuContainer.appendChild(menuItem);
   });
 
-  actionsButton.addEventListener('click', () => {
-    if (actionsMenuContainer.style.display === 'none') {
-      actionsMenuContainer.style.display = 'flex';
-      menuContainer.style.display = 'none';
-    } else {
-      actionsMenuContainer.style.display = 'none';
-    }
+  actionsButton.addEventListener('click', (target) => {
+      hideMenuContainer(menuContainer);
+      showMenuContainer(actionsMenuContainer);
+      actionsMenuContainer.style.top = target.style.bottom + 'px';
+      actionsMenuContainer.style.left = target.style.left + 'px';
   });
 
-  menuButton.addEventListener('click', () => {
-    if (menuContainer.style.display === 'none') {
-      menuContainer.style.display = 'flex';
-      actionsMenuContainer.style.display = 'none';
-    } else {
-      menuContainer.style.display = 'none';
-    }
-  });
+  menuButton.addEventListener('click', (target) => {
+      showMenuContainer(menuContainer);
+      hideMenuContainer(actionsMenuContainer);
+      menuContainer.style.top = target.style.bottom + 'px';
+      menuContainer.style.left = target.style.left + 'px';
+    });
 
   document.addEventListener('click', (event) => {
     if (!menuButton.contains(event.target) && !menuContainer.contains(event.target)) {
-      menuContainer.style.display = 'none';
+      hideMenuContainer(menuContainer);
     }
     if (!actionsButton.contains(event.target) && !actionsMenuContainer.contains(event.target)) {
-      actionsMenuContainer.style.display = 'none';
+      hideMenuContainer(actionsMenuContainer);
     }
   });
 
@@ -293,7 +301,6 @@ function createScriptsMenu() {
     const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
 
     if (searchElement && searchElement.parentElement) {
-      const searchParent = searchElement.parentElement;
       searchElement.insertAdjacentElement('afterend', buttonWrapper);
       
       // Apply creatio-satelite-button-next-to-search class
@@ -323,8 +330,11 @@ function createScriptsMenu() {
       }
     }
 
-    document.body.appendChild(menuContainer);
-    document.body.appendChild(actionsMenuContainer);
+    const rootMenuContainer = document.createElement('div');
+    rootMenuContainer.classList.add('creatio-satelite-menu-container');
+    rootMenuContainer.appendChild(menuContainer);
+    rootMenuContainer.appendChild(actionsMenuContainer);
+    document.body.appendChild(rootMenuContainer);
     console.log('Scripts menu created successfully');
     menuCreated = true;
     actionsMenuCreated = true;
@@ -368,8 +378,8 @@ function placeButtonNextToSearch() {
 // Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
 function updateMenuPosition() {
   const buttonWrapper = document.querySelector('.creatio-satelite');
-  const menuContainer = document.querySelector('.scripts-menu-container');
-  const actionsMenuContainer = document.querySelector('.actions-menu-container');
+  const menuContainer = document.querySelector('.creatio-satelite-menu-container .scripts-menu-container');
+  const actionsMenuContainer = document.querySelector('.creatio-satelite-menu-container .actions-menu-container');
 
   if (!buttonWrapper || !menuContainer) return;
 
@@ -404,8 +414,8 @@ function updateMenuPosition() {
 // Функция для перемещения кнопки в toolbar, если он появился
 function moveButtonToToolbar() {
   const menuButton = document.querySelector('.scripts-menu-button');
-  const menuContainer = document.querySelector('.scripts-menu-container');
-  const actionsMenuContainer = document.querySelector('.actions-menu-container');
+  const menuContainer = document.querySelector('.creatio-satelite-menu-container .scripts-menu-container');
+  const actionsMenuContainer = document.querySelector('.creatio-satelite-menu-container .actions-menu-container');
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
 
   if (!menuButton || !buttonWrapper) return false;
