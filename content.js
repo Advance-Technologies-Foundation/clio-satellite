@@ -72,12 +72,12 @@ function loadStyles() {
 
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
-  console.log("Creating scripts menu");
+  console.log('Creating scripts menu');
 
   loadStyles();
 
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
-    console.log("Menu already exists, skipping creation");
+    console.log('Menu already exists, skipping creation');
     return;
   }
 
@@ -93,33 +93,20 @@ function createScriptsMenu() {
     console.log(`Found search element, position: ${topPosition}`);
   }
 
+  // Create button wrapper with CSS class
   const buttonWrapper = document.createElement('div');
-  buttonWrapper.style.display = 'flex';
-  buttonWrapper.style.alignItems = 'center';
-  buttonWrapper.style.justifyContent = 'center';
-  buttonWrapper.style.position = 'fixed';
+  buttonWrapper.className = 'creatio-satelite';
+  // Only set dynamic position based on search element
   buttonWrapper.style.top = topPosition;
-  buttonWrapper.style.left = '50%';
-  buttonWrapper.style.transform = 'translateX(-50%)';
-  buttonWrapper.style.zIndex = '9999';
 
+  // Create menu button with CSS class
   const menuButton = document.createElement('button');
   menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
-  menuButton.style.position = 'relative';
-  menuButton.style.top = 'auto';
-  menuButton.style.left = 'auto';
-  menuButton.style.transform = 'none';
-  menuButton.style.zIndex = 'inherit';
-  menuButton.style.display = 'flex';
-  menuButton.style.alignItems = 'center';
-  menuButton.style.justifyContent = 'center';
-  menuButton.style.lineHeight = '32px';
-
+  
+  // Create and style button icon using CSS
   const iconImg = document.createElement('img');
   iconImg.src = chrome.runtime.getURL('icon128.png');
-  iconImg.style.width = '24px';
-  iconImg.style.height = '24px';
-  iconImg.style.marginRight = '8px';
+  // Image styles are handled by CSS
 
   const buttonText = document.createElement('span');
   buttonText.textContent = 'Clio Satelite : Try me!';
@@ -127,44 +114,25 @@ function createScriptsMenu() {
   menuButton.appendChild(iconImg);
   menuButton.appendChild(buttonText);
 
+  // Create actions button with CSS class
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
-  actionsButton.style.position = 'relative';
-  actionsButton.style.top = 'auto';
-  actionsButton.style.left = 'auto';
-  actionsButton.style.transform = 'none';
-  actionsButton.style.zIndex = 'inherit';
-  actionsButton.style.display = 'flex';
-  actionsButton.style.alignItems = 'center';
-  actionsButton.style.justifyContent = 'center';
-  actionsButton.style.lineHeight = '32px';
-  actionsButton.style.marginLeft = '10px';
 
-  // Replace text with an icon
+  // Create actions button icon with CSS class
   const actionsButtonIcon = document.createElement('span');
-  actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon symbolizing actions/operations
-  actionsButtonIcon.style.fontSize = '20px';
-  actionsButtonIcon.title = 'Actions'; // Add tooltip to explain what the button does
+  actionsButtonIcon.className = 'actions-button-icon';
+  actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon
+  actionsButtonIcon.title = 'Actions'; // Add tooltip
   actionsButton.appendChild(actionsButtonIcon);
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);
 
+  // Create menu container with CSS class
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container';
-  menuContainer.style.position = 'fixed';
+  // Only set dynamic position based on search element
   menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
-  menuContainer.style.left = '50%';
-  menuContainer.style.transform = 'translateX(-50%)';
-  menuContainer.style.zIndex = '9999';
-  menuContainer.style.backgroundColor = 'white';
-  menuContainer.style.borderRadius = '4px';
-  menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  menuContainer.style.display = 'none';
-  menuContainer.style.flexDirection = 'column';
-  menuContainer.style.width = '250px';
-  menuContainer.style.maxHeight = '80vh';
-  menuContainer.style.overflowY = 'auto';
 
   const scriptDescriptions = {
     'Features': 'Open system features management page',
@@ -202,42 +170,30 @@ function createScriptsMenu() {
       'Configuration': '⚙️'
     };
 
+    // Create menu item with CSS classes
     const menuItem = document.createElement('div');
     menuItem.className = 'scripts-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
-
+    
+    // Create icon with CSS class
     const iconElement = document.createElement('span');
+    iconElement.className = 'menu-item-icon';
     iconElement.textContent = menuIcons[scriptName] || '📄';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
-
+    
+    // Create text container with CSS class
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
-
+    textContainer.className = 'menu-item-text';
+    
+    // Create title with CSS class
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
-
+    
+    // Create description with CSS class
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = scriptDescriptions[scriptName] || 'Run script ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
+    
+    // Menu item hover effects are handled by CSS
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -257,21 +213,11 @@ function createScriptsMenu() {
     menuContainer.appendChild(menuItem);
   });
 
+  // Create actions menu container with CSS class
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.className = 'actions-menu-container';
-  actionsMenuContainer.style.position = 'fixed';
+  // Only set dynamic position based on search element
   actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
-  actionsMenuContainer.style.left = '50%';
-  actionsMenuContainer.style.transform = 'translateX(-50%)';
-  actionsMenuContainer.style.zIndex = '9999';
-  actionsMenuContainer.style.backgroundColor = 'white';
-  actionsMenuContainer.style.borderRadius = '4px';
-  actionsMenuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-  actionsMenuContainer.style.display = 'none';
-  actionsMenuContainer.style.flexDirection = 'column';
-  actionsMenuContainer.style.width = '250px';
-  actionsMenuContainer.style.maxHeight = '80vh';
-  actionsMenuContainer.style.overflowY = 'auto';
 
   const actionsScriptDescriptions = {
     'RestartApp': 'Reload the Creatio application',
@@ -291,42 +237,30 @@ function createScriptsMenu() {
   actionsScriptFiles.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
 
+    // Create menu item with CSS classes
     const menuItem = document.createElement('div');
     menuItem.className = 'actions-menu-item';
-    menuItem.style.padding = '12px 15px';
-    menuItem.style.borderBottom = '1px solid #eee';
-    menuItem.style.cursor = 'pointer';
-    menuItem.style.transition = 'background-color 0.2s';
-    menuItem.style.display = 'flex';
-    menuItem.style.alignItems = 'center';
-
+    
+    // Create icon with CSS class
     const iconElement = document.createElement('span');
+    iconElement.className = 'menu-item-icon';
     iconElement.textContent = actionsIcons[scriptName] || '⚙️';
-    iconElement.style.marginRight = '10px';
-    iconElement.style.fontSize = '20px';
-
+    
+    // Create text container with CSS class
     const textContainer = document.createElement('div');
-    textContainer.style.flex = '1';
-
+    textContainer.className = 'menu-item-text';
+    
+    // Create title with CSS class
     const title = document.createElement('div');
+    title.className = 'menu-item-title';
     title.textContent = scriptName.replace('_', ' ');
-    title.style.fontWeight = '500';
-    title.style.marginBottom = '5px';
-    title.style.fontFamily = 'Roboto, "Helvetica Neue", sans-serif';
-    title.style.fontSize = '14px';
-
+    
+    // Create description with CSS class
     const description = document.createElement('div');
+    description.className = 'menu-item-description';
     description.textContent = actionsScriptDescriptions[scriptName] || 'Run action ' + scriptName;
-    description.style.fontSize = '12px';
-    description.style.color = '#666';
-
-    menuItem.addEventListener('mouseover', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
-    });
-
-    menuItem.addEventListener('mouseout', () => {
-      menuItem.style.backgroundColor = 'white';
-    });
+    
+    // Menu item hover effects are handled by CSS
 
     menuItem.addEventListener('click', () => {
       chrome.runtime.sendMessage({
@@ -379,56 +313,41 @@ function createScriptsMenu() {
     if (searchElement && searchElement.parentElement) {
       const searchParent = searchElement.parentElement;
       searchElement.insertAdjacentElement('afterend', buttonWrapper);
-
-      buttonWrapper.style.position = 'relative';
-      buttonWrapper.style.top = 'auto';
-      buttonWrapper.style.left = 'auto';
-      buttonWrapper.style.transform = 'none';
-      buttonWrapper.style.margin = '0 5px';
-      buttonWrapper.style.height = 'auto';
-
-      console.log("Button placed next to search element on initial creation");
+      
+      // Apply button-next-to-search class
+      buttonWrapper.classList.add('button-next-to-search');
+      
+      console.log('Button placed next to search element on initial creation');
     } else {
       const appToolbar = document.querySelector('crt-app-toolbar');
 
       if (appToolbar) {
         appToolbar.appendChild(buttonWrapper);
-        console.log("Button inserted into crt-app-toolbar");
+        console.log('Button inserted into crt-app-toolbar');
 
+        // Create center container with CSS class
         const centerContainer = document.createElement('div');
-        centerContainer.style.width = '100%';
-        centerContainer.style.display = 'flex';
-        centerContainer.style.justifyContent = 'center';
-        centerContainer.style.position = 'absolute';
-        centerContainer.style.left = '0';
-        centerContainer.style.top = '0';
-        centerContainer.style.height = '100%';
-        centerContainer.style.pointerEvents = 'none';
-        centerContainer.style.zIndex = '1';
+        centerContainer.className = 'center-container';
 
         buttonWrapper.remove();
         centerContainer.appendChild(buttonWrapper);
         appToolbar.appendChild(centerContainer);
-
-        buttonWrapper.style.position = 'relative';
-        buttonWrapper.style.top = 'auto';
-        buttonWrapper.style.left = 'auto';
-        buttonWrapper.style.transform = 'none';
-        buttonWrapper.style.pointerEvents = 'auto';
-        buttonWrapper.style.margin = 'auto';
+        
+        // Apply button-in-toolbar class
+        buttonWrapper.className += ' button-in-toolbar';
       } else {
         document.body.appendChild(buttonWrapper);
-        console.log("crt-app-toolbar not found, button added to body");
+        console.log('crt-app-toolbar not found, button added to body');
       }
     }
 
     document.body.appendChild(menuContainer);
     document.body.appendChild(actionsMenuContainer);
-    console.log("Scripts menu created successfully");
+    console.log('Scripts menu created successfully');
     menuCreated = true;
     actionsMenuCreated = true;
   } catch (error) {
-    console.error("Error appending menu elements:", error);
+    console.error('Error appending menu elements:', error);
     menuCreated = false;
     actionsMenuCreated = false;
   }
@@ -453,18 +372,13 @@ function placeButtonNextToSearch() {
     // Place button next to search element
     searchElement.insertAdjacentElement('afterend', buttonWrapper);
     
-    // Update button styles for inline display
-    buttonWrapper.style.position = 'relative';
-    buttonWrapper.style.top = 'auto';
-    buttonWrapper.style.left = 'auto';
-    buttonWrapper.style.transform = 'none';
-    buttonWrapper.style.margin = '0 5px';
-    buttonWrapper.style.height = 'auto';
+    // Apply button-next-to-search class
+    buttonWrapper.classList.add('button-next-to-search');
     
-    console.log("Button placed next to search element dynamically");
+    console.log('Button placed next to search element dynamically');
     return true;
   } catch (error) {
-    console.error("Error placing button next to search:", error);
+    console.error('Error placing button next to search:', error);
     return false;
   }
 }
@@ -482,13 +396,9 @@ function updateMenuPosition() {
   if (isInToolbar) {
     const buttonRect = buttonWrapper.getBoundingClientRect();
     menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    menuContainer.style.left = '50%';
-    menuContainer.style.transform = 'translateX(-50%)';
-
+    
     if (actionsMenuContainer) {
       actionsMenuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-      actionsMenuContainer.style.left = '50%';
-      actionsMenuContainer.style.transform = 'translateX(-50%)';
     }
     return;
   }
@@ -515,8 +425,9 @@ function moveButtonToToolbar() {
   const menuButton = document.querySelector('.scripts-menu-button');
   const menuContainer = document.querySelector('.scripts-menu-container');
   const actionsMenuContainer = document.querySelector('.actions-menu-container');
+  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
 
-  if (!menuButton) return false;
+  if (!menuButton || !buttonWrapper) return false;
 
   const isInToolbar = !!menuButton.closest('crt-app-toolbar');
   if (isInToolbar) return true;
@@ -524,43 +435,28 @@ function moveButtonToToolbar() {
   const appToolbar = document.querySelector('crt-app-toolbar');
   if (!appToolbar) return false;
 
+  // Create center container with CSS class
   const centerContainer = document.createElement('div');
-  centerContainer.style.width = '100%';
-  centerContainer.style.display = 'flex';
-  centerContainer.style.justifyContent = 'center';
-  centerContainer.style.position = 'absolute';
-  centerContainer.style.left = '0';
-  centerContainer.style.top = '0';
-  centerContainer.style.height = '100%';
-  centerContainer.style.pointerEvents = 'none';
-  centerContainer.style.zIndex = '1';
+  centerContainer.className = 'center-container';
 
-  menuButton.remove();
-  centerContainer.appendChild(menuButton);
+  buttonWrapper.remove();
+  centerContainer.appendChild(buttonWrapper);
   appToolbar.appendChild(centerContainer);
-
-  menuButton.style.position = 'relative';
-  menuButton.style.top = 'auto';
-  menuButton.style.left = 'auto';
-  menuButton.style.transform = 'none';
-  menuButton.style.pointerEvents = 'auto';
-  menuButton.style.margin = 'auto';
+  
+  // Apply button-in-toolbar class
+  buttonWrapper.className += 'button-in-toolbar';
 
   if (menuContainer) {
     const buttonRect = menuButton.getBoundingClientRect();
     menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    menuContainer.style.left = '50%';
-    menuContainer.style.transform = 'translateX(-50%)';
   }
 
   if (actionsMenuContainer) {
     const buttonRect = menuButton.getBoundingClientRect();
     actionsMenuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    actionsMenuContainer.style.left = '50%';
-    actionsMenuContainer.style.transform = 'translateX(-50%)';
   }
 
-  console.log("Button moved to crt-app-toolbar and centered");
+  console.log('Button moved to crt-app-toolbar and centered');
   return true;
 }
 
@@ -646,26 +542,13 @@ function waitForLoginElements() {
   if (usernameField && passwordField && loginButton) {
     const autoLoginButton = document.createElement('button');
     autoLoginButton.textContent = 'LOGIN AS SUPERVISOR';
-    autoLoginButton.classList.add('auto-login-button');
-    autoLoginButton.classList.add('btn');
-    autoLoginButton.style.cssText = loginButton.style.cssText;
-    autoLoginButton.style.backgroundColor = 'red';
-    autoLoginButton.style.display = 'block';
-    autoLoginButton.style.color = 'white';
-
+    autoLoginButton.className = 'auto-login-button btn';
+    
+    // Copy dimensions from the original button
     autoLoginButton.style.width = loginButton.offsetWidth + 'px';
     autoLoginButton.style.height = loginButton.offsetHeight + 'px';
     autoLoginButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     autoLoginButton.style.padding = window.getComputedStyle(loginButton).padding;
-    autoLoginButton.style.border = window.getComputedStyle(loginButton).border;
-
-    autoLoginButton.style.fontFamily = 'Montserrat, sans-serif';
-    autoLoginButton.style.fontWeight = '500';
-    autoLoginButton.style.color = '#ffffff';
-    autoLoginButton.style.borderRadius = '4px';
-    autoLoginButton.style.border = 'none';
-    autoLoginButton.style.marginLeft = 'auto';
-    autoLoginButton.style.marginRight = 'auto';
 
     autoLoginButton.addEventListener('click', () => {
       usernameField.value = 'Supervisor';
@@ -681,7 +564,7 @@ function waitForLoginElements() {
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(autoLoginRow);
     
-    console.log("Login form elements found and auto login button added");
+    console.log('Login form elements found and auto login button added');
   } else {
     setTimeout(waitForLoginElements, 500);
   }
