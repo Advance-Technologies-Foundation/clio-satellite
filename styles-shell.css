@@ -4,11 +4,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    position: fixed;
+
+    /* position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;
+    z-index: 9999; */ */
 
     /* Define the style for the button */
     .btn {
@@ -190,14 +191,14 @@
         pointer-events: auto;
         margin: auto;
     }
+}
 
-    /* Button Next to Search */
-    .button-next-to-search {
-        position: relative;
-        top: auto;
-        left: auto;
-        transform: none;
-        margin: 0 5px;
-        height: auto;
-    }
+/* Button Next to Search */
+.creatio-satelite-button-next-to-search {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 0 5px;
+    height: 32px;
 }

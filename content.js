@@ -56,25 +56,9 @@ function isShellPage() {
   return isCreatio;
 }
 
-// Функция для загрузки стилей CSS
-function loadStyles() {
-  if (document.querySelector('link[href*="styles.css"]')) {
-    console.log("Styles already loaded");
-    return;
-  }
-
-  const styleLink = document.createElement('link');
-  styleLink.rel = 'stylesheet';
-  styleLink.href = chrome.runtime.getURL('styles.css');
-  document.head.appendChild(styleLink);
-  console.log("Styles loaded");
-}
-
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
   console.log('Creating scripts menu');
-
-  loadStyles();
 
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
     console.log('Menu already exists, skipping creation');
@@ -96,8 +80,6 @@ function createScriptsMenu() {
   // Create button wrapper with CSS class
   const buttonWrapper = document.createElement('div');
   buttonWrapper.className = 'creatio-satelite';
-  // Only set dynamic position based on search element
-  buttonWrapper.style.top = topPosition;
 
   // Create menu button with CSS class
   const menuButton = document.createElement('button');
@@ -314,8 +296,8 @@ function createScriptsMenu() {
       const searchParent = searchElement.parentElement;
       searchElement.insertAdjacentElement('afterend', buttonWrapper);
       
-      // Apply button-next-to-search class
-      buttonWrapper.classList.add('button-next-to-search');
+      // Apply creatio-satelite-button-next-to-search class
+      buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
       
       console.log('Button placed next to search element on initial creation');
     } else {
@@ -355,7 +337,7 @@ function createScriptsMenu() {
 
 // Function to place button next to search element if it exists
 function placeButtonNextToSearch() {
-  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
+  const buttonWrapper = document.querySelector('.creatio-satelite');
   const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
   
   if (!buttonWrapper || !searchElement || !searchElement.parentElement) {
@@ -372,8 +354,8 @@ function placeButtonNextToSearch() {
     // Place button next to search element
     searchElement.insertAdjacentElement('afterend', buttonWrapper);
     
-    // Apply button-next-to-search class
-    buttonWrapper.classList.add('button-next-to-search');
+    // Apply creatio-satelite-button-next-to-search class
+    buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
     
     console.log('Button placed next to search element dynamically');
     return true;
@@ -385,7 +367,7 @@ function placeButtonNextToSearch() {
 
 // Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
 function updateMenuPosition() {
-  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
+  const buttonWrapper = document.querySelector('.creatio-satelite');
   const menuContainer = document.querySelector('.scripts-menu-container');
   const actionsMenuContainer = document.querySelector('.actions-menu-container');
 
@@ -409,7 +391,6 @@ function updateMenuPosition() {
 
   if (searchElement) {
     const searchRect = searchElement.getBoundingClientRect();
-    buttonWrapper.style.top = searchRect.top + 'px';
     menuContainer.style.top = (searchRect.top + 40) + 'px';
 
     if (actionsMenuContainer) {

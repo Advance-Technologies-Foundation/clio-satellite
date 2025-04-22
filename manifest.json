@@ -11,6 +11,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "css": ["styles-shell.css"],
       "js": ["content.js"]
     }
   ],
