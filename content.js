@@ -66,6 +66,12 @@ function isShellPage() {
   return isCreatio;
 }
 
+function adjustMenuPosition(relatedContainer, container) {
+  const rectangle = relatedContainer.getBoundingClientRect();
+  container.style.top = `${rectangle.bottom + 2}px`;
+  container.style.left = `${rectangle.left + 125}px`;
+}
+
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
   console.log('Creating scripts menu');
@@ -277,15 +283,13 @@ function createScriptsMenu() {
   actionsButton.addEventListener('click', (target) => {
       hideMenuContainer(menuContainer);
       showMenuContainer(actionsMenuContainer);
-      actionsMenuContainer.style.top = target.style.bottom + 'px';
-      actionsMenuContainer.style.left = target.style.left + 'px';
+      adjustMenuPosition(target.currentTarget, actionsMenuContainer);
   });
 
   menuButton.addEventListener('click', (target) => {
       showMenuContainer(menuContainer);
       hideMenuContainer(actionsMenuContainer);
-      menuContainer.style.top = target.style.bottom + 'px';
-      menuContainer.style.left = target.style.left + 'px';
+      adjustMenuPosition(target.currentTarget, menuContainer);
     });
 
   document.addEventListener('click', (event) => {
