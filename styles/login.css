@@ -1,0 +1,89 @@
+.creatio-satelite.auto-login-button {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 500;
+    color: #ffffff;
+    border-radius: 4px;
+    border: none;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: red;
+    text-transform: uppercase;
+}
+
+/**
+ * Styles for the login page enhancements
+ */
+
+/* Container for login profiles */
+.login-profiles-container {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Caption for the dropdown */
+.login-caption {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Profile selector dropdown */
+.login-profile-select {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 32px;
+}
+
+/* Hover state for dropdown */
+.login-profile-select:hover {
+  border-color: #aaa;
+}
+
+/* Focus state for dropdown */
+.login-profile-select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
+}
+
+/* Login button for selected profile */
+.login-profile-button {
+  background-color: #0066cc;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+/* Hover state for login button */
+.login-profile-button:hover {
+  background-color: #0052a3;
+}
+
+/* Active state for login button */
+.login-profile-button:active {
+  background-color: #004080;
+}

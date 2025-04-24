@@ -10,9 +10,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "css": ["styles-shell.css"],
+      "matches": ["*://*/*/Shell*", "*://*/Shell*"],
+      "css": ["styles/shell.css"],
       "js": ["content.js"]
+},
+    {
+      "matches": ["*://*/*/Login/NuiLogin.aspx*", "*://*/Login/NuiLogin.aspx*"],
+      "css": ["styles/login.css"],
+      "js": ["login.js"]
     }
   ],
   "web_accessible_resources": [
