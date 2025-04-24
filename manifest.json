@@ -10,12 +10,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*/Shell*", "*://*/Shell*"],
+      "matches": ["*://*/*Shell/"],
       "css": ["styles/shell.css"],
       "js": ["content.js"]
-},
+    },
     {
-      "matches": ["*://*/*/Login/NuiLogin.aspx*", "*://*/Login/NuiLogin.aspx*"],
+      "matches": ["*://*/*NuiLogin.aspx*", "*://*/*Login.html*"],
       "css": ["styles/login.css"],
       "js": ["login.js"]
     }

@@ -13,13 +13,12 @@
   if (usernameField && passwordField && loginButton) {
     // Create login profiles container
     const loginProfilesContainer = document.createElement('div');
-    loginProfilesContainer.className = 'login-profiles-container';
+    loginProfilesContainer.className = 'creatio-satelite-login-profiles-container';
     
     // Create dropdown select element
     const profileSelect = document.createElement('select');
-    profileSelect.className = 'login-profile-select';
+    profileSelect.className = 'creatio-satelite-login-profile-select';
     profileSelect.style.width = loginButton.offsetWidth + 'px';
-    profileSelect.style.height = loginButton.offsetHeight + 'px';
     
     // Define available login profiles
     const profiles = [
@@ -57,13 +56,15 @@
     
     // Add caption text
     const loginCaption = document.createElement('div');
-    loginCaption.className = 'login-caption';
+    loginCaption.className = 'creatio-satelite-login-caption';
     loginCaption.textContent = 'Login as';
     
     // Append elements to container
     loginProfilesContainer.appendChild(loginCaption);
     loginProfilesContainer.appendChild(profileSelect);
-    
+    loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    profileSelect.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(loginProfilesContainer);

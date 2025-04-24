@@ -16,7 +16,7 @@
  */
 
 /* Container for login profiles */
-.login-profiles-container {
+.creatio-satelite-login-profiles-container {
   margin-top: 15px;
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@
 }
 
 /* Caption for the dropdown */
-.login-caption {
+.creatio-satelite-login-caption {
   font-family: 'Montserrat', sans-serif;
   font-size: 12px;
   color: #666;
@@ -33,7 +33,7 @@
 }
 
 /* Profile selector dropdown */
-.login-profile-select {
+.creatio-satelite-login-profile-select {
   font-family: 'Montserrat', sans-serif;
   font-weight: 500;
   padding: 8px 12px;
@@ -52,19 +52,19 @@
 }
 
 /* Hover state for dropdown */
-.login-profile-select:hover {
+.creatio-satelite-login-profile-select:hover {
   border-color: #aaa;
 }
 
 /* Focus state for dropdown */
-.login-profile-select:focus {
+.creatio-satelite-login-profile-select:focus {
   outline: none;
   border-color: #0066cc;
   box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
 }
 
 /* Login button for selected profile */
-.login-profile-button {
+.creatio-satelite-login-profile-button {
   background-color: #0066cc;
   color: white;
   font-family: 'Montserrat', sans-serif;
@@ -79,11 +79,11 @@
 }
 
 /* Hover state for login button */
-.login-profile-button:hover {
+.creatio-satelite-login-profile-button:hover {
   background-color: #0052a3;
 }
 
 /* Active state for login button */
-.login-profile-button:active {
+.creatio-satelite-login-profile-button:active {
   background-color: #004080;
 }
