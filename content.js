@@ -202,7 +202,7 @@ function createScriptsMenu() {
         console.log('Message sent to background script');
       });
 
-      menuContainer.style.display = 'none';
+      hideMenuContainer(menuContainer);
     });
 
     textContainer.appendChild(title);
@@ -269,8 +269,7 @@ function createScriptsMenu() {
       }, response => {
         console.log('Message sent to background script to execute action script: actions/' + scriptFile);
       });
-
-      actionsMenuContainer.style.display = 'none';
+      hideMenuContainer(actionsMenuContainer);
     });
 
     textContainer.appendChild(title);
