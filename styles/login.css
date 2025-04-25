@@ -7,7 +7,7 @@
     display: block;
     margin-left: auto;
     margin-right: auto;
-    background-color: red;
+    background-color: orangered;
     text-transform: uppercase;
 }
 
@@ -21,6 +21,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
 }
 
 /* Caption for the dropdown */

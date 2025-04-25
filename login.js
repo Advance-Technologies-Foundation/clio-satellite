@@ -14,20 +14,20 @@
     // Create login profiles container
     const loginProfilesContainer = document.createElement('div');
     loginProfilesContainer.className = 'creatio-satelite-login-profiles-container';
-    
+
     // Create dropdown select element
     const profileSelect = document.createElement('select');
     profileSelect.className = 'creatio-satelite-login-profile-select';
     profileSelect.style.width = loginButton.offsetWidth + 'px';
-    
+
     // Define available login profiles
     const profiles = [
-      { label: '-- Select login profile --', username: '', password: '' },
       { label: 'Supervisor', username: 'Supervisor', password: 'Supervisor' },
       { label: 'User_001', username: 'User_001', password: 'Password' },
-      { label: 'Administrator_001', username: 'Administrator_001', password: 'Password' }
+      { label: 'Administrator_001', username: 'Administrator_001', password: 'Password' },
+      { label: 'PortalUser_001', username: 'PortalUser_001', password: 'Password' }
     ];
-    
+
     // Add profile options to the dropdown
     profiles.forEach(profile => {
       const option = document.createElement('option');
@@ -38,12 +38,22 @@
       profileSelect.appendChild(option);
     });
 
+    // Add caption text
+    const loginCaption = document.createElement('button');
+    loginCaption.classList.add('creatio-satelite');
+    loginCaption.classList.add('auto-login-button');
+    loginCaption.textContent = 'Log in as:';
+    loginCaption.style.width = loginButton.offsetWidth + 'px';
+    loginCaption.style.height = loginButton.offsetHeight + 'px';
+    loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    loginCaption.style.padding = window.getComputedStyle(loginButton).padding;
+
     // Add change event handler to execute login when a profile is selected
-    profileSelect.addEventListener('change', () => {
+    loginCaption.addEventListener('click', () => {
       const selectedOption = profileSelect.options[profileSelect.selectedIndex];
       const username = selectedOption.dataset.username;
       const password = selectedOption.dataset.password;
-      
+
       if (username && password) {
         // Fill credentials and submit login form
         usernameField.focus();
@@ -53,12 +63,7 @@
         loginButton.click();
       }
     });
-    
-    // Add caption text
-    const loginCaption = document.createElement('div');
-    loginCaption.className = 'creatio-satelite-login-caption';
-    loginCaption.textContent = 'Login as';
-    
+
     // Append elements to container
     loginProfilesContainer.appendChild(loginCaption);
     loginProfilesContainer.appendChild(profileSelect);
@@ -68,7 +73,7 @@
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(loginProfilesContainer);
-    
+
     console.log('Login form elements found and profile selector added');
   } else {
     // If elements aren't found yet, try again after a delay
