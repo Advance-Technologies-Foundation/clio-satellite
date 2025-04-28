@@ -674,19 +674,45 @@ const positionObserver = new MutationObserver(() => {
  * @returns {boolean} True if menu was created, false otherwise
  */
 function checkShellAndCreateMenu() {
-  console.log("Checking for Shell page");
+  console.log("[BUTTON VISIBILITY] Starting check for whether to show buttons");
   
+  // Check if this is a login page first
   if (typeof isLoginPage === 'function' && isLoginPage()) {
-    console.log("Login page detected, skipping scripts menu creation");
+    console.log("[BUTTON VISIBILITY] Login page detected, skipping scripts menu creation");
     return false;
   }
   
-  if (isShellPage() && !menuCreated) {
-    console.log("Shell page detected, creating scripts menu");
+  // Check if it's a Creatio page
+  console.log("[BUTTON VISIBILITY] Checking if this is a Creatio page");
+  const isCreatio = typeof isCreatioPage === 'function' ? isCreatioPage() : false;
+  
+  if (!isCreatio) {
+    console.log("[BUTTON VISIBILITY] Not a Creatio page, skipping menu creation");
+    return false;
+  }
+  
+  // For debug: Check domain exclusion again to be sure
+  if (typeof isExcludedDomain === 'function' && isExcludedDomain()) {
+    console.log('[BUTTON VISIBILITY] Domain is in exclusion list, buttons should not appear');
+    return false;
+  }
+  
+  // Now check if it's a shell page specifically
+  console.log("[BUTTON VISIBILITY] Checking if this is a Shell page");
+  const isShell = typeof isShellPage === 'function' ? isShellPage() : false;
+  
+  if (isShell && !menuCreated) {
+    console.log("[BUTTON VISIBILITY] Shell page detected, creating scripts menu");
+    console.log("[BUTTON VISIBILITY] Current URL:", window.location.href);
+    console.log("[BUTTON VISIBILITY] Document title:", document.title);
+    
     createScriptsMenu();
     return true;
   } else if (!menuCreated) {
-    console.log("Shell page not detected, checking for toolbar-less page");
+    console.log("[BUTTON VISIBILITY] Creatio page, but not a Shell page. Checking for toolbar-less page");
+    console.log("[BUTTON VISIBILITY] Current URL:", window.location.href);
+    console.log("[BUTTON VISIBILITY] Document title:", document.title);
+    
     return createCenteredToolbar();
   }
   return false;
