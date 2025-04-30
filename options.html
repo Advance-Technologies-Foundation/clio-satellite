@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clio Satelite Options</title>
+  <link rel="stylesheet" type="text/css" href="styles/options.css">
+</head>
+<body>
+  <h1>User Profiles</h1>
+  
+  <div id="user-list-container">
+    <h2>Users</h2>
+    <ul id="user-list"></ul>
+  </div>
+
+  <div id="add-user-container">
+    <h2>Add New Profile</h2>
+    <form id="add-user-form">
+      <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username" required>
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit">Add Profile</button>
+    </form>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

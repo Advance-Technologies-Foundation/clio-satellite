@@ -5,6 +5,14 @@
 
 // Function to wait for login form elements and add login profile selector
 (function waitForLoginElements() {
+
+  function addOption(parent, value, text) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    parent.appendChild(option);
+  }
+
   // Find login form elements
   const usernameField = document.querySelector('#loginEdit-el');
   const passwordField = document.querySelector('#passwordEdit-el');
@@ -20,22 +28,21 @@
     profileSelect.className = 'creatio-satelite-login-profile-select';
     profileSelect.style.width = loginButton.offsetWidth + 'px';
 
-    // Define available login profiles
-    const profiles = [
-      { label: 'Supervisor', username: 'Supervisor', password: 'Supervisor' },
-      { label: 'User_001', username: 'User_001', password: 'Password' },
-      { label: 'Administrator_001', username: 'Administrator_001', password: 'Password' },
-      { label: 'PortalUser_001', username: 'PortalUser_001', password: 'Password' }
-    ];
-
-    // Add profile options to the dropdown
-    profiles.forEach(profile => {
-      const option = document.createElement('option');
-      option.value = profile.username;
-      option.textContent = profile.label;
-      option.dataset.username = profile.username;
-      option.dataset.password = profile.password;
-      profileSelect.appendChild(option);
+    // Get current profiles and add the new one
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+      const profiles = data.userProfiles;
+      if (profiles.length === 0) {
+        // If no profiles are found, add a default option
+        addOption(profileSelect, '', 'Setup user in options');
+      }
+      profiles.forEach(profile => {
+        const option = document.createElement('option');
+        option.value = profile.username;
+        option.textContent = profile.username; // Display username in the dropdown
+        option.dataset.username = profile.username;
+        option.dataset.password = profile.password;
+        profileSelect.appendChild(option);
+      });
     });
 
     // Add caption text
