@@ -55,22 +55,6 @@
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     loginCaption.style.padding = window.getComputedStyle(loginButton).padding;
 
-    // Add change event handler to execute login when a profile is selected
-    loginCaption.addEventListener('click', () => {
-      const selectedOption = profileSelect.options[profileSelect.selectedIndex];
-      const username = selectedOption.dataset.username;
-      const password = selectedOption.dataset.password;
-
-      if (username && password) {
-        // Fill credentials and submit login form
-        usernameField.focus();
-        usernameField.value = username;
-        passwordField.focus();
-        passwordField.value = password;
-        loginButton.click();
-      }
-    });
-
     // Append elements to container
     loginProfilesContainer.appendChild(loginCaption);
     loginProfilesContainer.appendChild(profileSelect);
@@ -80,6 +64,8 @@
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(loginProfilesContainer);
+
+    registerLoginEvents(loginCaption);
 
     console.log('Login form elements found and profile selector added');
   } else {

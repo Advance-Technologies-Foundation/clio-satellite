@@ -18,7 +18,7 @@
     {
       "matches": ["*://*/*NuiLogin.aspx*", "*://*/*Login.html*"],
       "css": ["styles/login.css"],
-      "js": ["login.js"]
+      "js": ["login/login-events.js", "login/login.js"]
     }
   ],
   "web_accessible_resources": [
