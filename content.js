@@ -2,12 +2,20 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
+const debugExtension = false;
+
+function debugLog(message) {
+  if (debugExtension) {
+	console.log(message);
+  }
+}
+
 // Function to check if current page is the Shell page of Creatio
 function isShellPage() {
   const currentHost = window.location.hostname;
 
   const excludedDomains = [
-    'gitlab.com', 
+    'gitlab.com',
     'github.com',
     'bitbucket.org',
     'google.com',
@@ -21,7 +29,7 @@ function isShellPage() {
 
   for (const domain of excludedDomains) {
     if (currentHost.includes(domain)) {
-      console.log(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
+      debugLog(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
       return false;
     }
   }
@@ -48,9 +56,9 @@ function isShellPage() {
   const isCreatio = foundIndicators.length >= MIN_INDICATORS;
 
   if (!isCreatio) {
-    console.log(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Skipping activation.`);
+    debugLog(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Skipping activation.`);
   } else {
-    console.log(`Found ${foundIndicators.length} Creatio indicators. Activating plugin.`);
+    debugLog(`Found ${foundIndicators.length} Creatio indicators. Activating plugin.`);
   }
 
   return isCreatio;
@@ -59,7 +67,7 @@ function isShellPage() {
 // Функция для загрузки стилей CSS
 function loadStyles() {
   if (document.querySelector('link[href*="styles.css"]')) {
-    console.log("Styles already loaded");
+    debugLog("Styles already loaded");
     return;
   }
 
@@ -67,21 +75,21 @@ function loadStyles() {
   styleLink.rel = 'stylesheet';
   styleLink.href = chrome.runtime.getURL('styles.css');
   document.head.appendChild(styleLink);
-  console.log("Styles loaded");
+  debugLog("Styles loaded");
 }
 
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
-  console.log("Creating scripts menu");
+  debugLog("Creating scripts menu");
 
   loadStyles();
 
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
-    console.log("Menu already exists, skipping creation");
+    debugLog("Menu already exists, skipping creation");
     return;
   }
 
-  const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') || 
+  const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') ||
                        document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
                        document.querySelector('.global-search');
 
@@ -90,7 +98,7 @@ function createScriptsMenu() {
   if (searchElement) {
     const searchRect = searchElement.getBoundingClientRect();
     topPosition = searchRect.top + 'px';
-    console.log(`Found search element, position: ${topPosition}`);
+    debugLog(`Found search element, position: ${topPosition}`);
   }
 
   const buttonWrapper = document.createElement('div');
@@ -178,12 +186,12 @@ function createScriptsMenu() {
   };
 
   const scriptFiles = [
-    'Features.js', 
-    'Application_Managment.js', 
-    'Lookups.js', 
-    'Process_library.js', 
-    'Process_log.js', 
-    'SysSettings.js', 
+    'Features.js',
+    'Application_Managment.js',
+    'Lookups.js',
+    'Process_library.js',
+    'Process_log.js',
+    'SysSettings.js',
     'Users.js',
     'Configuration.js'
   ];
@@ -244,7 +252,7 @@ function createScriptsMenu() {
         action: 'executeScript',
         scriptName: scriptFile
       }, response => {
-        console.log('Message sent to background script');
+        debugLog('Message sent to background script');
       });
 
       menuContainer.style.display = 'none';
@@ -333,7 +341,7 @@ function createScriptsMenu() {
         action: 'executeScript',
         scriptPath: 'actions/' + scriptFile
       }, response => {
-        console.log('Message sent to background script to execute action script: actions/' + scriptFile);
+        debugLog('Message sent to background script to execute action script: actions/' + scriptFile);
       });
 
       actionsMenuContainer.style.display = 'none';
@@ -387,13 +395,13 @@ function createScriptsMenu() {
       buttonWrapper.style.margin = '0 5px';
       buttonWrapper.style.height = 'auto';
 
-      console.log("Button placed next to search element on initial creation");
+      debugLog("Button placed next to search element on initial creation");
     } else {
       const appToolbar = document.querySelector('crt-app-toolbar');
 
       if (appToolbar) {
         appToolbar.appendChild(buttonWrapper);
-        console.log("Button inserted into crt-app-toolbar");
+        debugLog("Button inserted into crt-app-toolbar");
 
         const centerContainer = document.createElement('div');
         centerContainer.style.width = '100%';
@@ -418,13 +426,13 @@ function createScriptsMenu() {
         buttonWrapper.style.margin = 'auto';
       } else {
         document.body.appendChild(buttonWrapper);
-        console.log("crt-app-toolbar not found, button added to body");
+        debugLog("crt-app-toolbar not found, button added to body");
       }
     }
 
     document.body.appendChild(menuContainer);
     document.body.appendChild(actionsMenuContainer);
-    console.log("Scripts menu created successfully");
+    debugLog("Scripts menu created successfully");
     menuCreated = true;
     actionsMenuCreated = true;
   } catch (error) {
@@ -438,21 +446,21 @@ function createScriptsMenu() {
 function placeButtonNextToSearch() {
   const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
   const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
-  
+
   if (!buttonWrapper || !searchElement || !searchElement.parentElement) {
     return false;
   }
-  
+
   // If button is already next to search, don't do anything
-  if (buttonWrapper.nextElementSibling === searchElement || 
+  if (buttonWrapper.nextElementSibling === searchElement ||
       buttonWrapper.previousElementSibling === searchElement) {
     return true;
   }
-  
+
   try {
     // Place button next to search element
     searchElement.insertAdjacentElement('afterend', buttonWrapper);
-    
+
     // Update button styles for inline display
     buttonWrapper.style.position = 'relative';
     buttonWrapper.style.top = 'auto';
@@ -460,8 +468,8 @@ function placeButtonNextToSearch() {
     buttonWrapper.style.transform = 'none';
     buttonWrapper.style.margin = '0 5px';
     buttonWrapper.style.height = 'auto';
-    
-    console.log("Button placed next to search element dynamically");
+
+    debugLog("Button placed next to search element dynamically");
     return true;
   } catch (error) {
     console.error("Error placing button next to search:", error);
@@ -493,7 +501,7 @@ function updateMenuPosition() {
     return;
   }
 
-  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]') || 
+  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]') ||
                        document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
                        document.querySelector('.global-search');
 
@@ -506,7 +514,7 @@ function updateMenuPosition() {
       actionsMenuContainer.style.top = (searchRect.top + 40) + 'px';
     }
 
-    console.log(`Updated menu position to match search element: ${searchRect.top}px`);
+    debugLog(`Updated menu position to match search element: ${searchRect.top}px`);
   }
 }
 
@@ -560,7 +568,7 @@ function moveButtonToToolbar() {
     actionsMenuContainer.style.transform = 'translateX(-50%)';
   }
 
-  console.log("Button moved to crt-app-toolbar and centered");
+  debugLog("Button moved to crt-app-toolbar and centered");
   return true;
 }
 
@@ -576,9 +584,9 @@ const positionObserver = new MutationObserver(() => {
 
 // Function to check page and create menu if needed
 function checkShellAndCreateMenu() {
-  console.log("Checking for Shell page");
+  debugLog("Checking for Shell page");
   if (isShellPage() && !menuCreated) {
-    console.log("Shell page detected, creating scripts menu");
+    debugLog("Shell page detected, creating scripts menu");
     createScriptsMenu();
   }
 }
@@ -588,13 +596,13 @@ setTimeout(checkShellAndCreateMenu, 1000);
 
 // Check again when DOM content is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded fired, checking for Shell page');
+  debugLog('DOMContentLoaded fired, checking for Shell page');
   checkShellAndCreateMenu();
 });
 
 // Check again when window is fully loaded
 window.addEventListener('load', () => {
-  console.log('Window load event fired, checking for Shell page');
+  debugLog('Window load event fired, checking for Shell page');
   checkShellAndCreateMenu();
 
   setTimeout(updateMenuPosition, 2000);
@@ -610,10 +618,10 @@ let checkCount = 0;
 const maxChecks = 20;
 const checkInterval = setInterval(() => {
   checkCount++;
-  console.log(`Check interval ${checkCount}/${maxChecks} fired`);
+  debugLog(`Check interval ${checkCount}/${maxChecks} fired`);
 
   if (checkShellAndCreateMenu() || checkCount >= maxChecks) {
-    console.log('Clearing check interval');
+    debugLog('Clearing check interval');
     clearInterval(checkInterval);
   }
 }, 1000);
@@ -630,7 +638,7 @@ const observer = new MutationObserver(mutations => {
   }
 
   if (shouldCheck && !menuCreated) {
-    console.log('Significant DOM changes detected, checking for Shell page');
+    debugLog('Significant DOM changes detected, checking for Shell page');
     checkShellAndCreateMenu();
   }
 });
@@ -680,8 +688,8 @@ function waitForLoginElements() {
 
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(autoLoginRow);
-    
-    console.log("Login form elements found and auto login button added");
+
+    debugLog("Login form elements found and auto login button added");
   } else {
     setTimeout(waitForLoginElements, 500);
   }
