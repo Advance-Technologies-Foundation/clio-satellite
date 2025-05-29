@@ -1,0 +1,178 @@
+
+.creatio-satelite {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    /* Define the style for the button */
+    .btn {
+        color: #ffffff;
+        border-radius: 4px;
+        border: none;
+        height: 40px;
+        width: 160px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Scripts Menu Button */
+    .scripts-menu-button, .actions-button {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        z-index: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 32px;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0px 6px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .scripts-menu-button {
+        background-color: #0066cc;
+    }
+
+    /* Actions Button */
+    .actions-button {
+        background-color: #ff5722;
+    }
+
+    /* Scripts Menu Button Icon */
+    .scripts-menu-button img {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+    }
+
+    /* Actions Button Icon */
+    .actions-button-icon {
+        font-size: 20px;
+    }
+
+    /* Center Container for Toolbar Placement */
+    .center-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .center-container > * {
+        pointer-events: auto;
+        margin: auto;
+    }
+
+    /* Toolbar Button Styles */
+    .toolbar-button {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        margin: 0 5px;
+        height: auto;
+    }
+
+    /* Button in Toolbar Position */
+    .button-in-toolbar {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        pointer-events: auto;
+        margin: auto;
+    }
+}
+
+/* Button Next to Search */
+.creatio-satelite-button-next-to-search {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 0 5px;
+    height: 32px;
+}
+
+.creatio-satelite-menu-container {
+
+    .hidden {
+        display: none;
+    }
+
+    .visible {
+        display: flex;
+    }
+
+    /* Menu Container */
+    .scripts-menu-container, .actions-menu-container {
+        position: fixed;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background-color: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        flex-direction: column;
+        width: 250px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    /* Menu Items */
+    .scripts-menu-item, .actions-menu-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+    }
+
+    .scripts-menu-item:hover, .actions-menu-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .scripts-menu-item:last-child, .actions-menu-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Menu Item Icon */
+    .menu-item-icon {
+        margin-right: 10px;
+        font-size: 20px;
+    }
+
+    /* Menu Item Text Container */
+    .menu-item-text {
+        flex: 1;
+    }
+
+    /* Menu Item Title */
+    .menu-item-title {
+        font-weight: 500;
+        margin-bottom: 5px;
+        font-family: "Roboto", "Helvetica Neue", sans-serif;
+        font-size: 14px;
+    }
+
+    /* Menu Item Description */
+    .menu-item-description {
+        font-size: 12px;
+        color: #666;
+    }
+
+}

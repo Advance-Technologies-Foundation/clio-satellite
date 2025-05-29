@@ -3,15 +3,22 @@
   "name": "Clio satelite",
   "version": "1.0",
   "description": "Expanding Creatio capabilities for professionals",
-  "permissions": ["scripting", "activeTab", "tabs"],
+  "permissions": ["scripting", "activeTab", "tabs", "storage"],
   "host_permissions": ["<all_urls>"],
+  "options_page": "options.html",
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["*://*/*Shell/"],
+      "css": ["styles/shell.css"],
       "js": ["content.js"]
+    },
+    {
+      "matches": ["*://*/*NuiLogin.aspx*", "*://*/*Login.html*"],
+      "css": ["styles/login.css"],
+      "js": ["login/login-events.js", "login/login.js"]
     }
   ],
   "web_accessible_resources": [
