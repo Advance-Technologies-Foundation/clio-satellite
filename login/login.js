@@ -55,9 +55,28 @@
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     loginCaption.style.padding = window.getComputedStyle(loginButton).padding;
 
+    // Create settings button
+    const settingsButton = document.createElement('button');
+    settingsButton.classList.add('creatio-satelite');
+    settingsButton.classList.add('auto-login-button');
+    settingsButton.classList.add('settings-button');
+    settingsButton.textContent = 'Settings';
+    settingsButton.style.width = loginButton.offsetWidth + 'px';
+    settingsButton.style.height = loginButton.offsetHeight + 'px';
+    settingsButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    settingsButton.style.padding = window.getComputedStyle(loginButton).padding;
+    settingsButton.style.marginTop = '8px'; // Add some spacing between dropdown and settings button
+    
+    // Add click event to open options page
+    settingsButton.addEventListener('click', () => {
+      // Send a message to the background script to open the options page
+      chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+    });
+
     // Append elements to container
     loginProfilesContainer.appendChild(loginCaption);
     loginProfilesContainer.appendChild(profileSelect);
+    loginProfilesContainer.appendChild(settingsButton);
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     profileSelect.style.fontSize = window.getComputedStyle(loginButton).fontSize;
 

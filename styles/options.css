@@ -44,7 +44,7 @@ h1, h2 {
 
 #add-user-form input[type="text"],
 #add-user-form input[type="password"] {
-  width: 95%;
+  width: 310px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;

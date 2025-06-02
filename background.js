@@ -5,7 +5,13 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'executeScript') {
+    if (message.action === 'openOptionsPage') {
+        // Open the options page
+        chrome.runtime.openOptionsPage();
+        sendResponse({ success: true });
+        return true; // Keep the message channel open for asynchronous response
+    }
+    else if (message.action === 'executeScript') {
         // Execute the selected script in the current tab
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             const activeTab = tabs[0];
