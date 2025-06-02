@@ -1,10 +1,16 @@
 // options.js - Logic for the extension's options page
 
+// Define default profile
+const defaultProfiles = [
+  { username: 'Supervisor', password: 'Supervisor' }
+];
+
 // Get references to DOM elements
 const userList = document.getElementById('user-list');
 const addUserForm = document.getElementById('add-user-form');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
+const setToDefaultsBtn = document.getElementById('set-to-defaults');
 
 // Function to load and display user profiles
 function loadProfiles() {
@@ -102,5 +108,39 @@ function deleteProfile(index) {
 // Add event listener for form submission
 addUserForm.addEventListener('submit', addProfile);
 
+// Function to set profiles to defaults
+function setToDefaults() {
+  // Confirm reset
+  if (!confirm('Are you sure you want to reset profiles to defaults? This will remove all existing profiles.')) {
+    return;
+  }
+  
+  // Save default profiles to storage
+  chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
+    // Reload the displayed list
+    loadProfiles();
+    console.log('Profiles reset to defaults successfully.');
+  });
+}
+
+// Function to check if profiles exist and initialize defaults if needed
+function initializeDefaultProfilesIfNeeded() {
+  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+    if (!data.userProfiles || data.userProfiles.length === 0) {
+      // If no profiles exist, set to defaults
+      chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
+        loadProfiles();
+        console.log('Default profiles initialized successfully.');
+      });
+    }
+  });
+}
+
+// Add event listener for set to defaults button
+setToDefaultsBtn.addEventListener('click', setToDefaults);
+
 // Load profiles when the page loads
-document.addEventListener('DOMContentLoaded', loadProfiles);
+document.addEventListener('DOMContentLoaded', () => {
+  loadProfiles();
+  initializeDefaultProfilesIfNeeded();
+});

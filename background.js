@@ -1,11 +1,32 @@
 // This is the background script for the Chrome extension
+
+// Define default profile
+const defaultProfiles = [
+    { username: 'Supervisor', password: 'Supervisor' }
+];
+
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Background script is running");
+    
+    // Initialize default profile if none exist
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+        if (!data.userProfiles || data.userProfiles.length === 0) {
+            chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
+                console.log('Default profiles initialized successfully.');
+            });
+        }
+    });
 });
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'executeScript') {
+    if (message.action === 'openOptionsPage') {
+        // Open the options page
+        chrome.runtime.openOptionsPage();
+        sendResponse({ success: true });
+        return true; // Keep the message channel open for asynchronous response
+    }
+    else if (message.action === 'executeScript') {
         // Execute the selected script in the current tab
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             const activeTab = tabs[0];

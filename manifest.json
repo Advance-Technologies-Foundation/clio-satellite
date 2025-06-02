@@ -12,11 +12,13 @@
   "content_scripts": [
     {
       "matches": ["*://*/*Shell/"],
+      "exclude_matches": ["*://*.work.creatio.com/*"],
       "css": ["styles/shell.css"],
       "js": ["content.js"]
     },
     {
       "matches": ["*://*/*NuiLogin.aspx*", "*://*/*Login.html*"],
+      "exclude_matches": ["*://*.work.creatio.com/*"],
       "css": ["styles/login.css"],
       "js": ["login/login-events.js", "login/login.js"]
     }

@@ -55,9 +55,44 @@
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     loginCaption.style.padding = window.getComputedStyle(loginButton).padding;
 
+    // Create settings button
+    const settingsButton = document.createElement('button');
+    settingsButton.classList.add('creatio-satelite');
+    settingsButton.classList.add('auto-login-button');
+    settingsButton.classList.add('settings-button');
+    
+    // Create icon span element
+    const iconSpan = document.createElement('span');
+    iconSpan.innerHTML = '&#128100;'; // User/profile icon
+    iconSpan.style.marginRight = '5px';
+    iconSpan.style.fontSize = '16px';
+    
+    // Create text node
+    const buttonText = document.createTextNode('Setup profiles');
+    
+    // Append icon and text to button
+    settingsButton.appendChild(iconSpan);
+    settingsButton.appendChild(buttonText);
+    
+    settingsButton.style.width = loginButton.offsetWidth + 'px';
+    settingsButton.style.height = loginButton.offsetHeight + 'px';
+    settingsButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    settingsButton.style.padding = window.getComputedStyle(loginButton).padding;
+    settingsButton.style.marginTop = '8px'; // Add some spacing between dropdown and settings button
+    settingsButton.style.display = 'flex';
+    settingsButton.style.alignItems = 'center';
+    settingsButton.style.justifyContent = 'center';
+    
+    // Add click event to open options page
+    settingsButton.addEventListener('click', () => {
+      // Send a message to the background script to open the options page
+      chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+    });
+
     // Append elements to container
     loginProfilesContainer.appendChild(loginCaption);
     loginProfilesContainer.appendChild(profileSelect);
+    loginProfilesContainer.appendChild(settingsButton);
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     profileSelect.style.fontSize = window.getComputedStyle(loginButton).fontSize;
 
