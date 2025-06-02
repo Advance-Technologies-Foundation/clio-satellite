@@ -71,3 +71,12 @@ button:hover {
 .delete-button:hover {
   background-color: #c82333;
 }
+
+.default-button {
+  background-color: #28a745;
+  margin-top: 15px;
+}
+
+.default-button:hover {
+  background-color: #218838;
+}

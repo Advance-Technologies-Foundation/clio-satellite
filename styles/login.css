@@ -12,9 +12,12 @@
     cursor: pointer;
 }
 
-/* Settings button styling */
+/* Setup profiles button styling */
 .creatio-satelite.auto-login-button.settings-button {
     background-color: #2d76cc; /* Different color to distinguish from login button */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .creatio-satelite.auto-login-button.settings-button:hover {

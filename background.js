@@ -1,6 +1,21 @@
 // This is the background script for the Chrome extension
+
+// Define default profile
+const defaultProfiles = [
+    { username: 'Supervisor', password: 'Supervisor' }
+];
+
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Background script is running");
+    
+    // Initialize default profile if none exist
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+        if (!data.userProfiles || data.userProfiles.length === 0) {
+            chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
+                console.log('Default profiles initialized successfully.');
+            });
+        }
+    });
 });
 
 // Listen for messages from content script
