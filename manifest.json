@@ -17,7 +17,7 @@
       "js": ["content.js"]
     },
     {
-      "matches": ["*://*/*NuiLogin.aspx*", "*://*/*Login.html*"],
+      "matches": ["<all_urls>"],
       "exclude_matches": ["*://*.work.creatio.com/*"],
       "css": ["styles/login.css"],
       "js": ["login/login-events.js", "login/login.js"]
