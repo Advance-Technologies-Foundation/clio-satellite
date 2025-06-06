@@ -21,8 +21,13 @@ chrome.runtime.onInstalled.addListener(() => {
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'openOptionsPage') {
-        // Open the options page
-        chrome.runtime.openOptionsPage();
+        // Attempt to open the options page
+        chrome.runtime.openOptionsPage(() => {
+            if (chrome.runtime.lastError) {
+                // Fallback for browsers where openOptionsPage might not work (e.g., Edge)
+                chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+            }
+        });
         sendResponse({ success: true });
         return true; // Keep the message channel open for asynchronous response
     }
