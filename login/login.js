@@ -31,6 +31,7 @@
     // Get current profiles and add the new one
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
       const profiles = data.userProfiles;
+
       if (profiles.length === 0) {
         // If no profiles are found, add a default option
         addOption(profileSelect, '', 'Setup user in options');
@@ -38,7 +39,7 @@
       profiles.forEach(profile => {
         const option = document.createElement('option');
         option.value = profile.username;
-        
+
         // Display format: "alias (username)" if alias exists, otherwise just "username"
         const displayText = profile.alias && profile.alias.trim() !== '' 
           ? `${profile.alias} (${profile.username})` 
@@ -49,6 +50,15 @@
         option.dataset.password = profile.password;
         option.dataset.alias = profile.alias || '';
         profileSelect.appendChild(option);
+      });
+
+      // Restore last used profile for this URL
+      chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
+        const map = result.lastLoginProfiles;
+        const lastUser = map[window.location.href];
+        if (lastUser) {
+          profileSelect.value = lastUser;
+        }
       });
     });
 
@@ -106,6 +116,16 @@
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
     passwordFieldRow.parentElement.appendChild(loginProfilesContainer);
+
+    // Save selected profile on login button click
+    loginButton.addEventListener('click', () => {
+      const selectedUser = profileSelect.value;
+      chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
+        const map = result.lastLoginProfiles;
+        map[window.location.href] = selectedUser;
+        chrome.storage.sync.set({ lastLoginProfiles: map });
+      });
+    });
 
     registerLoginEvents(loginCaption);
 

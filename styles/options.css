@@ -22,7 +22,7 @@ h1, h2 {
 #user-list li {
   border: 1px solid #ddd;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 15px; /* increase spacing between profiles to match button spacing */
   display: flex;
   justify-content: space-between;
   align-items: center;
