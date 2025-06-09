@@ -39,9 +39,9 @@
         const option = document.createElement('option');
         option.value = profile.username;
         
-        // Use alias if available, otherwise use username
+        // Display format: "alias (username)" if alias exists, otherwise just "username"
         const displayText = profile.alias && profile.alias.trim() !== '' 
-          ? profile.alias 
+          ? `${profile.alias} (${profile.username})` 
           : profile.username;
         option.textContent = displayText;
         
