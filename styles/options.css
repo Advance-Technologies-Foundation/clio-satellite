@@ -210,3 +210,47 @@ button:hover {
 .edit-button:hover {
   background-color: #e0a800;
 }
+
+/* Confirmation modal styles */
+#confirm-modal .modal-content {
+  width: 350px;
+}
+
+#confirm-modal .modal-body p {
+  padding: 20px;
+  font-size: 14px;
+  color: #333;
+}
+
+#confirm-modal .modal-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px 20px;
+}
+
+#confirm-modal button {
+  flex: 1;
+  padding: 10px;
+}
+
+#confirm-delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+#confirm-delete-btn:hover {
+  background-color: #c82333;
+}
+
+#cancel-delete-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+#cancel-delete-btn:hover {
+  background-color: #545b62;
+}

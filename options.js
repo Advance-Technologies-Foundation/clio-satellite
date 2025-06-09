@@ -21,6 +21,15 @@ const saveProfileBtn = document.getElementById('save-profile-btn');
 const closeModalBtn = document.querySelector('.close');
 const cancelProfileBtn = document.getElementById('cancel-profile');
 
+// Track index for deletion confirmation
+let currentDeleteIndexToDelete = -1;
+
+// Confirm modal elements
+const confirmModal = document.getElementById('confirm-modal');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+const confirmCloseBtn = document.querySelector('.confirm-close');
+
 let currentEditIndex = -1;
 let isEditMode = false;
 
@@ -66,7 +75,7 @@ function loadProfiles() {
       
       // Add event listener for delete button
       deleteButton.addEventListener('click', () => {
-        deleteProfile(index);
+        openConfirmModal(index);
       });
       
       // Append buttons to container
@@ -169,39 +178,70 @@ function handleProfileSubmit(event) {
   }
 }
 
+// Function to open confirmation modal for deletion
+function openConfirmModal(index) {
+  currentDeleteIndexToDelete = index;
+  confirmModal.style.display = 'block';
+}
+
+// Function to close confirmation modal
+function closeConfirmModal() {
+  confirmModal.style.display = 'none';
+  currentDeleteIndexToDelete = -1;
+}
+
 // Function to delete a profile
 function deleteProfile(index) {
-  // Confirm deletion
-  if (!confirm('Are you sure you want to delete this profile?')) {
-    return;
-  }
+  // Open custom confirm modal instead of browser confirm
+  currentDeleteIndexToDelete = index;
+  confirmModal.style.display = 'block';
+}
 
-  // Get current profiles
+// Handle confirm delete
+confirmDeleteBtn.addEventListener('click', () => {
+  // Perform deletion
   chrome.storage.sync.get({ userProfiles: [] }, (data) => {
     const profiles = data.userProfiles;
-    
-    // Remove the profile at the specified index
-    profiles.splice(index, 1);
-
-    // Save updated profiles to storage
+    profiles.splice(currentDeleteIndexToDelete, 1);
     chrome.storage.sync.set({ userProfiles: profiles }, () => {
-      // Reload the displayed list
+      // Close modals and reload
+      confirmModal.style.display = 'none';
       loadProfiles();
       console.log('Profile deleted successfully.');
     });
   });
-}
+});
+
+// Handle cancel delete
+cancelDeleteBtn.addEventListener('click', () => {
+  confirmModal.style.display = 'none';
+  currentDeleteIndexToDelete = -1;
+});
+
+// Close confirm modal when clicking close button
+confirmCloseBtn.addEventListener('click', () => {
+  confirmModal.style.display = 'none';
+  currentDeleteIndexToDelete = -1;
+});
 
 // Add event listeners
 addProfileBtn.addEventListener('click', openAddModal);
 profileForm.addEventListener('submit', handleProfileSubmit);
 closeModalBtn.addEventListener('click', closeProfileModal);
 cancelProfileBtn.addEventListener('click', closeProfileModal);
+confirmDeleteBtn.addEventListener('click', () => {
+  deleteProfile(currentDeleteIndexToDelete);
+  closeConfirmModal();
+});
+cancelDeleteBtn.addEventListener('click', closeConfirmModal);
+confirmCloseBtn.addEventListener('click', closeConfirmModal);
 
 // Close modal when clicking outside of it
 window.addEventListener('click', (event) => {
   if (event.target === profileModal) {
     closeProfileModal();
+  } else if (event.target === confirmModal) {
+    closeConfirmModal();
   }
 });
 
