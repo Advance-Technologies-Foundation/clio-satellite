@@ -75,7 +75,7 @@
     const loginCaption = document.createElement('button');
     loginCaption.classList.add('creatio-satelite');
     loginCaption.classList.add('auto-login-button');
-    loginCaption.textContent = 'Log in as:';
+    loginCaption.textContent = 'Login with profile';
     loginCaption.style.width = loginButton.offsetWidth + 'px';
     loginCaption.style.height = loginButton.offsetHeight + 'px';
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
@@ -115,10 +115,10 @@
       chrome.runtime.sendMessage({ action: 'openOptionsPage' });
     });
 
-    // Append elements to container
-    loginProfilesContainer.appendChild(loginCaption);
-    loginProfilesContainer.appendChild(profileSelect);
+    // Append elements: 'Setup profiles', then dropdown, then 'Login with profile'
     loginProfilesContainer.appendChild(settingsButton);
+    loginProfilesContainer.appendChild(profileSelect);
+    loginProfilesContainer.appendChild(loginCaption);
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
     profileSelect.style.fontSize = window.getComputedStyle(loginButton).fontSize;
 
