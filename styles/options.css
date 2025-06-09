@@ -78,12 +78,16 @@ button:hover {
 }
 
 .default-button {
-  background-color: #28a745;
+  background-color: #dc3545; /* Make button red */
   margin-top: 15px;
 }
 
 .default-button:hover {
-  background-color: #218838;
+  background-color: #c82333;
+}
+
+.default-button:active {
+  background-color: #b02a37;
 }
 
 /* Modal styles */
