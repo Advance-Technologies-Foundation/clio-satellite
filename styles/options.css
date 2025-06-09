@@ -101,30 +101,38 @@ button:hover {
   background-color: white;
   margin: 10% auto;
   padding: 0;
-  border-radius: 8px;
-  width: 500px;
+  border-radius: 4px;
+  width: 400px;
   max-width: 90%;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border: 1px solid #ddd;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
+  padding: 20px;
   border-bottom: 1px solid #ddd;
+  background-color: #f8f9fa;
 }
 
 .modal-header h2 {
   margin: 0;
   color: #333;
+  font-size: 18px;
+  font-weight: normal;
 }
 
 .close {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
   cursor: pointer;
   color: #aaa;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .close:hover {
@@ -132,7 +140,30 @@ button:hover {
 }
 
 #edit-user-form {
-  padding: 25px;
+  padding: 20px;
+}
+
+#edit-user-form div {
+  margin-bottom: 15px;
+}
+
+#edit-user-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+#edit-user-form input[type="text"],
+#edit-user-form input[type="password"] {
+  width: 310px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#edit-user-form input[type="text"]::placeholder {
+  color: #999;
+  font-style: italic;
 }
 
 .modal-buttons {
