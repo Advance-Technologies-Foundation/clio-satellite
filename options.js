@@ -30,6 +30,9 @@ const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 const confirmCloseBtn = document.querySelector('.confirm-close');
 
+// Track bulk deletion flag
+let isBulkDelete = false;
+
 let currentEditIndex = -1;
 let isEditMode = false;
 
@@ -199,17 +202,28 @@ function deleteProfile(index) {
 
 // Handle confirm delete
 confirmDeleteBtn.addEventListener('click', () => {
-  // Perform deletion
-  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
-    const profiles = data.userProfiles;
-    profiles.splice(currentDeleteIndexToDelete, 1);
-    chrome.storage.sync.set({ userProfiles: profiles }, () => {
-      // Close modals and reload
+  if (isBulkDelete) {
+    // Delete all profiles
+    chrome.storage.sync.set({ userProfiles: [] }, () => {
       confirmModal.style.display = 'none';
+      isBulkDelete = false;
       loadProfiles();
-      console.log('Profile deleted successfully.');
+      console.log('All profiles deleted successfully.');
     });
-  });
+  } else {
+    // Delete single profile
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+      const profiles = data.userProfiles;
+      profiles.splice(currentDeleteIndexToDelete, 1);
+      chrome.storage.sync.set({ userProfiles: profiles }, () => {
+        confirmModal.style.display = 'none';
+        loadProfiles();
+        console.log('Profile deleted successfully.');
+      });
+    });
+  }
+  // Reset delete index
+  currentDeleteIndexToDelete = -1;
 });
 
 // Handle cancel delete
@@ -245,19 +259,14 @@ window.addEventListener('click', (event) => {
   }
 });
 
-// Function to set profiles to defaults
+// Function to set profiles to defaults (now triggers custom confirm modal)
 function setToDefaults() {
-  // Confirm reset
-  if (!confirm('Are you sure you want to reset profiles to defaults? This will remove all existing profiles.')) {
-    return;
-  }
-  
-  // Save default profiles to storage
-  chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
-    // Reload the displayed list
-    loadProfiles();
-    console.log('Profiles reset to defaults successfully.');
-  });
+  // Open custom confirm modal for bulk deletion
+  isBulkDelete = true;
+  // Update modal message for bulk delete
+  const modalMessage = confirmModal.querySelector('.modal-body p');
+  modalMessage.textContent = 'Are you sure you want to delete all profiles?';
+  confirmModal.style.display = 'block';
 }
 
 // Function to check if profiles exist and initialize defaults if needed
