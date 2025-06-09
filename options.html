@@ -32,6 +32,34 @@
     </form>
   </div>
 
+  <!-- Edit Profile Modal -->
+  <div id="edit-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <span class="close">&times;</span>
+      </div>
+      <form id="edit-user-form">
+        <div>
+          <label for="edit-username">Username:</label>
+          <input type="text" id="edit-username" required>
+        </div>
+        <div>
+          <label for="edit-password">Password:</label>
+          <input type="password" id="edit-password" required>
+        </div>
+        <div>
+          <label for="edit-alias">Alias (optional):</label>
+          <input type="text" id="edit-alias" placeholder="Display name for profile">
+        </div>
+        <div class="modal-buttons">
+          <button type="submit">Save Changes</button>
+          <button type="button" id="cancel-edit">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="options.js"></script>
 </body>
 </html>
