@@ -9,52 +9,34 @@
   
   <div id="user-list-container">
     <h2>Users</h2>
+    <button id="add-profile-btn" class="add-profile-button">Add Profile</button>
     <ul id="user-list"></ul>
     <button id="set-to-defaults" class="default-button">Set to defaults</button>
   </div>
 
-  <div id="add-user-container">
-    <h2>Add New Profile</h2>
-    <form id="add-user-form">
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" id="username" required>
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" required>
-      </div>
-      <div>
-        <label for="alias">Alias (optional):</label>
-        <input type="text" id="alias" placeholder="Display name for profile">
-      </div>
-      <button type="submit">Add Profile</button>
-    </form>
-  </div>
-
-  <!-- Edit Profile Modal -->
-  <div id="edit-modal" class="modal" style="display: none;">
+  <!-- Profile Modal (for both Add and Edit) -->
+  <div id="profile-modal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Edit Profile</h2>
+        <h2 id="modal-title">Add Profile</h2>
         <span class="close">&times;</span>
       </div>
-      <form id="edit-user-form">
+      <form id="profile-form">
         <div>
-          <label for="edit-username">Username:</label>
-          <input type="text" id="edit-username" required>
+          <label for="profile-username">Username:</label>
+          <input type="text" id="profile-username" required>
         </div>
         <div>
-          <label for="edit-password">Password:</label>
-          <input type="password" id="edit-password" required>
+          <label for="profile-password">Password:</label>
+          <input type="password" id="profile-password" required>
         </div>
         <div>
-          <label for="edit-alias">Alias (optional):</label>
-          <input type="text" id="edit-alias" placeholder="Display name for profile">
+          <label for="profile-alias">Alias (optional):</label>
+          <input type="text" id="profile-alias" placeholder="Display name for profile">
         </div>
         <div class="modal-buttons">
-          <button type="submit">Save Changes</button>
-          <button type="button" id="cancel-edit">Cancel</button>
+          <button type="submit" id="save-profile-btn">Add Profile</button>
+          <button type="button" id="cancel-profile">Cancel</button>
         </div>
       </form>
     </div>

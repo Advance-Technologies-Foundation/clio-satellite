@@ -139,29 +139,29 @@ button:hover {
   color: #000;
 }
 
-#edit-user-form {
+#profile-form {
   padding: 20px;
 }
 
-#edit-user-form div {
+#profile-form div {
   margin-bottom: 15px;
 }
 
-#edit-user-form label {
+#profile-form label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
 }
 
-#edit-user-form input[type="text"],
-#edit-user-form input[type="password"] {
+#profile-form input[type="text"],
+#profile-form input[type="password"] {
   width: 310px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-#edit-user-form input[type="text"]::placeholder {
+#profile-form input[type="text"]::placeholder {
   color: #999;
   font-style: italic;
 }
@@ -176,12 +176,25 @@ button:hover {
   flex: 1;
 }
 
-#cancel-edit {
+#cancel-profile {
   background-color: #6c757d;
 }
 
-#cancel-edit:hover {
+#cancel-profile:hover {
   background-color: #545b62;
+}
+
+/* Add Profile button styling */
+.add-profile-button {
+  width: 100%;
+  background-color: #28a745;
+  margin-bottom: 15px;
+  font-size: 16px;
+  padding: 12px 15px;
+}
+
+.add-profile-button:hover {
+  background-color: #218838;
 }
 
 /* Edit button styling */

@@ -7,22 +7,22 @@ const defaultProfiles = [
 
 // Get references to DOM elements
 const userList = document.getElementById('user-list');
-const addUserForm = document.getElementById('add-user-form');
-const usernameInput = document.getElementById('username');
-const passwordInput = document.getElementById('password');
-const aliasInput = document.getElementById('alias');
+const addProfileBtn = document.getElementById('add-profile-btn');
 const setToDefaultsBtn = document.getElementById('set-to-defaults');
 
-// Edit modal elements
-const editModal = document.getElementById('edit-modal');
-const editUserForm = document.getElementById('edit-user-form');
-const editUsernameInput = document.getElementById('edit-username');
-const editPasswordInput = document.getElementById('edit-password');
-const editAliasInput = document.getElementById('edit-alias');
+// Profile modal elements
+const profileModal = document.getElementById('profile-modal');
+const profileForm = document.getElementById('profile-form');
+const modalTitle = document.getElementById('modal-title');
+const profileUsernameInput = document.getElementById('profile-username');
+const profilePasswordInput = document.getElementById('profile-password');
+const profileAliasInput = document.getElementById('profile-alias');
+const saveProfileBtn = document.getElementById('save-profile-btn');
 const closeModalBtn = document.querySelector('.close');
-const cancelEditBtn = document.getElementById('cancel-edit');
+const cancelProfileBtn = document.getElementById('cancel-profile');
 
 let currentEditIndex = -1;
+let isEditMode = false;
 
 // Function to load and display user profiles
 function loadProfiles() {
@@ -83,34 +83,44 @@ function loadProfiles() {
   });
 }
 
-// Function to open edit modal
-function openEditModal(profile, index) {
-  currentEditIndex = index;
-  editUsernameInput.value = profile.username;
-  editPasswordInput.value = profile.password;
-  editAliasInput.value = profile.alias || '';
-  editModal.style.display = 'block';
-}
-
-// Function to close edit modal
-function closeEditModal() {
-  editModal.style.display = 'none';
+// Function to open profile modal for adding
+function openAddModal() {
+  isEditMode = false;
   currentEditIndex = -1;
-  editUserForm.reset();
+  modalTitle.textContent = 'Add Profile';
+  saveProfileBtn.textContent = 'Add Profile';
+  profileForm.reset();
+  profileModal.style.display = 'block';
 }
 
-// Function to edit a profile
-function editProfile(event) {
+// Function to open profile modal for editing
+function openEditModal(profile, index) {
+  isEditMode = true;
+  currentEditIndex = index;
+  modalTitle.textContent = 'Edit Profile';
+  saveProfileBtn.textContent = 'Save Changes';
+  profileUsernameInput.value = profile.username;
+  profilePasswordInput.value = profile.password;
+  profileAliasInput.value = profile.alias || '';
+  profileModal.style.display = 'block';
+}
+
+// Function to close profile modal
+function closeProfileModal() {
+  profileModal.style.display = 'none';
+  currentEditIndex = -1;
+  isEditMode = false;
+  profileForm.reset();
+}
+
+// Function to handle profile form submission (both add and edit)
+function handleProfileSubmit(event) {
   event.preventDefault();
 
-  if (currentEditIndex === -1) {
-    return;
-  }
-
   // Get input values
-  const username = editUsernameInput.value.trim();
-  const password = editPasswordInput.value;
-  const alias = editAliasInput.value.trim();
+  const username = profileUsernameInput.value.trim();
+  const password = profilePasswordInput.value;
+  const alias = profileAliasInput.value.trim();
 
   // Basic validation
   if (!username || !password) {
@@ -118,57 +128,45 @@ function editProfile(event) {
     return;
   }
 
-  // Get current profiles
-  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
-    const profiles = data.userProfiles;
-    
-    // Update the profile at the specified index
-    if (profiles[currentEditIndex]) {
-      profiles[currentEditIndex] = { username, password, alias };
+  if (isEditMode) {
+    // Edit existing profile
+    if (currentEditIndex === -1) {
+      return;
+    }
+
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+      const profiles = data.userProfiles;
+      
+      // Update the profile at the specified index
+      if (profiles[currentEditIndex]) {
+        profiles[currentEditIndex] = { username, password, alias };
+
+        // Save updated profiles to storage
+        chrome.storage.sync.set({ userProfiles: profiles }, () => {
+          // Close modal and reload the displayed list
+          closeProfileModal();
+          loadProfiles();
+          console.log('Profile updated successfully.');
+        });
+      }
+    });
+  } else {
+    // Add new profile
+    const newProfile = { username, password, alias };
+
+    chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+      const profiles = data.userProfiles;
+      profiles.push(newProfile);
 
       // Save updated profiles to storage
       chrome.storage.sync.set({ userProfiles: profiles }, () => {
         // Close modal and reload the displayed list
-        closeEditModal();
+        closeProfileModal();
         loadProfiles();
-        console.log('Profile updated successfully.');
+        console.log('Profile added successfully.');
       });
-    }
-  });
-}
-
-// Function to add a new profile
-function addProfile(event) {
-  event.preventDefault(); // Prevent form submission
-
-  // Get input values
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value; // Don't trim password
-  const alias = aliasInput.value.trim();
-
-  // Basic validation
-  if (!username || !password) {
-    alert('Please fill in username and password fields.');
-    return;
-  }
-
-  // Create new profile object
-  const newProfile = { username, password, alias };
-
-  // Get current profiles and add the new one
-  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
-    const profiles = data.userProfiles;
-    profiles.push(newProfile);
-
-    // Save updated profiles to storage
-    chrome.storage.sync.set({ userProfiles: profiles }, () => {
-      // Clear the form
-      addUserForm.reset();
-      // Reload the displayed list
-      loadProfiles();
-      console.log('Profile added successfully.');
     });
-  });
+  }
 }
 
 // Function to delete a profile
@@ -194,18 +192,16 @@ function deleteProfile(index) {
   });
 }
 
-// Add event listener for form submission
-addUserForm.addEventListener('submit', addProfile);
-
-// Add event listeners for edit modal
-editUserForm.addEventListener('submit', editProfile);
-closeModalBtn.addEventListener('click', closeEditModal);
-cancelEditBtn.addEventListener('click', closeEditModal);
+// Add event listeners
+addProfileBtn.addEventListener('click', openAddModal);
+profileForm.addEventListener('submit', handleProfileSubmit);
+closeModalBtn.addEventListener('click', closeProfileModal);
+cancelProfileBtn.addEventListener('click', closeProfileModal);
 
 // Close modal when clicking outside of it
 window.addEventListener('click', (event) => {
-  if (event.target === editModal) {
-    closeEditModal();
+  if (event.target === profileModal) {
+    closeProfileModal();
   }
 });
 
