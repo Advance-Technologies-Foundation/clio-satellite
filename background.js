@@ -34,11 +34,52 @@ chrome.runtime.onInstalled.addListener(() => {
             }
         }
     });
+    // Create context menu item under extension action for opening settings
+    chrome.contextMenus.create({
+      id: 'openSettings',
+      title: 'Plugin Settings',
+      contexts: ['action']
+    });
 });
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'openOptionsPage') {
+    if (message.action === 'disableAutologin') {
+        // Determine URL key (origin) for this request
+        let urlKey = message.url;
+        if (!urlKey && sender.tab && sender.tab.url) {
+            try {
+                urlKey = new URL(sender.tab.url).origin;
+            } catch (e) {
+                console.error('Invalid sender.tab.url for disableAutologin:', sender.tab.url);
+            }
+        }
+        if (!urlKey) {
+            sendResponse({ success: false, error: 'No URL key available' });
+            return;
+        }
+        // Get storage and disable autologin
+        chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (data) => {
+            const lastMap = data.lastLoginProfiles;
+            const usernameToDisable = lastMap[urlKey];
+            // Clear last login mapping
+            delete lastMap[urlKey];
+            // Update profiles
+            const profiles = data.userProfiles.map(profile => {
+                if (profile.username === usernameToDisable) {
+                    profile.autologin = false;
+                }
+                return profile;
+            });
+            // Save updates
+            chrome.storage.sync.set({ userProfiles: profiles, lastLoginProfiles: lastMap }, () => {
+                console.log(`Autologin disabled for ${usernameToDisable} on ${urlKey}`);
+                sendResponse({ success: true });
+            });
+        });
+        return true; // indicate async sendResponse
+    }
+    else if (message.action === 'openOptionsPage') {
         // Attempt to open the options page
         chrome.runtime.openOptionsPage(() => {
             if (chrome.runtime.lastError) {
@@ -50,64 +91,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Keep the message channel open for asynchronous response
     }
     else if (message.action === 'executeScript') {
-        // Execute the selected script in the current tab
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            const activeTab = tabs[0];
-            
-            // Handle both script path formats
-            let scriptPath;
-            if (message.scriptPath) {
-                // If scriptPath is provided, use it directly (for actions scripts)
-                scriptPath = `scripts/${message.scriptPath}`;
-            } else {
-                // For backward compatibility with navigation scripts
-                scriptPath = `scripts/navigation/${message.scriptName}`;
-            }
-            
-            // Instead of executing the script in the extension context,
-            // fetch the script content and inject it into the page context
-            fetch(chrome.runtime.getURL(scriptPath))
-                .then(response => response.text())
-                .then(scriptContent => {
-                    // Execute script by injecting it into the page context
-                    chrome.scripting.executeScript({
-                        target: {tabId: activeTab.id},
-                        world: "MAIN", // This is crucial - run in the same context as the page
-                        func: injectAndRunScript,
-                        args: [scriptContent]
-                    })
-                    .then(() => {
-                        console.log(`Script ${scriptPath} executed successfully in page context`);
-                        sendResponse({ success: true });
-                    })
-                    .catch(error => {
-                        console.error(`Error executing script ${scriptPath}:`, error);
-                        sendResponse({ success: false, error: error.message });
-                    });
-                })
-                .catch(error => {
-                    console.error(`Error fetching script ${scriptPath}:`, error);
-                    sendResponse({ success: false, error: error.message });
-                });
+            const activeTabId = tabs[0].id;
+            const scriptPath = `scripts/${message.scriptPath}`;
+            // Inject extension script file directly, preserving extension APIs
+            chrome.scripting.executeScript({
+                target: { tabId: activeTabId },
+                files: [scriptPath]
+            }).then(() => {
+                console.log(`Script ${scriptPath} injected successfully`);
+                sendResponse({ success: true });
+            }).catch(error => {
+                console.error(`Error injecting script ${scriptPath}:`, error);
+                sendResponse({ success: false, error: error.message });
+            });
         });
-        
         return true; // Keep the message channel open for asynchronous response
     }
 });
 
-// Function to inject and run script in page context
-function injectAndRunScript(scriptContent) {
-    try {
-        // Create a script element
-        const scriptElement = document.createElement('script');
-        scriptElement.textContent = scriptContent;
-        // Append to document to execute it in page context
-        document.head.appendChild(scriptElement);
-        // Remove after execution to keep the DOM clean
-        scriptElement.remove();
-        return true;
-    } catch (error) {
-        console.error('Error injecting script:', error);
-        return false;
-    }
-}
+// Handle action button context menu clicks
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'openSettings') {
+    chrome.runtime.openOptionsPage();
+  }
+});

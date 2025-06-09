@@ -229,17 +229,23 @@ function createScriptsMenu() {
 
   const actionsScriptDescriptions = {
     'RestartApp': 'Reload the Creatio application',
-    'FlushRedisDB': 'Clear Redis database'
+    'FlushRedisDB': 'Clear Redis database',
+    'Settings': 'Open plugin settings',
+    'DisableAutologin': 'Disable autologin for this site'
   };
 
   const actionsIcons = {
     'RestartApp': '🔄',
-    'FlushRedisDB': '🗑️'
+    'FlushRedisDB': '🗑️',
+    'Settings': '⚙️',
+    'DisableAutologin': '🚫'
   };
 
   const actionsScriptFiles = [
     'RestartApp.js',
-    'FlushRedisDB.js'
+    'FlushRedisDB.js',
+    'DisableAutologin.js',
+    'Settings.js'
   ];
 
   actionsScriptFiles.forEach(scriptFile => {
@@ -271,12 +277,20 @@ function createScriptsMenu() {
     // Menu item hover effects are handled by CSS
 
     menuItem.addEventListener('click', () => {
-      chrome.runtime.sendMessage({
-        action: 'executeScript',
-        scriptPath: 'actions/' + scriptFile
-      }, response => {
-        debugLog('Message sent to background script to execute action script: actions/' + scriptFile);
-      });
+      if (scriptName === 'Settings') {
+        chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+      } else if (scriptName === 'DisableAutologin') {
+        // Request background to disable autologin for this site
+        chrome.runtime.sendMessage({ action: 'disableAutologin' });
+      } else {
+        // Execute action script via background
+        chrome.runtime.sendMessage({
+          action: 'executeScript',
+          scriptPath: 'actions/' + scriptFile
+        }, response => {
+          debugLog('Message sent to background script to execute action script: actions/' + scriptFile);
+        });
+      }
       hideMenuContainer(actionsMenuContainer);
     });
 

@@ -3,7 +3,7 @@
   "name": "Clio satelite",
   "version": "1.0",
   "description": "Expanding Creatio capabilities for professionals",
-  "permissions": ["scripting", "activeTab", "tabs", "storage"],
+  "permissions": ["scripting", "activeTab", "tabs", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "options_page": "options.html",
   "background": {

@@ -49,15 +49,24 @@
         option.dataset.username = profile.username;
         option.dataset.password = profile.password;
         option.dataset.alias = profile.alias || '';
+        option.dataset.autologin = profile.autologin ? 'true' : 'false';
         profileSelect.appendChild(option);
       });
 
       // Restore last used profile for this URL
       chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
         const map = result.lastLoginProfiles;
-        const lastUser = map[window.location.href];
+        // Instead of full href, use origin for storage key
+        const key = window.location.origin;
+        const lastUser = map[key];
         if (lastUser) {
           profileSelect.value = lastUser;
+
+          // Trigger autologin if enabled
+          const selectedOption = profileSelect.options[profileSelect.selectedIndex];
+          if (selectedOption.dataset.autologin === 'true') {
+            loginCaption.click();
+          }
         }
       });
     });
@@ -122,7 +131,9 @@
       const selectedUser = profileSelect.value;
       chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
         const map = result.lastLoginProfiles;
-        map[window.location.href] = selectedUser;
+        // Instead of full href, use origin for storage key
+        const key = window.location.origin;
+        map[key] = selectedUser;
         chrome.storage.sync.set({ lastLoginProfiles: map });
       });
     });
