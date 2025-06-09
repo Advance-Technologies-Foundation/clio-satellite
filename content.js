@@ -224,87 +224,62 @@ function createScriptsMenu() {
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.classList.add('actions-menu-container');
   hideMenuContainer(actionsMenuContainer); // Initially hidden
-  // Only set dynamic position based on search element
   actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
-  const actionsScriptDescriptions = {
-    'RestartApp': 'Reload the Creatio application',
-    'FlushRedisDB': 'Clear Redis database',
-    'Settings': 'Open plugin settings',
-    'DisableAutologin': 'Disable autologin for this site'
-  };
-
-  const actionsIcons = {
-    'RestartApp': '🔄',
-    'FlushRedisDB': '🗑️',
-    'Settings': '⚙️',
-    'DisableAutologin': '🚫'
-  };
-
-  const actionsScriptFiles = [
-    'RestartApp.js',
-    'FlushRedisDB.js',
-    'DisableAutologin.js',
-    'Settings.js'
-  ];
-
-  actionsScriptFiles.forEach(scriptFile => {
-    const scriptName = scriptFile.replace('.js', '');
-
-    // Create menu item with CSS classes
-    const menuItem = document.createElement('div');
-    menuItem.className = 'actions-menu-item';
-    
-    // Create icon with CSS class
-    const iconElement = document.createElement('span');
-    iconElement.className = 'menu-item-icon';
-    iconElement.textContent = actionsIcons[scriptName] || '⚙️';
-    
-    // Create text container with CSS class
-    const textContainer = document.createElement('div');
-    textContainer.className = 'menu-item-text';
-    
-    // Create title with CSS class
-    const title = document.createElement('div');
-    title.className = 'menu-item-title';
-    title.textContent = scriptName.replace('_', ' ');
-    
-    // Create description with CSS class
-    const description = document.createElement('div');
-    description.className = 'menu-item-description';
-    description.textContent = actionsScriptDescriptions[scriptName] || 'Run action ' + scriptName;
-    
-    // Menu item hover effects are handled by CSS
-
-    menuItem.addEventListener('click', () => {
-      if (scriptName === 'Settings') {
-        chrome.runtime.sendMessage({ action: 'openOptionsPage' });
-      } else if (scriptName === 'DisableAutologin') {
-        // Request background to disable autologin for this site
-        chrome.runtime.sendMessage({ action: 'disableAutologin' });
-      } else {
-        // Execute action script via background
-        chrome.runtime.sendMessage({
-          action: 'executeScript',
-          scriptPath: 'actions/' + scriptFile
-        }, response => {
-          debugLog('Message sent to background script to execute action script: actions/' + scriptFile);
+  // Function to refresh actions menu dynamically
+  function refreshActionsMenu() {
+    // Clear existing items
+    actionsMenuContainer.innerHTML = '';
+    chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, data => {
+      const origin = window.location.origin;
+      const lastUser = data.lastLoginProfiles[origin];
+      const profile = data.userProfiles.find(p => p.username === lastUser);
+      const autologinEnabled = profile ? profile.autologin : false;
+      const actionDetails = {
+        'RestartApp': { file: 'RestartApp.js', icon: '🔄', desc: 'Reload the Creatio application' },
+        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: '🗑️', desc: 'Clear Redis database' },
+        'EnableAutologin': { file: null, icon: '✅', desc: 'Enable autologin for this site' },
+        'DisableAutologin': { file: null, icon: '🚫', desc: 'Disable autologin for this site' },
+        'Settings': { file: null, icon: '⚙️', desc: 'Open plugin settings' }
+      };
+      const actionsList = ['RestartApp', 'FlushRedisDB'];
+      if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
+      actionsList.push('Settings');
+      actionsList.forEach(scriptName => {
+        const detail = actionDetails[scriptName];
+        const menuItem = document.createElement('div'); menuItem.className='actions-menu-item';
+        const iconElem = document.createElement('span'); iconElem.className='menu-item-icon'; iconElem.textContent=detail.icon;
+        const textCont = document.createElement('div'); textCont.className='menu-item-text';
+        const title = document.createElement('div'); title.className='menu-item-title'; title.textContent=scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
+        const desc = document.createElement('div'); desc.className='menu-item-description'; desc.textContent=detail.desc;
+        menuItem.addEventListener('click', () => {
+          if (scriptName==='Settings') {
+            chrome.runtime.sendMessage({action:'openOptionsPage'});
+          } else if (scriptName==='EnableAutologin') {
+            chrome.storage.sync.get({userProfiles:[],lastLoginProfiles:{}}, ds=>{
+              const profs=ds.userProfiles.map(p=>p.username===lastUser?{...p,autologin:true}:p);
+              chrome.storage.sync.set({userProfiles:profs});
+            });
+          } else if (scriptName==='DisableAutologin') {
+            chrome.runtime.sendMessage({action:'disableAutologin'});
+          } else {
+            chrome.runtime.sendMessage({action:'executeScript',scriptPath:'actions/'+detail.file});
+          }
+          hideMenuContainer(actionsMenuContainer);
         });
-      }
-      hideMenuContainer(actionsMenuContainer);
+        textCont.appendChild(title); textCont.appendChild(desc);
+        menuItem.appendChild(iconElem); menuItem.appendChild(textCont);
+        actionsMenuContainer.appendChild(menuItem);
+      });
     });
-
-    textContainer.appendChild(title);
-    textContainer.appendChild(description);
-    menuItem.appendChild(iconElement);
-    menuItem.appendChild(textContainer);
-    actionsMenuContainer.appendChild(menuItem);
-  });
+  }
 
   actionsButton.addEventListener('click', (target) => {
-      hideMenuContainer(menuContainer);
-      showMenuContainer(actionsMenuContainer);
-      adjustMenuPosition(target.currentTarget, actionsMenuContainer);
+    hideMenuContainer(menuContainer);
+    // Refresh actions menu before showing
+    refreshActionsMenu();
+    showMenuContainer(actionsMenuContainer);
+    adjustMenuPosition(target.currentTarget, actionsMenuContainer);
   });
 
   menuButton.addEventListener('click', (target) => {
