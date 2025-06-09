@@ -78,8 +78,12 @@ button:hover {
 }
 
 .default-button {
-  background-color: #dc3545; /* Make button red */
+  /* align button to right edge with auto width */
+  float: right;
   margin-top: 15px;
+  background-color: #dc3545; /* Make button red */
+  color: white;
+  padding: 10px 15px;
 }
 
 .default-button:hover {
