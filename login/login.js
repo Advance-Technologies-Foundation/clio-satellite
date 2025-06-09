@@ -38,9 +38,16 @@
       profiles.forEach(profile => {
         const option = document.createElement('option');
         option.value = profile.username;
-        option.textContent = profile.username; // Display username in the dropdown
+        
+        // Use alias if available, otherwise use username
+        const displayText = profile.alias && profile.alias.trim() !== '' 
+          ? profile.alias 
+          : profile.username;
+        option.textContent = displayText;
+        
         option.dataset.username = profile.username;
         option.dataset.password = profile.password;
+        option.dataset.alias = profile.alias || '';
         profileSelect.appendChild(option);
       });
     });

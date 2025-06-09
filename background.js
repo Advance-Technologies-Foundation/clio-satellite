@@ -2,7 +2,7 @@
 
 // Define default profile
 const defaultProfiles = [
-    { username: 'Supervisor', password: 'Supervisor' }
+    { username: 'Supervisor', password: 'Supervisor', alias: '' }
 ];
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -10,10 +10,28 @@ chrome.runtime.onInstalled.addListener(() => {
     
     // Initialize default profile if none exist
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
-        if (!data.userProfiles || data.userProfiles.length === 0) {
+        let profiles = data.userProfiles;
+        
+        if (!profiles || profiles.length === 0) {
             chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
                 console.log('Default profiles initialized successfully.');
             });
+        } else {
+            // Check if existing profiles need to be updated with alias field
+            let needsUpdate = false;
+            profiles = profiles.map(profile => {
+                if (!profile.hasOwnProperty('alias')) {
+                    profile.alias = '';
+                    needsUpdate = true;
+                }
+                return profile;
+            });
+            
+            if (needsUpdate) {
+                chrome.storage.sync.set({ userProfiles: profiles }, () => {
+                    console.log('Profiles updated with alias field.');
+                });
+            }
         }
     });
 });

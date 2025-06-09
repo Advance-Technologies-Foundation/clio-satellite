@@ -2,7 +2,7 @@
 
 // Define default profile
 const defaultProfiles = [
-  { username: 'Supervisor', password: 'Supervisor' }
+  { username: 'Supervisor', password: 'Supervisor', alias: '' }
 ];
 
 // Get references to DOM elements
@@ -10,6 +10,7 @@ const userList = document.getElementById('user-list');
 const addUserForm = document.getElementById('add-user-form');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
+const aliasInput = document.getElementById('alias');
 const setToDefaultsBtn = document.getElementById('set-to-defaults');
 
 // Function to load and display user profiles
@@ -25,9 +26,12 @@ function loadProfiles() {
     profiles.forEach((profile, index) => {
       const listItem = document.createElement('li');
       
-      // Display profile name and username (hide password)
+      // Display profile name with alias if available
       const profileInfo = document.createElement('span');
-      profileInfo.textContent = profile.username;
+      const displayName = profile.alias && profile.alias.trim() !== '' 
+        ? `${profile.alias} (${profile.username})` 
+        : profile.username;
+      profileInfo.textContent = displayName;
       
       // Create delete button
       const deleteButton = document.createElement('button');
@@ -56,15 +60,16 @@ function addProfile(event) {
   // Get input values
   const username = usernameInput.value.trim();
   const password = passwordInput.value; // Don't trim password
+  const alias = aliasInput.value.trim();
 
   // Basic validation
   if (!username || !password) {
-    alert('Please fill in all fields.');
+    alert('Please fill in username and password fields.');
     return;
   }
 
   // Create new profile object
-  const newProfile = { username, password };
+  const newProfile = { username, password, alias };
 
   // Get current profiles and add the new one
   chrome.storage.sync.get({ userProfiles: [] }, (data) => {
@@ -126,12 +131,31 @@ function setToDefaults() {
 // Function to check if profiles exist and initialize defaults if needed
 function initializeDefaultProfilesIfNeeded() {
   chrome.storage.sync.get({ userProfiles: [] }, (data) => {
-    if (!data.userProfiles || data.userProfiles.length === 0) {
+    let profiles = data.userProfiles;
+    
+    if (!profiles || profiles.length === 0) {
       // If no profiles exist, set to defaults
       chrome.storage.sync.set({ userProfiles: defaultProfiles }, () => {
         loadProfiles();
         console.log('Default profiles initialized successfully.');
       });
+    } else {
+      // Check if existing profiles need to be updated with alias field
+      let needsUpdate = false;
+      profiles = profiles.map(profile => {
+        if (!profile.hasOwnProperty('alias')) {
+          profile.alias = '';
+          needsUpdate = true;
+        }
+        return profile;
+      });
+      
+      if (needsUpdate) {
+        chrome.storage.sync.set({ userProfiles: profiles }, () => {
+          loadProfiles();
+          console.log('Profiles updated with alias field.');
+        });
+      }
     }
   });
 }
