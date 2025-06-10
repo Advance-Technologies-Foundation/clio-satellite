@@ -97,8 +97,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // Inject extension script file directly, preserving extension APIs
             chrome.scripting.executeScript({
                 target: { tabId: activeTabId },
+                world: 'MAIN',  // run in page context to access page globals
                 files: [scriptPath]
-            }).then(() => {
+              }).then(() => {
                 console.log(`Script ${scriptPath} injected successfully`);
                 sendResponse({ success: true });
             }).catch(error => {
