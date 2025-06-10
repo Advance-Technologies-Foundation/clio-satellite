@@ -275,3 +275,30 @@ button:hover {
 #confirm-modal .modal-header button.close:hover {
   color: #000;            /* same hover color */
 }
+
+/* Options page header layout */
+.options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* Close button style */
+#close-btn {
+  position: static;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#close-btn:hover {
+  background-color: #0052a3;
+}

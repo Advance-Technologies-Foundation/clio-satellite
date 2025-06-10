@@ -31,6 +31,12 @@ const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 const confirmCloseBtn = document.querySelector('.confirm-close');
 
+// Close options page when 'Close' button is clicked
+const closeBtn = document.getElementById('close-btn');
+closeBtn.addEventListener('click', () => {
+  window.close();
+});
+
 // Track bulk deletion flag
 let isBulkDelete = false;
 
