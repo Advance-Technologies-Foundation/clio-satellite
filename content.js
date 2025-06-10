@@ -203,11 +203,12 @@ function createScriptsMenu() {
     // Menu item hover effects are handled by CSS
 
     menuItem.addEventListener('click', () => {
+      // Send correct path under scripts/navigation to background for proper script injection
       chrome.runtime.sendMessage({
         action: 'executeScript',
-        scriptName: scriptFile
+        scriptPath: `navigation/${scriptFile}`
       }, response => {
-        debugLog('Message sent to background script');
+        debugLog('Navigation script sent to background for injection');
       });
 
       hideMenuContainer(menuContainer);
