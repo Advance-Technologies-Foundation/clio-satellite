@@ -11,7 +11,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*Shell/"],
+      "matches": ["*://*/*shell/", "*://*/*Shell/", "*://*/*SHELL/", "*://*/*sHELL/"],
       "exclude_matches": ["*://*.work.creatio.com/*"],
       "css": ["styles/shell.css"],
       "js": ["content.js"]
