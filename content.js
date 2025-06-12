@@ -149,7 +149,8 @@ function createScriptsMenu() {
     'Process_log': 'View process log',
     'SysSettings': 'System settings and parameters',
     'Users': 'Manage system users',
-    'Configuration':'Open configuration'
+    'Configuration':'Open configuration',
+    'TIDE': 'Open Terrasoft Integrated Development Environment'
   };
 
   const scriptFiles = [
@@ -160,7 +161,8 @@ function createScriptsMenu() {
     'Process_log.js',
     'SysSettings.js',
     'Users.js',
-    'Configuration.js'
+    'Configuration.js',
+    'TIDE.js'
   ];
 
   scriptFiles.forEach(scriptFile => {
@@ -174,7 +176,8 @@ function createScriptsMenu() {
       'Process_log': '📋',
       'SysSettings': '⚙️',
       'Users': '👥',
-      'Configuration': '⚙️'
+      'Configuration': '⚙️',
+      'TIDE': '💻'
     };
 
     // Create menu item with CSS classes
