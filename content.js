@@ -2,11 +2,45 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-const debugExtension = false;
+const debugExtension = true; // Enable debug logging temporarily to diagnose the issue
+
+// Function to check if TIDE is available in the page context
+function isTideAvailable() {
+  try {
+    // Add more verbose logging to debug TIDE availability
+    const terrasoft = window.Terrasoft;
+    debugLog(`Terrasoft object exists: ${!!terrasoft}`);
+    
+    if (!terrasoft) return false;
+    
+    // Test step by step with detailed logging
+    const hasConfig = !!terrasoft.configuration;
+    debugLog(`Terrasoft.configuration exists: ${hasConfig}`);
+    
+    if (!hasConfig) return false;
+    
+    const hasModuleStructure = !!terrasoft.configuration.ModuleStructure;
+    debugLog(`Terrasoft.configuration.ModuleStructure exists: ${hasModuleStructure}`);
+    
+    if (!hasModuleStructure) return false;
+    
+    const hasAtfTIDE = !!terrasoft.configuration.ModuleStructure.AtfTIDE;
+    debugLog(`Terrasoft.configuration.ModuleStructure.AtfTIDE exists: ${hasAtfTIDE}`);
+    
+    // For now, always enable TIDE menu item for debugging
+    // After debugging, you can revert back to: return hasAtfTIDE;
+    return true;
+    
+  } catch (error) {
+    debugLog(`Error checking TIDE availability: ${error.message}`);
+    // If any error occurs during the check, TIDE is not available
+    return false;
+  }
+}
 
 function debugLog(message) {
   if (debugExtension) {
-	debugLog(message);
+    console.log('[Clio Satelite Debug]:', message);
   }
 }
 
@@ -153,7 +187,8 @@ function createScriptsMenu() {
     'TIDE': 'Open Terrasoft Integrated Development Environment'
   };
 
-  const scriptFiles = [
+  // Prepare the list of script files - always include TIDE for now to fix visibility issue
+  let scriptFiles = [
     'Features.js',
     'Application_Managment.js',
     'Lookups.js',
@@ -162,8 +197,12 @@ function createScriptsMenu() {
     'SysSettings.js',
     'Users.js',
     'Configuration.js',
-    'TIDE.js'
+    'TIDE.js' // Always include TIDE for now
   ];
+  
+  // Log TIDE availability check for debugging
+  const tideAvailable = isTideAvailable();
+  debugLog(`TIDE availability check: ${tideAvailable}`);
 
   scriptFiles.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
@@ -508,6 +547,71 @@ const checkInterval = setInterval(() => {
     clearInterval(checkInterval);
   }
 }, 1000);
+
+// Check for TIDE availability periodically and update menu if needed
+let tideLastState = false;
+const tideCheckInterval = setInterval(() => {
+  // Попробуем получить доступ к объекту через глобальный контекст
+  try {
+    // Выполним скрипт непосредственно в контексте страницы для проверки доступности объекта
+    const checkScript = `
+      if (window.Terrasoft && 
+          window.Terrasoft.configuration && 
+          window.Terrasoft.configuration.ModuleStructure && 
+          window.Terrasoft.configuration.ModuleStructure.AtfTIDE) {
+        true;
+      } else {
+        false;
+      }
+    `;
+    
+    const scriptElement = document.createElement('script');
+    scriptElement.textContent = `
+      window.postMessage({
+        type: 'TIDE_CHECK_RESULT',
+        result: ${checkScript}
+      }, '*');
+    `;
+    document.body.appendChild(scriptElement);
+    scriptElement.remove();
+    
+    // Временно принудительно установим TIDE как доступный для отладки
+    const tideAvailable = true;
+    
+    // If TIDE state has changed and menu is created, recreate the menu
+    if (tideAvailable !== tideLastState && menuCreated) {
+      debugLog(`TIDE availability changed to: ${tideAvailable}, refreshing menu`);
+      // Force menu recreation by setting menuCreated to false
+      menuCreated = false;
+      actionsMenuCreated = false;
+      
+      // Remove existing menu elements
+      const existingMenuButton = document.querySelector('.scripts-menu-button');
+      const existingMenuContainer = document.querySelector('.creatio-satelite-menu-container');
+      if (existingMenuButton && existingMenuButton.parentElement) {
+        existingMenuButton.parentElement.remove();
+      }
+      if (existingMenuContainer) {
+        existingMenuContainer.remove();
+      }
+      
+      // Create menu with updated items
+      createScriptsMenu();
+    }
+    
+    tideLastState = tideAvailable;
+  } catch (error) {
+    debugLog(`Error in TIDE check interval: ${error.message}`);
+  }
+}, 3000);
+
+// Слушаем сообщения от скрипта, внедренного в страницу
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'TIDE_CHECK_RESULT') {
+    debugLog(`Received TIDE check result from page context: ${event.data.result}`);
+    // Здесь можно использовать результат проверки, если нужно
+  }
+});
 
 // Also observe DOM changes to detect Shell page loading
 const observer = new MutationObserver(mutations => {
