@@ -184,7 +184,7 @@ function createScriptsMenu() {
     'SysSettings': 'System settings and parameters',
     'Users': 'Manage system users',
     'Configuration':'Open configuration',
-    'TIDE': 'Open Terrasoft Integrated Development Environment'
+    'TIDE': 'Open Team Integrated Development Environment'
   };
 
   // Prepare the list of script files - always include TIDE for now to fix visibility issue
