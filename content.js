@@ -210,7 +210,7 @@ document.addEventListener('keyup', handleKeyUp, true);
 
 function debugLog(message) {
   if (debugExtension) {
-	debugLog(message);
+    console.log('[Clio Satellite]:', message);
   }
 }
 
@@ -224,8 +224,8 @@ function showMenuContainer(menuContainer) {
   menuContainer.classList.add('visible');
 }
 
-// Function to check if current page is the Shell page of Creatio
-function isShellPage() {
+// Function to check if current page is a Creatio page (Shell or Configuration)
+function getCreatioPageType() {
   const currentHost = window.location.hostname;
 
   const excludedDomains = [
@@ -244,11 +244,19 @@ function isShellPage() {
   for (const domain of excludedDomains) {
     if (currentHost.includes(domain)) {
       debugLog(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
-      return false;
+      return null;
     }
   }
 
-  const creatioIndicators = [
+  // Check for Configuration page first
+  const configurationIndicator = document.querySelector('ts-workspace-section');
+  if (configurationIndicator) {
+    debugLog('Configuration page detected');
+    return 'configuration';
+  }
+
+  // Check for Shell page indicators
+  const shellIndicators = [
     document.getElementById('ShellContainerWithBackground'),
     document.querySelector('mainshell'),
     document.querySelector('crt-schema-outlet'),
@@ -264,24 +272,51 @@ function isShellPage() {
   ];
 
   const MIN_INDICATORS = 2;
+  const foundIndicators = shellIndicators.filter(indicator => indicator);
 
-  const foundIndicators = creatioIndicators.filter(indicator => indicator);
-
-  const isCreatio = foundIndicators.length >= MIN_INDICATORS;
-
-  if (!isCreatio) {
-    debugLog(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Skipping activation.`);
-  } else {
-    debugLog(`Found ${foundIndicators.length} Creatio indicators. Activating plugin.`);
+  if (foundIndicators.length >= MIN_INDICATORS) {
+    debugLog(`Shell page detected with ${foundIndicators.length} indicators`);
+    return 'shell';
   }
 
-  return isCreatio;
+  debugLog(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Page not recognized.`);
+  return null;
+}
+
+// Legacy function for backward compatibility
+function isShellPage() {
+  const pageType = getCreatioPageType();
+  return pageType === 'shell' || pageType === 'configuration';
 }
 
 function adjustMenuPosition(relatedContainer, container) {
-  const rectangle = relatedContainer.getBoundingClientRect();
-  container.style.top = `${rectangle.bottom + 2}px`;
-  container.style.left = `${rectangle.left + 125}px`;
+  const pageType = getCreatioPageType();
+  
+  if (pageType === 'configuration') {
+    // For Configuration page with floating buttons, position menu to the left of buttons
+    const floatingContainer = document.querySelector('.creatio-satelite-floating');
+    if (floatingContainer) {
+      const rect = floatingContainer.getBoundingClientRect();
+      container.style.position = 'fixed';
+      container.style.top = `${rect.top}px`;
+      container.style.right = `${window.innerWidth - rect.left + 10}px`;
+      container.style.left = 'auto';
+      debugLog(`Configuration page: Menu positioned at top: ${rect.top}px, right: ${window.innerWidth - rect.left + 10}px`);
+    } else {
+      // Fallback positioning
+      const rectangle = relatedContainer.getBoundingClientRect();
+      container.style.position = 'fixed';
+      container.style.top = `${rectangle.bottom + 5}px`;
+      container.style.left = `${rectangle.left}px`;
+      debugLog(`Configuration page fallback: Menu positioned at top: ${rectangle.bottom + 5}px, left: ${rectangle.left}px`);
+    }
+  } else {
+    // For Shell page, use existing logic
+    const rectangle = relatedContainer.getBoundingClientRect();
+    container.style.top = `${rectangle.bottom + 2}px`;
+    container.style.left = `${rectangle.left + 125}px`;
+    debugLog(`Shell page: Menu positioned at top: ${rectangle.bottom + 2}px, left: ${rectangle.left + 125}px`);
+  }
 }
 
 // Enhanced tooltip function for Actions button
@@ -338,23 +373,44 @@ function createEnhancedTooltip(text, targetElement) {
 
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
-  debugLog('Creating scripts menu');
+  debugLog('Creating scripts menu - start');
 
+  // Prevent duplicate menu creation
   if (menuCreated || document.querySelector('.scripts-menu-button')) {
     debugLog('Menu already exists, skipping creation');
-    return;
+    return false;
   }
 
-  const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') ||
-                       document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
-                       document.querySelector('.global-search');
+  const pageType = getCreatioPageType();
+  if (!pageType) {
+    debugLog('Page type not recognized, skipping menu creation');
+    return false;
+  }
 
+  debugLog(`Creating menu for page type: ${pageType}`);
+
+  let targetContainer = null;
   let topPosition = '20px';
 
-  if (searchElement) {
-    const searchRect = searchElement.getBoundingClientRect();
-    topPosition = searchRect.top + 'px';
-    debugLog(`Found search element, position: ${topPosition}`);
+  if (pageType === 'configuration') {
+    // For Configuration page, find the left-container
+    targetContainer = document.querySelector('.left-container');
+    if (!targetContainer) {
+      debugLog('Configuration page detected but .left-container not found, retrying later...');
+      return false;
+    }
+    debugLog('Configuration page: targeting .left-container');
+  } else if (pageType === 'shell') {
+    // For Shell page, use existing logic
+    const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') ||
+                         document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
+                         document.querySelector('.global-search');
+
+    if (searchElement) {
+      const searchRect = searchElement.getBoundingClientRect();
+      topPosition = searchRect.top + 'px';
+      debugLog(`Shell page: Found search element, position: ${topPosition}`);
+    }
   }
 
   // Create button wrapper with CSS class
@@ -661,35 +717,102 @@ function createScriptsMenu() {
   });
 
   try {
-    const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
-
-    if (searchElement && searchElement.parentElement) {
-      searchElement.insertAdjacentElement('afterend', buttonWrapper);
-      
-      // Apply creatio-satelite-button-next-to-search class
-      buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
-      
-      debugLog('Button placed next to search element on initial creation');
-    } else {
-      const appToolbar = document.querySelector('crt-app-toolbar');
-
-      if (appToolbar) {
-        appToolbar.appendChild(buttonWrapper);
-        debugLog('Button inserted into crt-app-toolbar');
-
-        // Create center container with CSS class
-        const centerContainer = document.createElement('div');
-        centerContainer.className = 'center-container';
-
-        buttonWrapper.remove();
-        centerContainer.appendChild(buttonWrapper);
-        appToolbar.appendChild(centerContainer);
+    if (pageType === 'configuration') {
+      // For Configuration page, create a floating container for buttons
+      if (targetContainer) {
+        // Create a floating button container that doesn't affect layout
+        const floatingContainer = document.createElement('div');
+        floatingContainer.className = 'creatio-satelite-floating';
         
-        // Apply button-in-toolbar class
-        buttonWrapper.className += ' button-in-toolbar';
+        // Make it draggable
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+        
+        floatingContainer.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          cursor: move;
+          user-select: none;
+        `;
+        
+        // Add drag functionality
+        floatingContainer.addEventListener('mousedown', (e) => {
+          if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = floatingContainer.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+            floatingContainer.style.cursor = 'grabbing';
+            e.preventDefault();
+          }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging) {
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
+            const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
+            
+            floatingContainer.style.left = newX + 'px';
+            floatingContainer.style.top = newY + 'px';
+            floatingContainer.style.right = 'auto';
+          }
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            floatingContainer.style.cursor = 'move';
+          }
+        });
+        
+        floatingContainer.appendChild(buttonWrapper);
+        document.body.appendChild(floatingContainer);
+        
+        // Add special class for configuration page styling
+        buttonWrapper.classList.add('creatio-satelite-configuration');
+        debugLog('Buttons placed in draggable floating container for Configuration page');
+      }
+    } else if (pageType === 'shell') {
+      // For Shell page, use existing logic
+      const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
+
+      if (searchElement && searchElement.parentElement) {
+        searchElement.insertAdjacentElement('afterend', buttonWrapper);
+        
+        // Apply creatio-satelite-button-next-to-search class
+        buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
+        
+        debugLog('Button placed next to search element on initial creation');
       } else {
-        document.body.appendChild(buttonWrapper);
-        debugLog('crt-app-toolbar not found, button added to body');
+        const appToolbar = document.querySelector('crt-app-toolbar');
+
+        if (appToolbar) {
+          appToolbar.appendChild(buttonWrapper);
+          debugLog('Button inserted into crt-app-toolbar');
+
+          // Create center container with CSS class
+          const centerContainer = document.createElement('div');
+          centerContainer.className = 'center-container';
+
+          buttonWrapper.remove();
+          centerContainer.appendChild(buttonWrapper);
+          appToolbar.appendChild(centerContainer);
+          
+          // Apply button-in-toolbar class
+          buttonWrapper.className += ' button-in-toolbar';
+        } else {
+          document.body.appendChild(buttonWrapper);
+          debugLog('crt-app-toolbar not found, button added to body');
+        }
       }
     }
 
@@ -701,10 +824,12 @@ function createScriptsMenu() {
     debugLog('Scripts menu created successfully');
     menuCreated = true;
     actionsMenuCreated = true;
+    return true;
   } catch (error) {
     console.error('Error appending menu elements:', error);
     menuCreated = false;
     actionsMenuCreated = false;
+    return false;
   }
 }
 
@@ -825,27 +950,45 @@ const positionObserver = new MutationObserver(() => {
 });
 
 // Function to check page and create menu if needed
-function checkShellAndCreateMenu() {
-  debugLog("Checking for Shell page");
-  if (isShellPage() && !menuCreated) {
-    debugLog("Shell page detected, creating scripts menu");
-    createScriptsMenu();
+function checkCreatioPageAndCreateMenu() {
+  debugLog("Checking for Creatio page");
+  const pageType = getCreatioPageType();
+  if (pageType && !menuCreated) {
+    debugLog(`${pageType} page detected, creating scripts menu`);
+    const success = createScriptsMenu();
+    if (success) {
+      debugLog(`Menu created successfully for ${pageType} page`);
+      return true;
+    } else {
+      debugLog(`Failed to create menu for ${pageType} page`);
+      return false;
+    }
+  } else if (pageType) {
+    debugLog(`${pageType} page detected but menu already created`);
+  } else {
+    debugLog('No Creatio page detected');
   }
+  return false;
+}
+
+// Legacy function for backward compatibility
+function checkShellAndCreateMenu() {
+  checkCreatioPageAndCreateMenu();
 }
 
 // Initial check with slight delay to let page load
-setTimeout(checkShellAndCreateMenu, 1000);
+setTimeout(checkCreatioPageAndCreateMenu, 1000);
 
 // Check again when DOM content is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  debugLog('DOMContentLoaded fired, checking for Shell page');
-  checkShellAndCreateMenu();
+  debugLog('DOMContentLoaded fired, checking for Creatio page');
+  checkCreatioPageAndCreateMenu();
 });
 
 // Check again when window is fully loaded
 window.addEventListener('load', () => {
-  debugLog('Window load event fired, checking for Shell page');
-  checkShellAndCreateMenu();
+  debugLog('Window load event fired, checking for Creatio page');
+  checkCreatioPageAndCreateMenu();
 
   setTimeout(updateMenuPosition, 2000);
 });
@@ -855,33 +998,57 @@ setTimeout(() => {
   positionObserver.observe(document.body, { childList: true, subtree: true });
 }, 3000);
 
-// Periodic check in case the page loads Shell content dynamically
+// Periodic check in case the page loads Creatio content dynamically
 let checkCount = 0;
 const maxChecks = 20;
 const checkInterval = setInterval(() => {
   checkCount++;
   debugLog(`Check interval ${checkCount}/${maxChecks} fired`);
 
-  if (checkShellAndCreateMenu() || checkCount >= maxChecks) {
+  const success = checkCreatioPageAndCreateMenu();
+  if (success || checkCount >= maxChecks) {
     debugLog('Clearing check interval');
     clearInterval(checkInterval);
   }
 }, 1000);
 
-// Also observe DOM changes to detect Shell page loading
+// Also observe DOM changes to detect Creatio page loading
 const observer = new MutationObserver(mutations => {
   let shouldCheck = false;
+  let hasLeftContainer = false;
 
   for (const mutation of mutations) {
-    if (mutation.type === 'childList' && mutation.addedNodes.length > 2) {
-      shouldCheck = true;
-      break;
+    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+      // Check for significant changes
+      if (mutation.addedNodes.length > 2) {
+        shouldCheck = true;
+      }
+      
+      // Check specifically for .left-container on Configuration pages
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === 1) { // Element node
+          if (node.classList && node.classList.contains('left-container')) {
+            hasLeftContainer = true;
+            shouldCheck = true;
+            debugLog('Left container detected in DOM changes');
+          }
+          // Also check child elements
+          if (node.querySelector && node.querySelector('.left-container')) {
+            hasLeftContainer = true;
+            shouldCheck = true;
+            debugLog('Left container found in added node children');
+          }
+        }
+      }
     }
   }
 
   if (shouldCheck && !menuCreated) {
-    debugLog('Significant DOM changes detected, checking for Shell page');
-    checkShellAndCreateMenu();
+    debugLog('Significant DOM changes detected, checking for Creatio page');
+    if (hasLeftContainer) {
+      debugLog('Left container available, priority check for Configuration page');
+    }
+    checkCreatioPageAndCreateMenu();
   }
 });
 

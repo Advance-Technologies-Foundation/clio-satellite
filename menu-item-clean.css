@@ -122,40 +122,26 @@
 }
 
 /* Configuration Page Specific Styles */
-.creatio-satelite-floating {
-  position: fixed !important;
-  top: 20px !important;
-  right: 20px !important;
-  z-index: 1000 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  pointer-events: auto !important;
-}
-
 .creatio-satelite-configuration {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
   padding: 0;
   background: none;
   border: none;
-  width: 200px;
 }
 
 .creatio-satelite-configuration .scripts-menu-button,
 .creatio-satelite-configuration .actions-button {
   width: 100%;
   justify-content: flex-start;
-  padding: 10px 14px;
+  padding: 8px 12px;
   margin: 0;
-  min-height: 40px;
+  min-height: 36px;
   font-size: 13px;
   text-align: left;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-radius: 4px;
 }
 
 .creatio-satelite-configuration .scripts-menu-button {
@@ -166,8 +152,7 @@
 
 .creatio-satelite-configuration .scripts-menu-button:hover {
   background: #1565c0;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
 }
 
 .creatio-satelite-configuration .actions-button {
@@ -178,8 +163,7 @@
 
 .creatio-satelite-configuration .actions-button:hover {
   background: #ef6c00;
-  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(245, 124, 0, 0.3);
 }
 
 .creatio-satelite-configuration .scripts-menu-button img {
@@ -193,21 +177,11 @@
   font-size: 14px;
 }
 
-/* Configuration page menu containers positioning - positioned relative to floating buttons */
-.creatio-satelite-floating ~ .creatio-satelite-menu-container .scripts-menu-container,
-.creatio-satelite-floating ~ .creatio-satelite-menu-container .actions-menu-container {
-  position: fixed;
-  top: 20px;
-  right: 240px;
+/* Configuration page menu containers positioning */
+.creatio-satelite-configuration ~ .creatio-satelite-menu-container .scripts-menu-container,
+.creatio-satelite-configuration ~ .creatio-satelite-menu-container .actions-menu-container {
+  position: absolute;
+  left: 250px;
+  top: 0;
   transform: none;
-}
-
-/* Alternative positioning if floating container is present */
-body:has(.creatio-satelite-floating) .creatio-satelite-menu-container .scripts-menu-container,
-body:has(.creatio-satelite-floating) .creatio-satelite-menu-container .actions-menu-container {
-  position: fixed !important;
-  top: 20px !important;
-  right: 240px !important;
-  left: auto !important;
-  transform: none !important;
 }
