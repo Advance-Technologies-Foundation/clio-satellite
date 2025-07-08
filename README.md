@@ -17,7 +17,7 @@
 > 
 > 📋 **Page Focus Required**: All hotkeys work only when the Creatio page is active and focused
 >
-> 🎯 **Visual Hints**: Hotkey letters are shown in parentheses in menu items (e.g., F(e)atures, (R)estart)
+> 🎯 **Visual Hints**: Hotkey letters are underlined in menu items (e.g., F<u>e</u>atures, <u>R</u>estart)
 
 ### Main Controls
 - **Ctrl+Shift+V** (Cmd+Shift+V on Mac): Toggle Navigation Menu

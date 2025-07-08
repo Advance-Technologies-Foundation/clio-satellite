@@ -6,7 +6,7 @@ This Chrome extension now supports convenient keyboard shortcuts (HotKeys) for q
 > 
 > 📋 **Important**: All hotkeys work only when the Creatio page is active and focused. This ensures no conflicts with other applications.
 >
-> 🎯 **Visual Hints**: The extension shows hotkey letters in parentheses in menu items to help you remember the combinations. For example: F(e)atures, (R)estart, (M)anagement, etc.
+> 🎯 **Visual Hints**: The extension underlines hotkey letters in menu items to help you remember the combinations. For example: F<u>e</u>atures, <u>R</u>estart, <u>M</u>anagement, etc.
 
 ## Available HotKeys
 

@@ -284,6 +284,58 @@ function adjustMenuPosition(relatedContainer, container) {
   container.style.left = `${rectangle.left + 125}px`;
 }
 
+// Enhanced tooltip function for Actions button
+function createEnhancedTooltip(text, targetElement) {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'enhanced-tooltip';
+  tooltip.innerHTML = text;
+  
+  tooltip.style.cssText = `
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: "Roboto", sans-serif;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: none;
+    max-width: 280px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.4;
+    border: 1px solid #555;
+  `;
+  
+  document.body.appendChild(tooltip);
+  
+  // Position tooltip
+  const rect = targetElement.getBoundingClientRect();
+  tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+  tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+  tooltip.style.transform = 'translateX(-50%)';
+  
+  // Add arrow
+  const arrow = document.createElement('div');
+  arrow.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #333;
+  `;
+  tooltip.appendChild(arrow);
+  
+  // Animate in
+  setTimeout(() => tooltip.style.opacity = '1', 10);
+  
+  return tooltip;
+}
+
 // Функция для создания меню скриптов напрямую из content script
 function createScriptsMenu() {
   debugLog('Creating scripts menu');
@@ -320,7 +372,7 @@ function createScriptsMenu() {
   // Image styles are handled by CSS
 
   const buttonText = document.createElement('span');
-  buttonText.innerHTML = `Na(v)igation`;
+  buttonText.innerHTML = `Na<u>v</u>igation`;
 
   menuButton.appendChild(iconImg);
   menuButton.appendChild(buttonText);
@@ -328,19 +380,39 @@ function createScriptsMenu() {
   // Create actions button with CSS class
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
-  actionsButton.title = `Actions (${getHotkeyString('A')})`; // Add hotkey to tooltip
 
   // Create actions button icon with CSS class
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.className = 'actions-button-icon';
   actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon
   
-  // Create actions button text
-  const actionsButtonText = document.createElement('span');
-  actionsButtonText.innerHTML = '(A)ctions';
-  
   actionsButton.appendChild(actionsButtonIcon);
-  actionsButton.appendChild(actionsButtonText);
+
+  // Add enhanced tooltip to Actions button
+  let actionsTooltip = null;
+  
+  actionsButton.addEventListener('mouseenter', () => {
+    const hotkeyText = getHotkeyString('A');
+    const tooltipText = '<strong>⚡ Быстрые действия</strong><br>' +
+                       '• Перезапуск приложения<br>' +
+                       '• Очистка Redis DB<br>' +
+                       '• Настройки плагина<br>' +
+                       '<br>' +
+                       '<em>Hotkey: ' + hotkeyText + '</em>';
+    actionsTooltip = createEnhancedTooltip(tooltipText, actionsButton);
+  });
+  
+  actionsButton.addEventListener('mouseleave', () => {
+    if (actionsTooltip) {
+      actionsTooltip.style.opacity = '0';
+      setTimeout(() => {
+        if (actionsTooltip && actionsTooltip.parentNode) {
+          actionsTooltip.parentNode.removeChild(actionsTooltip);
+        }
+        actionsTooltip = null;
+      }, 300);
+    }
+  });
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);
@@ -428,20 +500,20 @@ function createScriptsMenu() {
       let highlightedTitle = scriptNameForDisplay;
       switch(hotkeyLetter) {
         case 'E':
-          highlightedTitle = highlightedTitle.replace(/Features/i, 'F(e)atures');
+          highlightedTitle = highlightedTitle.replace(/Features/i, 'F<u>e</u>atures');
           break;
         case 'M':
-          highlightedTitle = highlightedTitle.replace(/Managment/i, '(M)anagment');
+          highlightedTitle = highlightedTitle.replace(/Managment/i, '<u>M</u>anagment');
           break;
         case 'G':
-          highlightedTitle = highlightedTitle.replace(/log/i, 'lo(g)');
+          highlightedTitle = highlightedTitle.replace(/log/i, 'lo<u>g</u>');
           break;
         case 'Y':
-          highlightedTitle = highlightedTitle.replace(/SysSettings/i, 'S(y)sSettings');
+          highlightedTitle = highlightedTitle.replace(/SysSettings/i, 'S<u>y</u>sSettings');
           break;
         default:
           const regex = new RegExp(`(${hotkeyLetter.toLowerCase()}|${hotkeyLetter.toUpperCase()})`, '');
-          highlightedTitle = highlightedTitle.replace(regex, '($1)');
+          highlightedTitle = highlightedTitle.replace(regex, '<u>$1</u>');
       }
       title.innerHTML = highlightedTitle;
     } else {
@@ -523,13 +595,13 @@ function createScriptsMenu() {
         if (hotkeyLetter) {
           switch(hotkeyLetter) {
             case 'R':
-              title.innerHTML = displayTitle.replace(/Restart/i, '(R)estart');
+              title.innerHTML = displayTitle.replace(/Restart/i, '<u>R</u>estart');
               break;
             case 'F':
-              title.innerHTML = displayTitle.replace(/Flush/i, '(F)lush');
+              title.innerHTML = displayTitle.replace(/Flush/i, '<u>F</u>lush');
               break;
             case 'S':
-              title.innerHTML = displayTitle.replace(/Settings/i, '(S)ettings');
+              title.innerHTML = displayTitle.replace(/Settings/i, '<u>S</u>ettings');
               break;
             default:
               title.textContent = displayTitle;
