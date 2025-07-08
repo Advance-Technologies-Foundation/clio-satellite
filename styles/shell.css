@@ -1,4 +1,3 @@
-
 .creatio-satelite {
 
     display: flex;
@@ -175,4 +174,24 @@
         color: #666;
     }
 
+}
+
+/* HotKey Feedback Styles */
+.hotkey-feedback {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }

@@ -4,6 +4,210 @@ let actionsMenuCreated = false; // New flag to track Actions menu creation
 
 const debugExtension = false;
 
+// Detect operating system for proper hotkey display
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+
+// HotKey functionality
+let hotKeysEnabled = true;
+const hotKeyState = {
+  ctrl: false,
+  shift: false,
+  alt: false,
+  keys: []
+};
+
+// Function to get hotkey string with proper modifier
+function getHotkeyString(letter) {
+  return `${modifierKey}+Shift+${letter.toUpperCase()}`;
+}
+
+// HotKey combinations for extension functions
+const hotKeyCombinations = {
+  // Navigation menu - Ctrl+Shift+V (naVigation)
+  'ctrl+shift+v': () => toggleNavigationMenu(),
+  // Actions menu - Ctrl+Shift+A (Actions) 
+  'ctrl+shift+a': () => toggleActionsMenu(),
+  
+  // Quick Actions
+  'ctrl+shift+r': () => executeQuickAction('RestartApp'), // Restart
+  'ctrl+shift+f': () => executeQuickAction('FlushRedisDB'), // Flush
+  'ctrl+shift+s': () => executeQuickAction('Settings'), // Settings
+  
+  // Navigation Scripts (using first letter of section name)
+  'ctrl+shift+e': () => executeNavigationScript('Features'), // F(e)atures (avoiding conflict with Flush)
+  'ctrl+shift+m': () => executeNavigationScript('Application_Managment'), // (M)anagement
+  'ctrl+shift+l': () => executeNavigationScript('Lookups'), // Lookups
+  'ctrl+shift+p': () => executeNavigationScript('Process_library'), // Process library
+  'ctrl+shift+g': () => executeNavigationScript('Process_log'), // Process lo(g)
+  'ctrl+shift+y': () => executeNavigationScript('SysSettings'), // S(y)sSettings (avoiding conflict with Settings)
+  'ctrl+shift+u': () => executeNavigationScript('Users'), // Users
+  'ctrl+shift+c': () => executeNavigationScript('Configuration'), // Configuration
+  'ctrl+shift+t': () => executeNavigationScript('TIDE') // TIDE
+};
+
+function executeQuickAction(actionName) {
+  if (!isShellPage()) return;
+  
+  if (actionName === 'Settings') {
+    chrome.runtime.sendMessage({action: 'openOptionsPage'});
+    showHotKeyFeedback('Settings opened');
+    return;
+  }
+  
+  const actionFiles = {
+    'RestartApp': 'actions/RestartApp.js',
+    'FlushRedisDB': 'actions/FlushRedisDB.js'
+  };
+  
+  if (actionFiles[actionName]) {
+    chrome.runtime.sendMessage({
+      action: 'executeScript',
+      scriptPath: actionFiles[actionName]
+    });
+    
+    // Show visual feedback
+    showHotKeyFeedback(`${actionName.replace(/([A-Z])/g, ' $1').trim()} executed`);
+  }
+}
+
+function executeNavigationScript(scriptName) {
+  if (!isShellPage()) return;
+  
+  chrome.runtime.sendMessage({
+    action: 'executeScript',
+    scriptPath: `navigation/${scriptName}.js`
+  });
+  
+  // Show visual feedback
+  const displayName = scriptName.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+  showHotKeyFeedback(`${displayName} opened`);
+}
+
+function toggleNavigationMenu() {
+  if (!isShellPage()) return;
+  
+  const menuContainer = document.querySelector('.scripts-menu-container');
+  const actionsContainer = document.querySelector('.actions-menu-container');
+  const menuButton = document.querySelector('.scripts-menu-button');
+  
+  if (menuContainer && menuButton) {
+    hideMenuContainer(actionsContainer);
+    if (menuContainer.classList.contains('visible')) {
+      hideMenuContainer(menuContainer);
+    } else {
+      showMenuContainer(menuContainer);
+      // Use same positioning as click handler
+      adjustMenuPosition(menuButton, menuContainer);
+    }
+  }
+}
+
+function toggleActionsMenu() {
+  if (!isShellPage()) return;
+  
+  const menuContainer = document.querySelector('.scripts-menu-container');
+  const actionsContainer = document.querySelector('.actions-menu-container');
+  const actionsButton = document.querySelector('.actions-button');
+  
+  if (actionsContainer && actionsButton) {
+    hideMenuContainer(menuContainer);
+    if (actionsContainer.classList.contains('visible')) {
+      hideMenuContainer(actionsContainer);
+    } else {
+      // Refresh actions menu before showing
+      if (window.refreshActionsMenu) {
+        window.refreshActionsMenu();
+      }
+      showMenuContainer(actionsContainer);
+      // Use same positioning as click handler
+      adjustMenuPosition(actionsButton, actionsContainer);
+    }
+  }
+}
+
+function showHotKeyFeedback(message) {
+  // Remove existing feedback
+  const existingFeedback = document.querySelector('.hotkey-feedback');
+  if (existingFeedback) {
+    existingFeedback.remove();
+  }
+  
+  // Create feedback element
+  const feedback = document.createElement('div');
+  feedback.className = 'hotkey-feedback';
+  feedback.textContent = message;
+  feedback.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  // Animate in
+  setTimeout(() => {
+    feedback.style.opacity = '1';
+  }, 10);
+  
+  // Animate out and remove
+  setTimeout(() => {
+    feedback.style.opacity = '0';
+    setTimeout(() => {
+      if (feedback.parentNode) {
+        feedback.parentNode.removeChild(feedback);
+      }
+    }, 300);
+  }, 2000);
+}
+
+function handleKeyDown(event) {
+  if (!hotKeysEnabled || !isShellPage()) return;
+  
+  // Track modifier keys
+  hotKeyState.ctrl = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
+  hotKeyState.shift = event.shiftKey;
+  hotKeyState.alt = event.altKey;
+  
+  // Build combination string
+  let combo = '';
+  if (hotKeyState.ctrl) combo += 'ctrl+';
+  if (hotKeyState.shift) combo += 'shift+';
+  if (hotKeyState.alt) combo += 'alt+';
+  combo += event.key.toLowerCase();
+  
+  // Check if combination matches any hotkey
+  if (hotKeyCombinations[combo]) {
+    event.preventDefault();
+    event.stopPropagation();
+    hotKeyCombinations[combo]();
+  }
+}
+
+function handleKeyUp(event) {
+  // Reset modifier key states
+  if (!event.ctrlKey && !event.metaKey) hotKeyState.ctrl = false;
+  if (!event.shiftKey) hotKeyState.shift = false;
+  if (!event.altKey) hotKeyState.alt = false;
+}
+
+// Add keyboard event listeners
+document.addEventListener('keydown', handleKeyDown, true);
+document.addEventListener('keyup', handleKeyUp, true);
+
 function debugLog(message) {
   if (debugExtension) {
 	debugLog(message);
@@ -108,6 +312,7 @@ function createScriptsMenu() {
   // Create menu button with CSS class
   const menuButton = document.createElement('button');
   menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
+  menuButton.title = `Navigation (${getHotkeyString('V')})`; // Add hotkey to tooltip
   
   // Create and style button icon using CSS
   const iconImg = document.createElement('img');
@@ -115,7 +320,7 @@ function createScriptsMenu() {
   // Image styles are handled by CSS
 
   const buttonText = document.createElement('span');
-  buttonText.textContent = 'Clio Satelite : Try me!';
+  buttonText.innerHTML = `Na(v)igation`;
 
   menuButton.appendChild(iconImg);
   menuButton.appendChild(buttonText);
@@ -123,13 +328,19 @@ function createScriptsMenu() {
   // Create actions button with CSS class
   const actionsButton = document.createElement('button');
   actionsButton.className = 'actions-button mat-flat-button mat-accent';
+  actionsButton.title = `Actions (${getHotkeyString('A')})`; // Add hotkey to tooltip
 
   // Create actions button icon with CSS class
   const actionsButtonIcon = document.createElement('span');
   actionsButtonIcon.className = 'actions-button-icon';
   actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon
-  actionsButtonIcon.title = 'Actions'; // Add tooltip
+  
+  // Create actions button text
+  const actionsButtonText = document.createElement('span');
+  actionsButtonText.innerHTML = '(A)ctions';
+  
   actionsButton.appendChild(actionsButtonIcon);
+  actionsButton.appendChild(actionsButtonText);
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);
@@ -142,15 +353,15 @@ function createScriptsMenu() {
   menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
 
   const scriptDescriptions = {
-    'Features': 'Open system features management page',
-    'Application_Managment': 'Application managment (App Hub)',
-    'Lookups': 'Open system lookups',
-    'Process_library': 'Open process library',
-    'Process_log': 'View process log',
-    'SysSettings': 'System settings and parameters',
-    'Users': 'Manage system users',
-    'Configuration':'Open configuration',
-    'TIDE': 'Open Team Integrated Development Environment'
+    'Features': `Open system features management page (${getHotkeyString('E')})`,
+    'Application_Managment': `Application managment - App Hub (${getHotkeyString('M')})`,
+    'Lookups': `Open system lookups (${getHotkeyString('L')})`,
+    'Process_library': `Open process library (${getHotkeyString('P')})`,
+    'Process_log': `View process log (${getHotkeyString('G')})`,
+    'SysSettings': `System settings and parameters (${getHotkeyString('Y')})`,
+    'Users': `Manage system users (${getHotkeyString('U')})`,
+    'Configuration': `Open configuration (${getHotkeyString('C')})`,
+    'TIDE': `Open Team Integrated Development Environment (${getHotkeyString('T')})`
   };
 
   const scriptFiles = [
@@ -196,7 +407,46 @@ function createScriptsMenu() {
     // Create title with CSS class
     const title = document.createElement('div');
     title.className = 'menu-item-title';
-    title.textContent = scriptName.replace('_', ' ');
+    
+    // Highlight hotkey letter in title
+    const scriptNameForDisplay = scriptName.replace('_', ' ');
+    const hotkeyLetters = {
+      'Features': 'E',
+      'Application Managment': 'M', 
+      'Lookups': 'L',
+      'Process library': 'P',
+      'Process log': 'G',
+      'SysSettings': 'Y',
+      'Users': 'U',
+      'Configuration': 'C',
+      'TIDE': 'T'
+    };
+    
+    const hotkeyLetter = hotkeyLetters[scriptNameForDisplay] || hotkeyLetters[scriptName];
+    if (hotkeyLetter) {
+      // Special handling for specific words
+      let highlightedTitle = scriptNameForDisplay;
+      switch(hotkeyLetter) {
+        case 'E':
+          highlightedTitle = highlightedTitle.replace(/Features/i, 'F(e)atures');
+          break;
+        case 'M':
+          highlightedTitle = highlightedTitle.replace(/Managment/i, '(M)anagment');
+          break;
+        case 'G':
+          highlightedTitle = highlightedTitle.replace(/log/i, 'lo(g)');
+          break;
+        case 'Y':
+          highlightedTitle = highlightedTitle.replace(/SysSettings/i, 'S(y)sSettings');
+          break;
+        default:
+          const regex = new RegExp(`(${hotkeyLetter.toLowerCase()}|${hotkeyLetter.toUpperCase()})`, '');
+          highlightedTitle = highlightedTitle.replace(regex, '($1)');
+      }
+      title.innerHTML = highlightedTitle;
+    } else {
+      title.textContent = scriptNameForDisplay;
+    }
     
     // Create description with CSS class
     const description = document.createElement('div');
@@ -240,11 +490,11 @@ function createScriptsMenu() {
       const profile = data.userProfiles.find(p => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
       const actionDetails = {
-        'RestartApp': { file: 'RestartApp.js', icon: '🔄', desc: 'Reload the Creatio application' },
-        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: '🗑️', desc: 'Clear Redis database' },
+        'RestartApp': { file: 'RestartApp.js', icon: '🔄', desc: 'Reload the Creatio application', hotkey: getHotkeyString('R') },
+        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: '🗑️', desc: 'Clear Redis database', hotkey: getHotkeyString('F') },
         'EnableAutologin': { file: null, icon: '✅', desc: 'Enable autologin for this site' },
         'DisableAutologin': { file: null, icon: '🚫', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: '⚙️', desc: 'Open plugin settings' }
+        'Settings': { file: null, icon: '⚙️', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -254,8 +504,42 @@ function createScriptsMenu() {
         const menuItem = document.createElement('div'); menuItem.className='actions-menu-item';
         const iconElem = document.createElement('span'); iconElem.className='menu-item-icon'; iconElem.textContent=detail.icon;
         const textCont = document.createElement('div'); textCont.className='menu-item-text';
-        const title = document.createElement('div'); title.className='menu-item-title'; title.textContent=scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
-        const desc = document.createElement('div'); desc.className='menu-item-description'; desc.textContent=detail.desc;
+        const title = document.createElement('div'); title.className='menu-item-title'; 
+        
+        // Highlight hotkey letter in action titles
+        let displayTitle = scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
+        // Fix specific cases
+        if (scriptName === 'FlushRedisDB') {
+          displayTitle = 'Flush Redis DB';
+        }
+        
+        const actionHotkeys = {
+          'Restart App': 'R',
+          'Flush Redis DB': 'F', 
+          'Settings': 'S'
+        };
+        
+        const hotkeyLetter = actionHotkeys[displayTitle];
+        if (hotkeyLetter) {
+          switch(hotkeyLetter) {
+            case 'R':
+              title.innerHTML = displayTitle.replace(/Restart/i, '(R)estart');
+              break;
+            case 'F':
+              title.innerHTML = displayTitle.replace(/Flush/i, '(F)lush');
+              break;
+            case 'S':
+              title.innerHTML = displayTitle.replace(/Settings/i, '(S)ettings');
+              break;
+            default:
+              title.textContent = displayTitle;
+          }
+        } else {
+          title.textContent = displayTitle;
+        }
+        
+        const desc = document.createElement('div'); desc.className='menu-item-description'; 
+        desc.textContent = detail.desc + (detail.hotkey ? ` (${detail.hotkey})` : '');
         menuItem.addEventListener('click', () => {
           if (scriptName==='Settings') {
             chrome.runtime.sendMessage({action:'openOptionsPage'});
@@ -277,6 +561,9 @@ function createScriptsMenu() {
       });
     });
   }
+
+  // Make refreshActionsMenu available globally for hotkey functions
+  window.refreshActionsMenu = refreshActionsMenu;
 
   actionsButton.addEventListener('click', (target) => {
     hideMenuContainer(menuContainer);
