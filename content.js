@@ -565,11 +565,24 @@ function createScriptsMenu() {
   const menuButtonWrapper = document.createElement('span');
   menuButtonWrapper.className = 'mat-button-wrapper';
   
-  // Create button caption div
+  // Create button caption div with icon
   const menuButtonCaption = document.createElement('div');
   menuButtonCaption.className = 'compile-button-caption';
-  menuButtonCaption.innerHTML = 'Na<u>v</u>igation';
   
+  // Create navigation icon (globe with continents)
+  const navIcon = document.createElement('span');
+  navIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/>
+    <path d="M2 8h12M8 1a15 15 0 0 1 4 7 15 15 0 0 1-4 7 15 15 0 0 1-4-7 15 15 0 0 1 4-7z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+    <path d="M3.5 5.5c1.5-1 3-1.5 4.5-1.5s3 .5 4.5 1.5M3.5 10.5c1.5 1 3 1.5 4.5 1.5s3-.5 4.5-1.5" stroke="currentColor" stroke-width="1" fill="none"/>
+  </svg>`;
+  
+  menuButtonCaption.appendChild(navIcon);
+  menuButtonCaption.appendChild(document.createTextNode('Na'));
+  const underlineSpan = document.createElement('u');
+  underlineSpan.textContent = 'v';
+  menuButtonCaption.appendChild(underlineSpan);
+  menuButtonCaption.appendChild(document.createTextNode('igation'));
   // Create arrow wrapper (dropdown indicator)
   const menuArrowWrapper = document.createElement('div');
   menuArrowWrapper.className = 'mat-select-arrow-wrapper';
@@ -609,8 +622,19 @@ function createScriptsMenu() {
   // Create button caption div
   const actionsButtonCaption = document.createElement('div');
   actionsButtonCaption.className = 'compile-button-caption';
-  actionsButtonCaption.innerHTML = '<u>A</u>ctions';
   
+  // Create actions icon (gear/settings with action lines)
+  const actionsIcon = document.createElement('span');
+  actionsIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+    <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+    <path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/>
+  </svg>`;
+  
+  actionsButtonCaption.appendChild(actionsIcon);
+  const underlineSpanA = document.createElement('u');
+  underlineSpanA.textContent = 'A';
+  actionsButtonCaption.appendChild(underlineSpanA);
+  actionsButtonCaption.appendChild(document.createTextNode('ctions'));
   // Create arrow wrapper (dropdown indicator)
   const actionsArrowWrapper = document.createElement('div');
   actionsArrowWrapper.className = 'mat-select-arrow-wrapper';

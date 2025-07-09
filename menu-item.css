@@ -380,3 +380,19 @@
   border-top: 1px solid rgba(255,255,255,0.08) !important;
   margin: 4px 0 !important;
 }
+
+.creatio-satelite .compile-button-caption svg {
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+  color: inherit !important;
+  fill: none !important;
+}
+
+.creatio-satelite .scripts-menu-button svg {
+  color: #fff !important;
+}
+
+.creatio-satelite .actions-button svg {
+  color: #fff !important;
+}
