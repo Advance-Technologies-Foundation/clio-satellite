@@ -83,7 +83,7 @@
 
 /* Login button for selected profile */
 .creatio-satelite-login-profile-button {
-  background-color: #0066cc;
+  background-color: rgb(255, 87, 34) !important; /* Принудительно применяем цвет */
   color: white;
   font-family: 'Montserrat', sans-serif;
   font-weight: 500;
