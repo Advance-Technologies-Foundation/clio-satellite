@@ -420,3 +420,14 @@ body:has(.creatio-satelite-floating) .creatio-satelite-menu-container .actions-m
   left: auto !important;
   transform: none !important;
 }
+
+.mat-flat-button,
+.crt-menu-item.mat-flat-button,
+.actions-button.mat-flat-button,
+.scripts-menu-button.mat-flat-button {
+  height: 32px !important;
+  min-height: 32px !important;
+  line-height: 32px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}

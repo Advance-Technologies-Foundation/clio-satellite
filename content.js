@@ -349,6 +349,23 @@ function adjustMenuPosition(relatedContainer, container) {
   container.style.position = 'fixed';
   container.style.zIndex = '1000';
 
+  // Если кнопка внутри floatingContainer (конфигурация), позиционируем относительно него
+  const floating = relatedContainer.closest('.creatio-satelite-floating');
+  if (floating) {
+    // Получаем позицию кнопки внутри floatingContainer
+    const btnRect = relatedContainer.getBoundingClientRect();
+    const floatRect = floating.getBoundingClientRect();
+    // Смещение кнопки относительно контейнера
+    const offsetLeft = btnRect.left - floatRect.left;
+    const offsetTop = btnRect.top - floatRect.top;
+    container.style.position = 'absolute';
+    container.style.top = (offsetTop + relatedContainer.offsetHeight + 2) + 'px';
+    container.style.left = offsetLeft + 'px';
+    floating.appendChild(container); // меню должно быть внутри floatingContainer
+    return;
+  }
+
+  // Обычное позиционирование (Shell)
   const rect = relatedContainer.getBoundingClientRect();
   container.style.top = `${rect.bottom + 2}px`;
   container.style.left = `${rect.left}px`;
