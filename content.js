@@ -806,7 +806,7 @@ function createScriptsMenu() {
         'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database', hotkey: getHotkeyString('F') },
         'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
         'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 5l6 6M11 5l-6 6\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'block', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2\" stroke=\"currentColor\" stroke-width=\"2"/></svg>`, name: 'settings', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -888,6 +888,18 @@ function createScriptsMenu() {
       hideMenuContainer(actionsMenuContainer);
     }
   });
+
+  // Additional click handler specifically for configuration page menus
+  document.addEventListener('click', (event) => {
+    const visibleMenu = document.querySelector('.scripts-menu-container.visible, .actions-menu-container.visible');
+    if (visibleMenu) {
+      const relatedButton = document.querySelector('.scripts-menu-button, .actions-button');
+      if (relatedButton && !relatedButton.contains(event.target) && !visibleMenu.contains(event.target)) {
+        visibleMenu.classList.remove('visible');
+        visibleMenu.style.display = 'none';
+      }
+    }
+  }, true); // Use capturing phase to ensure it runs first
 
   try {
     if (pageType === 'configuration') {
