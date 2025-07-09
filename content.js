@@ -2,7 +2,7 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-const debugExtension = false;
+const debugExtension = true;
 
 // Detect operating system for proper hotkey display
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -47,7 +47,11 @@ const hotKeyCombinations = {
 };
 
 function executeQuickAction(actionName) {
-  if (!isShellPage()) return;
+  const pageType = getCreatioPageType();
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Quick action blocked: page type is ${pageType}`);
+    return;
+  }
   
   if (actionName === 'Settings') {
     chrome.runtime.sendMessage({action: 'openOptionsPage'});
@@ -72,7 +76,11 @@ function executeQuickAction(actionName) {
 }
 
 function executeNavigationScript(scriptName) {
-  if (!isShellPage()) return;
+  const pageType = getCreatioPageType();
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Navigation script blocked: page type is ${pageType}`);
+    return;
+  }
   
   chrome.runtime.sendMessage({
     action: 'executeScript',
@@ -85,7 +93,11 @@ function executeNavigationScript(scriptName) {
 }
 
 function toggleNavigationMenu() {
-  if (!isShellPage()) return;
+  const pageType = getCreatioPageType();
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Navigation menu toggle blocked: page type is ${pageType}`);
+    return;
+  }
   
   const menuContainer = document.querySelector('.scripts-menu-container');
   const actionsContainer = document.querySelector('.actions-menu-container');
@@ -104,7 +116,11 @@ function toggleNavigationMenu() {
 }
 
 function toggleActionsMenu() {
-  if (!isShellPage()) return;
+  const pageType = getCreatioPageType();
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Actions menu toggle blocked: page type is ${pageType}`);
+    return;
+  }
   
   const menuContainer = document.querySelector('.scripts-menu-container');
   const actionsContainer = document.querySelector('.actions-menu-container');
@@ -175,7 +191,16 @@ function showHotKeyFeedback(message) {
 }
 
 function handleKeyDown(event) {
-  if (!hotKeysEnabled || !isShellPage()) return;
+  if (!hotKeysEnabled) return;
+  
+  // Get page type for debugging
+  const pageType = getCreatioPageType();
+  const isValidPage = pageType === 'shell' || pageType === 'configuration';
+  
+  if (!isValidPage) {
+    debugLog(`Hotkeys blocked: page type is ${pageType}`);
+    return;
+  }
   
   // Track modifier keys
   hotKeyState.ctrl = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
@@ -191,6 +216,7 @@ function handleKeyDown(event) {
   
   // Check if combination matches any hotkey
   if (hotKeyCombinations[combo]) {
+    debugLog(`Hotkey detected: ${combo} on ${pageType} page`);
     event.preventDefault();
     event.stopPropagation();
     hotKeyCombinations[combo]();
@@ -322,6 +348,30 @@ function getCreatioPageType() {
 
   const MIN_INDICATORS = 2;
   const foundIndicators = shellIndicators.filter(indicator => indicator);
+
+  // Detailed debugging for Shell page detection
+  debugLog(`Shell page detection: found ${foundIndicators.length}/${MIN_INDICATORS} indicators`);
+  if (debugExtension) {
+    const indicatorNames = [
+      'ShellContainerWithBackground',
+      'mainshell',
+      'crt-schema-outlet',
+      'AppToolbarGlobalSearch',
+      'crt-app-toolbar',
+      'creatio-logo',
+      'Terrasoft ID',
+      'Terrasoft class',
+      'creatio script',
+      'terrasoft script',
+      'creatio link',
+      'terrasoft link'
+    ];
+    shellIndicators.forEach((indicator, index) => {
+      if (indicator) {
+        debugLog(`✓ Found: ${indicatorNames[index]}`);
+      }
+    });
+  }
 
   if (foundIndicators.length >= MIN_INDICATORS) {
     debugLog(`Shell page detected with ${foundIndicators.length} indicators`);
@@ -1063,6 +1113,58 @@ const positionObserver = new MutationObserver(() => {
   updateMenuPosition();
   moveButtonToToolbar();
 });
+
+// Debug function to check current page status - can be called from console
+window.creatioSatelliteDebug = function() {
+  const pageType = getCreatioPageType();
+  console.log('=== Creatio Satellite Debug Info ===');
+  console.log('Page Type:', pageType);
+  console.log('Hotkeys Enabled:', hotKeysEnabled);
+  console.log('Menu Created:', menuCreated);
+  console.log('Actions Menu Created:', actionsMenuCreated);
+  console.log('Current URL:', window.location.href);
+  console.log('Document Title:', document.title);
+  
+  // Check for Shell indicators
+  const shellIndicators = [
+    { name: 'ShellContainerWithBackground', element: document.getElementById('ShellContainerWithBackground') },
+    { name: 'mainshell', element: document.querySelector('mainshell') },
+    { name: 'crt-schema-outlet', element: document.querySelector('crt-schema-outlet') },
+    { name: 'AppToolbarGlobalSearch', element: document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]') },
+    { name: 'crt-app-toolbar', element: document.querySelector('crt-app-toolbar') },
+    { name: 'creatio-logo', element: document.querySelector('.creatio-logo') },
+    { name: 'Terrasoft ID', element: document.querySelector('[id*="Terrasoft"]') },
+    { name: 'Terrasoft class', element: document.querySelector('[class*="Terrasoft"]') },
+    { name: 'creatio script', element: document.querySelector('script[src*="creatio"]') },
+    { name: 'terrasoft script', element: document.querySelector('script[src*="terrasoft"]') },
+    { name: 'creatio link', element: document.querySelector('link[href*="creatio"]') },
+    { name: 'terrasoft link', element: document.querySelector('link[href*="terrasoft"]') }
+  ];
+  
+  console.log('Shell Indicators:');
+  shellIndicators.forEach(indicator => {
+    console.log(`  ${indicator.name}:`, indicator.element ? '✓ Found' : '✗ Not found');
+  });
+  
+  // Check for Configuration indicator
+  const configIndicator = document.querySelector('ts-workspace-section');
+  console.log('Configuration Indicator (ts-workspace-section):', configIndicator ? '✓ Found' : '✗ Not found');
+  
+  console.log('Extension Elements:');
+  console.log('  Menu Button:', document.querySelector('.scripts-menu-button') ? '✓ Found' : '✗ Not found');
+  console.log('  Actions Button:', document.querySelector('.actions-button') ? '✓ Found' : '✗ Not found');
+  console.log('  Menu Container:', document.querySelector('.scripts-menu-container') ? '✓ Found' : '✗ Not found');
+  console.log('  Actions Container:', document.querySelector('.actions-menu-container') ? '✓ Found' : '✗ Not found');
+  
+  return {
+    pageType,
+    hotKeysEnabled,
+    menuCreated,
+    actionsMenuCreated,
+    url: window.location.href,
+    title: document.title
+  };
+};
 
 // Function to check page and create menu if needed
 function checkCreatioPageAndCreateMenu() {
