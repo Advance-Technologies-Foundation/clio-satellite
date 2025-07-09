@@ -2,7 +2,7 @@
 
 /* System Button Styles - Matching Creatio Design - Force for Shell Pages */
 .creatio-satelite button.mat-flat-button {
-    font-family: Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-family: "Roboto", "Helvetica Neue", Arial, sans-serif !important;
     font-size: 14px !important;
     font-weight: 500 !important;
     line-height: 32px !important;
@@ -26,8 +26,8 @@
     text-align: center !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.075em !important;
+    text-transform: none !important; /* Убираем uppercase как в системе */
+    letter-spacing: normal !important; /* Убираем letter-spacing */
 }
 
 /* Primary button styling (Navigation) - Force for Shell Pages */
@@ -62,7 +62,7 @@
     box-shadow: 0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12) !important;
 }
 
-/* Button wrapper styling */
+/* Button wrapper styling - Match system structure */
 .creatio-satelite .mat-button-wrapper {
     padding: 0;
     display: flex !important;
@@ -78,9 +78,12 @@
     white-space: nowrap;
     margin-right: 28px !important; /* увеличить отступ справа для стрелки */
     font-size: 14px !important;
-    font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+    font-family: "Roboto", "Helvetica Neue", Arial, sans-serif !important;
+    font-weight: 500 !important;
     line-height: 32px !important;
     height: 32px !important;
+    text-transform: none !important; /* Убираем uppercase */
+    letter-spacing: normal !important; /* Убираем letter-spacing */
 }
 
 .creatio-satelite .mat-select-arrow-wrapper {
@@ -263,8 +266,8 @@
   min-height: 32px;
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.075em;
-  text-transform: uppercase;
+  letter-spacing: normal; /* Убираем letter-spacing */
+  text-transform: none; /* Убираем uppercase */
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;

@@ -1,16 +1,16 @@
-// Инициализация страницы конфигурации
-// Импортируйте общие функции при необходимости
+// Configuration page initialization
+// Import common functions as needed
 
 import { $ } from '../common/domUtils.js';
 
 export function initConfigurationPage() {
-  // Пример: инициализация формы конфигурации
+  // Example: configuration form initialization
   const configForm = $('#config-form');
   if (configForm) {
-    // ... логика инициализации формы ...
+    // ... form initialization logic ...
   }
 
-  // Скрытие меню при клике вне его
+  // Hide menu when clicking outside of it
   document.addEventListener('click', function(event) {
     const menu = document.querySelector('.scripts-menu-container.visible, .actions-menu-container.visible');
     if (menu && !menu.contains(event.target)) {
