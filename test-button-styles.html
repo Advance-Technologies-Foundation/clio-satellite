@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clio Satellite - Button Styles Test</title>
+    <link rel="stylesheet" href="menu-item.css">
+    <style>
+        body {
+            font-family: Roboto, "Helvetica Neue", sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        /* Reference button styles (simulating Creatio system button) */
+        .reference-button {
+            font-family: Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 36px;
+            border-radius: 4px;
+            padding: 0 16px;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            vertical-align: middle;
+            min-width: 64px;
+            min-height: 36px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.075em;
+            background-color: #1976d2;
+            color: #fff;
+            box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);
+        }
+        
+        .reference-button:hover {
+            background-color: #1565c0;
+            box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
+        }
+        
+        .reference-button.accent {
+            background-color: #ff5722;
+        }
+        
+        .reference-button.accent:hover {
+            background-color: #f4511e;
+        }
+        
+        .floating-demo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Clio Satellite Button Styles Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Reference System Buttons (Creatio Style)</h2>
+        <div class="description">
+            These buttons simulate the look of actual Creatio system buttons (like Compile button)
+        </div>
+        <div class="buttons-container">
+            <button class="reference-button">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Compile</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+            </button>
+            <button class="reference-button accent">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Publish</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Extension Buttons (Shell Page Style)</h2>
+        <div class="description">
+            These are the actual buttons that appear on Shell pages
+        </div>
+        <div class="creatio-satelite">
+            <button mat-flat-button color="primary" 
+                    class="mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary"
+                    title="Navigation - Ctrl+Shift+V">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Na<u>v</u>igation</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+            
+            <button mat-flat-button color="accent"
+                    class="mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent"
+                    title="Actions - Ctrl+Shift+A">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption"><u>A</u>ctions</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Configuration Page Buttons</h2>
+        <div class="description">
+            These buttons appear as floating buttons on Configuration pages
+        </div>
+        <div class="creatio-satelite-configuration">
+            <button mat-flat-button color="primary" 
+                    class="mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary"
+                    title="Navigation - Ctrl+Shift+V">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Na<u>v</u>igation</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+            
+            <button mat-flat-button color="accent"
+                    class="mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent"
+                    title="Actions - Ctrl+Shift+A">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption"><u>A</u>ctions</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Visual Comparison</h2>
+        <div class="description">
+            Side-by-side comparison of reference and extension buttons
+        </div>
+        <div class="buttons-container">
+            <div>
+                <div style="margin-bottom: 10px; font-weight: bold;">Reference:</div>
+                <button class="reference-button">
+                    <span class="mat-button-wrapper">
+                        <div class="compile-button-caption">Navigation</div>
+                        <div class="mat-select-arrow-wrapper">
+                            <div class="mat-select-arrow"></div>
+                        </div>
+                    </span>
+                </button>
+            </div>
+            <div>
+                <div style="margin-bottom: 10px; font-weight: bold;">Extension:</div>
+                <div class="creatio-satelite">
+                    <button mat-flat-button color="primary" 
+                            class="mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary">
+                        <span class="mat-button-wrapper">
+                            <div class="compile-button-caption">Na<u>v</u>igation</div>
+                            <div class="mat-select-arrow-wrapper">
+                                <div class="mat-select-arrow"></div>
+                            </div>
+                        </span>
+                        <span matripple class="mat-ripple mat-button-ripple"></span>
+                        <span class="mat-button-focus-overlay"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating demo for Configuration page -->
+    <div class="floating-demo">
+        <div class="creatio-satelite-configuration">
+            <button mat-flat-button color="primary" 
+                    class="mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Na<u>v</u>igation</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+            
+            <button mat-flat-button color="accent"
+                    class="mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption"><u>A</u>ctions</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; padding: 20px; background: #e8f5e8; border-radius: 8px;">
+        <h3>Testing Instructions:</h3>
+        <ul>
+            <li>Check that all buttons have the same height, padding, and border radius</li>
+            <li>Verify hover effects work correctly (color change and shadow)</li>
+            <li>Ensure the dropdown arrows are properly positioned</li>
+            <li>Test that the floating buttons (top-right) look identical to Configuration page buttons</li>
+            <li>Compare with actual Creatio system buttons (like Compile button)</li>
+        </ul>
+    </div>
+</body>
+</html>

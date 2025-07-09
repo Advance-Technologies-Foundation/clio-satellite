@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creatio Menu Items Test - Clio Satellite</title>
+    <link rel="stylesheet" href="menu-item.css">
+    <style>
+        body {
+            font-family: "Roboto", "Helvetica Neue", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-header {
+            background: #1976d2;
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .menu-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .menu-column {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .menu-column h4 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+            text-align: center;
+        }
+        
+        /* Reference system menu styling */
+        .reference-menu {
+            background: white;
+            border: none;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
+            min-width: 200px;
+            padding: 8px 0;
+            font-family: "Roboto", "Helvetica Neue", sans-serif;
+        }
+        
+        .reference-menu-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            min-height: 48px;
+            line-height: 48px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(0,0,0,.87);
+            outline: none;
+            transition: background-color 0.2s ease;
+        }
+        
+        .reference-menu-item:hover {
+            background-color: rgba(0,0,0,.04);
+        }
+        
+        .reference-icon {
+            margin-right: 16px;
+            font-size: 20px;
+            min-width: 24px;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(0,0,0,.54);
+            flex-shrink: 0;
+        }
+        
+        .reference-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .reference-title {
+            font-weight: 400;
+            margin: 0;
+            font-size: 14px;
+            line-height: 20px;
+            color: rgba(0,0,0,.87);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .reference-desc {
+            font-size: 12px;
+            color: rgba(0,0,0,.54);
+            line-height: 16px;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .test-button {
+            padding: 10px 20px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .test-button:hover {
+            background: #1565c0;
+            transform: translateY(-1px);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+        }
+        
+        .floating-menu {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎯 Menu Items Structure Test</h1>
+            <p>Testing Creatio system menu item styling compatibility</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 Menu Items Comparison</h3>
+            <div class="menu-comparison">
+                <div class="menu-column">
+                    <h4>Reference System Menu</h4>
+                    <div class="reference-menu">
+                        <button class="reference-menu-item">
+                            <span class="reference-icon">📄</span>
+                            <span class="reference-text">
+                                <div class="reference-title">Configuration</div>
+                                <div class="reference-desc">Open configuration (Ctrl+Shift+C)</div>
+                            </span>
+                        </button>
+                        <button class="reference-menu-item">
+                            <span class="reference-icon">👥</span>
+                            <span class="reference-text">
+                                <div class="reference-title">Users</div>
+                                <div class="reference-desc">Manage system users (Ctrl+Shift+U)</div>
+                            </span>
+                        </button>
+                        <button class="reference-menu-item">
+                            <span class="reference-icon">⚙️</span>
+                            <span class="reference-text">
+                                <div class="reference-title">System Settings</div>
+                                <div class="reference-desc">System settings and parameters (Ctrl+Shift+Y)</div>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="menu-column">
+                    <h4>Extension Menu Items</h4>
+                    <div class="scripts-menu-container visible">
+                        <div class="scripts-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                             mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                            <button class="crt-menu-item" mat-flat-button>
+                                <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">📄</span>
+                                <span class="menu-item-text caption" crttextoverflowtitle>
+                                    <div class="menu-item-title"><u>C</u>onfiguration</div>
+                                    <div class="menu-item-description">Open configuration (Ctrl+Shift+C)</div>
+                                </span>
+                            </button>
+                            <div class="mat-ripple mat-menu-ripple" matripple></div>
+                        </div>
+                        
+                        <div class="scripts-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                             mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                            <button class="crt-menu-item" mat-flat-button>
+                                <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">👥</span>
+                                <span class="menu-item-text caption" crttextoverflowtitle>
+                                    <div class="menu-item-title"><u>U</u>sers</div>
+                                    <div class="menu-item-description">Manage system users (Ctrl+Shift+U)</div>
+                                </span>
+                            </button>
+                            <div class="mat-ripple mat-menu-ripple" matripple></div>
+                        </div>
+                        
+                        <div class="scripts-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                             mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                            <button class="crt-menu-item" mat-flat-button>
+                                <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">⚙️</span>
+                                <span class="menu-item-text caption" crttextoverflowtitle>
+                                    <div class="menu-item-title">S<u>y</u>sSettings</div>
+                                    <div class="menu-item-description">System settings and parameters (Ctrl+Shift+Y)</div>
+                                </span>
+                            </button>
+                            <div class="mat-ripple mat-menu-ripple" matripple></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Actions Menu Items</h3>
+            <div class="actions-menu-container visible">
+                <div class="actions-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                     mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                    <button class="crt-menu-item" mat-flat-button>
+                        <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">🔄</span>
+                        <span class="menu-item-text caption" crttextoverflowtitle>
+                            <div class="menu-item-title"><u>R</u>estart App</div>
+                            <div class="menu-item-description">Reload the Creatio application (Ctrl+Shift+R)</div>
+                        </span>
+                    </button>
+                    <div class="mat-ripple mat-menu-ripple" matripple></div>
+                </div>
+                
+                <div class="actions-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                     mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                    <button class="crt-menu-item" mat-flat-button>
+                        <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">🗑️</span>
+                        <span class="menu-item-text caption" crttextoverflowtitle>
+                            <div class="menu-item-title"><u>F</u>lush Redis DB</div>
+                            <div class="menu-item-description">Clear Redis database (Ctrl+Shift+F)</div>
+                        </span>
+                    </button>
+                    <div class="mat-ripple mat-menu-ripple" matripple></div>
+                </div>
+                
+                <div class="actions-menu-item mat-focus-indicator crt-menu-item-container mat-menu-item" 
+                     mat-menu-item aria-disabled="false" role="menuitem" tabindex="0">
+                    <button class="crt-menu-item" mat-flat-button>
+                        <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">⚙️</span>
+                        <span class="menu-item-text caption" crttextoverflowtitle>
+                            <div class="menu-item-title"><u>S</u>ettings</div>
+                            <div class="menu-item-description">Open plugin settings (Ctrl+Shift+S)</div>
+                        </span>
+                    </button>
+                    <div class="mat-ripple mat-menu-ripple" matripple></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Interactive Testing</h3>
+            <div class="test-buttons">
+                <button class="test-button" onclick="testHoverEffects()">Test Hover Effects</button>
+                <button class="test-button" onclick="testClickEffects()">Test Click Effects</button>
+                <button class="test-button" onclick="validateStructure()">Validate Structure</button>
+            </div>
+            <div id="test-results" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Structure Analysis</h3>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                <strong>Expected Structure:</strong><br>
+                &lt;div class="mat-focus-indicator crt-menu-item-container mat-menu-item"&gt;<br>
+                &nbsp;&nbsp;&lt;button class="crt-menu-item"&gt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&lt;span class="menu-item-icon mat-icon"&gt;📄&lt;/span&gt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&lt;span class="menu-item-text caption"&gt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div class="menu-item-title"&gt;Title&lt;/div&gt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;div class="menu-item-description"&gt;Description&lt;/div&gt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&lt;/span&gt;<br>
+                &nbsp;&nbsp;&lt;/button&gt;<br>
+                &nbsp;&nbsp;&lt;div class="mat-ripple mat-menu-ripple"&gt;&lt;/div&gt;<br>
+                &lt;/div&gt;
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating menu for real-world testing -->
+    <div class="floating-menu">
+        <div class="creatio-satelite">
+            <button mat-flat-button color="primary" 
+                    class="mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary"
+                    title="Navigation - Ctrl+Shift+V">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption">Na<u>v</u>igation</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+            
+            <button mat-flat-button color="accent"
+                    class="mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent"
+                    title="Actions - Ctrl+Shift+A">
+                <span class="mat-button-wrapper">
+                    <div class="compile-button-caption"><u>A</u>ctions</div>
+                    <div class="mat-select-arrow-wrapper">
+                        <div class="mat-select-arrow"></div>
+                    </div>
+                </span>
+                <span matripple class="mat-ripple mat-button-ripple"></span>
+                <span class="mat-button-focus-overlay"></span>
+            </button>
+        </div>
+        
+        <div class="scripts-menu-container" id="floating-nav-menu" style="display: none; position: absolute; top: 50px; left: 0;">
+            <!-- Menu items will be similar to above -->
+        </div>
+    </div>
+
+    <script>
+        function testHoverEffects() {
+            const results = document.getElementById('test-results');
+            results.style.display = 'block';
+            results.className = 'status success';
+            results.innerHTML = '<strong>✅ Hover Effects Test</strong><br>Move mouse over menu items to see hover effects. Check that background changes to rgba(0,0,0,.04)';
+        }
+        
+        function testClickEffects() {
+            const results = document.getElementById('test-results');
+            results.style.display = 'block';
+            results.className = 'status success';
+            results.innerHTML = '<strong>✅ Click Effects Test</strong><br>Click menu items to test interaction. Ripple effects should be visible.';
+        }
+        
+        function validateStructure() {
+            const results = document.getElementById('test-results');
+            results.style.display = 'block';
+            
+            const menuItems = document.querySelectorAll('.scripts-menu-item, .actions-menu-item');
+            let validationResults = [];
+            
+            menuItems.forEach((item, index) => {
+                const hasButton = item.querySelector('.crt-menu-item');
+                const hasIcon = item.querySelector('.menu-item-icon.mat-icon');
+                const hasText = item.querySelector('.menu-item-text.caption');
+                const hasRipple = item.querySelector('.mat-ripple.mat-menu-ripple');
+                const hasTitle = item.querySelector('.menu-item-title');
+                const hasDesc = item.querySelector('.menu-item-description');
+                
+                if (hasButton && hasIcon && hasText && hasRipple && hasTitle && hasDesc) {
+                    validationResults.push(`✅ Item ${index + 1}: Complete structure`);
+                } else {
+                    validationResults.push(`❌ Item ${index + 1}: Missing elements`);
+                }
+            });
+            
+            const allValid = validationResults.every(result => result.includes('✅'));
+            
+            if (allValid) {
+                results.className = 'status success';
+                results.innerHTML = '<strong>✅ Structure Validation Passed</strong><br>' + validationResults.join('<br>');
+            } else {
+                results.className = 'status error';
+                results.innerHTML = '<strong>❌ Structure Validation Failed</strong><br>' + validationResults.join('<br>');
+            }
+        }
+        
+        // Add click handlers for menu items
+        document.querySelectorAll('.scripts-menu-item, .actions-menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                console.log('Menu item clicked:', this.querySelector('.menu-item-title').textContent);
+                
+                // Simulate ripple effect
+                const ripple = this.querySelector('.mat-ripple');
+                if (ripple) {
+                    ripple.style.background = 'rgba(0,0,0,0.1)';
+                    setTimeout(() => {
+                        ripple.style.background = '';
+                    }, 300);
+                }
+            });
+        });
+        
+        // Floating menu interaction
+        document.querySelector('.scripts-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('floating-nav-menu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        console.log('🧪 Menu Items Test loaded');
+        console.log('✅ Extension menu items should match system menu styling exactly');
+    </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creatio Shell Test - Clio Satellite</title>
+    <style>
+        body {
+            font-family: "Roboto", "Helvetica Neue", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .shell-header {
+            background: #1976d2;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .creatio-logo {
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .shell-content {
+            padding: 20px;
+            min-height: 500px;
+        }
+        
+        .test-info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .test-info h2 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+        }
+        
+        .expectations {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .expectations h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .expectations ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .expectations li {
+            margin: 8px 0;
+            color: #666;
+        }
+        
+        /* Simulate Shell elements */
+        .shell-toolbar {
+            background: white;
+            padding: 8px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .global-search {
+            flex: 1;
+            max-width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .main-content {
+            display: flex;
+            min-height: 400px;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+        }
+        
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            margin-left: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Simulate Creatio Shell structure -->
+    <div id="ShellContainerWithBackground">
+        <div class="shell-header">
+            <div class="creatio-logo">Creatio</div>
+            <div data-item-marker="AppToolbarGlobalSearch">
+                <input type="text" class="global-search" placeholder="Global search...">
+            </div>
+        </div>
+        
+        <div class="shell-toolbar">
+            <mainshell>
+                <crt-app-toolbar>
+                    <div>Navigation</div>
+                    <div>Sections</div>
+                    <div>Settings</div>
+                </crt-app-toolbar>
+            </mainshell>
+        </div>
+        
+        <div class="shell-content">
+            <div class="test-info">
+                <h2>🧪 Shell Page Test - Clio Satellite Extension</h2>
+                <p><strong>Purpose:</strong> Test that navigation and actions buttons appear on Shell pages</p>
+                <p><strong>Expected behavior:</strong> Navigation and Actions buttons should be visible and functional</p>
+            </div>
+            
+            <div class="main-content">
+                <div class="sidebar">
+                    <h3>Workspace Sections</h3>
+                    <ul>
+                        <li>Configuration</li>
+                        <li>Users</li>
+                        <li>System Settings</li>
+                        <li>Process Library</li>
+                    </ul>
+                </div>
+                
+                <div class="content-area">
+                    <h2>Shell Content</h2>
+                    <p>This simulates a typical Creatio Shell page where the extension buttons should appear.</p>
+                    
+                    <div id="test-status" class="status" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden elements that extension looks for -->
+    <crt-schema-outlet style="display: none;"></crt-schema-outlet>
+    <script src="/scripts/terrasoft.js" style="display: none;"></script>
+    
+    <div class="expectations">
+        <h3>Expected Test Results:</h3>
+        <ul>
+            <li>✅ <strong>Navigation button should appear</strong></li>
+            <li>✅ <strong>Actions button should appear</strong></li>
+            <li>✅ <strong>Buttons should have proper Material Design styling</strong></li>
+            <li>✅ <strong>Hotkey tooltips should work</strong></li>
+            <li>📝 <strong>Console should show "Shell page detected" message</strong></li>
+        </ul>
+    </div>
+
+    <script>
+        // Simulate page load test
+        setTimeout(() => {
+            const statusElement = document.getElementById('test-status');
+            statusElement.style.display = 'block';
+            
+            // Check for extension buttons
+            const navigationButton = document.querySelector('.scripts-menu-button');
+            const actionsButton = document.querySelector('.actions-button');
+            const extensionContainer = document.querySelector('.creatio-satelite');
+            
+            let testResults = [];
+            
+            if (navigationButton) {
+                testResults.push('✅ Navigation button detected');
+                
+                // Check button structure
+                const buttonWrapper = navigationButton.querySelector('.mat-button-wrapper');
+                const caption = navigationButton.querySelector('.compile-button-caption');
+                const arrow = navigationButton.querySelector('.mat-select-arrow');
+                
+                if (buttonWrapper && caption && arrow) {
+                    testResults.push('✅ Navigation button has correct structure');
+                } else {
+                    testResults.push('⚠️ Navigation button structure incomplete');
+                }
+            } else {
+                testResults.push('❌ Navigation button not found');
+            }
+            
+            if (actionsButton) {
+                testResults.push('✅ Actions button detected');
+                
+                // Check button structure
+                const buttonWrapper = actionsButton.querySelector('.mat-button-wrapper');
+                const caption = actionsButton.querySelector('.compile-button-caption');
+                const arrow = actionsButton.querySelector('.mat-select-arrow');
+                
+                if (buttonWrapper && caption && arrow) {
+                    testResults.push('✅ Actions button has correct structure');
+                } else {
+                    testResults.push('⚠️ Actions button structure incomplete');
+                }
+            } else {
+                testResults.push('❌ Actions button not found');
+            }
+            
+            if (extensionContainer) {
+                testResults.push('✅ Extension container detected');
+            } else {
+                testResults.push('⚠️ Extension container not found');
+            }
+            
+            const allTestsPassed = navigationButton && actionsButton;
+            
+            if (allTestsPassed) {
+                statusElement.className = 'status success';
+                statusElement.innerHTML = '<strong>✅ TEST PASSED</strong><br>' + testResults.join('<br>');
+            } else {
+                statusElement.className = 'status error';
+                statusElement.innerHTML = '<strong>❌ TEST FAILED</strong><br>' + testResults.join('<br>');
+            }
+        }, 2000);
+        
+        // Log page detection
+        console.log('🧪 SHELL PAGE TEST - Page URL:', window.location.href);
+        console.log('🧪 SHELL PAGE TEST - Page Title:', document.title);
+        console.log('🧪 SHELL PAGE TEST - Expected: Shell page should be detected and nav/actions buttons should appear');
+        
+        // Simulate some Terrasoft/Creatio elements
+        window.Terrasoft = { CoreApplication: true };
+    </script>
+</body>
+</html>

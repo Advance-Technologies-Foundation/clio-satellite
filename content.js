@@ -41,7 +41,7 @@ const hotKeyCombinations = {
   'ctrl+shift+p': () => executeNavigationScript('Process_library'), // Process library
   'ctrl+shift+g': () => executeNavigationScript('Process_log'), // Process lo(g)
   'ctrl+shift+y': () => executeNavigationScript('SysSettings'), // S(y)sSettings (avoiding conflict with Settings)
-  'ctrl+shift+u': () => executeNavigationScript('Users'), // Users
+  'ctrl+shift=u': () => executeNavigationScript('Users'), // Users
   'ctrl+shift+c': () => executeNavigationScript('Configuration'), // Configuration
   'ctrl+shift+t': () => executeNavigationScript('TIDE') // TIDE
 };
@@ -227,6 +227,8 @@ function showMenuContainer(menuContainer) {
 // Function to check if current page is a Creatio page (Shell or Configuration)
 function getCreatioPageType() {
   const currentHost = window.location.hostname;
+  const currentPath = window.location.pathname.toLowerCase();
+  const currentUrl = window.location.href.toLowerCase();
 
   const excludedDomains = [
     'gitlab.com',
@@ -246,6 +248,53 @@ function getCreatioPageType() {
       debugLog(`Domain ${currentHost} is in the exclusion list. Skipping activation.`);
       return null;
     }
+  }
+
+  // AGGRESSIVE LOGIN PAGE DETECTION - Block navigation/actions buttons on login pages
+  const loginIndicators = [
+    // URL patterns
+    currentPath.includes('/login'),
+    currentPath.includes('/auth'),
+    currentPath.includes('/signin'),
+    currentPath.includes('/authentication'),
+    currentUrl.includes('login'),
+    currentUrl.includes('auth'),
+    currentUrl.includes('signin'),
+    
+    // DOM element indicators
+    document.querySelector('#loginEdit-el'),
+    document.querySelector('#passwordEdit-el'),
+    document.querySelector('.login-button-login'),
+    document.querySelector('input[name*="username"]'),
+    document.querySelector('input[name*="password"]'),
+    document.querySelector('input[name*="login"]'),
+    document.querySelector('form[action*="login"]'),
+    document.querySelector('[class*="login"]'),
+    document.querySelector('[id*="login"]'),
+    document.querySelector('[class*="auth"]'),
+    document.querySelector('[id*="auth"]'),
+    
+    // Text content indicators
+    document.body && document.body.textContent.toLowerCase().includes('sign in'),
+    document.body && document.body.textContent.toLowerCase().includes('log in'),
+    document.body && document.body.textContent.toLowerCase().includes('authentication'),
+    
+    // Title indicators
+    document.title.toLowerCase().includes('login'),
+    document.title.toLowerCase().includes('auth'),
+    document.title.toLowerCase().includes('sign in'),
+    
+    // Meta tag indicators
+    document.querySelector('meta[name*="login"]'),
+    document.querySelector('meta[content*="login"]'),
+    document.querySelector('meta[content*="auth"]')
+  ];
+
+  const loginDetected = loginIndicators.some(indicator => indicator);
+  
+  if (loginDetected) {
+    debugLog('LOGIN PAGE DETECTED - Navigation/Actions buttons will be blocked');
+    return 'login'; // Return special type for login pages
   }
 
   // Check for Configuration page first
@@ -283,40 +332,26 @@ function getCreatioPageType() {
   return null;
 }
 
-// Legacy function for backward compatibility
+// Legacy function for backward compatibility - now with login page blocking
 function isShellPage() {
   const pageType = getCreatioPageType();
+  // Only allow Shell and Configuration pages, block login pages
   return pageType === 'shell' || pageType === 'configuration';
 }
 
 function adjustMenuPosition(relatedContainer, container) {
-  const pageType = getCreatioPageType();
-  
-  if (pageType === 'configuration') {
-    // For Configuration page with floating buttons, position menu to the left of buttons
-    const floatingContainer = document.querySelector('.creatio-satelite-floating');
-    if (floatingContainer) {
-      const rect = floatingContainer.getBoundingClientRect();
-      container.style.position = 'fixed';
-      container.style.top = `${rect.top}px`;
-      container.style.right = `${window.innerWidth - rect.left + 10}px`;
-      container.style.left = 'auto';
-      debugLog(`Configuration page: Menu positioned at top: ${rect.top}px, right: ${window.innerWidth - rect.left + 10}px`);
-    } else {
-      // Fallback positioning
-      const rectangle = relatedContainer.getBoundingClientRect();
-      container.style.position = 'fixed';
-      container.style.top = `${rectangle.bottom + 5}px`;
-      container.style.left = `${rectangle.left}px`;
-      debugLog(`Configuration page fallback: Menu positioned at top: ${rectangle.bottom + 5}px, left: ${rectangle.left}px`);
-    }
-  } else {
-    // For Shell page, use existing logic
-    const rectangle = relatedContainer.getBoundingClientRect();
-    container.style.top = `${rectangle.bottom + 2}px`;
-    container.style.left = `${rectangle.left + 125}px`;
-    debugLog(`Shell page: Menu positioned at top: ${rectangle.bottom + 2}px, left: ${rectangle.left + 125}px`);
-  }
+  // Сбросить все смещения
+  container.style.top = '';
+  container.style.left = '';
+  container.style.right = '';
+  container.style.bottom = '';
+  container.style.transform = 'none';
+  container.style.position = 'fixed';
+  container.style.zIndex = '1000';
+
+  const rect = relatedContainer.getBoundingClientRect();
+  container.style.top = `${rect.bottom + 2}px`;
+  container.style.left = `${rect.left}px`;
 }
 
 // Enhanced tooltip function for Actions button
@@ -417,58 +452,90 @@ function createScriptsMenu() {
   const buttonWrapper = document.createElement('div');
   buttonWrapper.className = 'creatio-satelite';
 
-  // Create menu button with CSS class
+  // Create menu button with exact structure as Configuration buttons
   const menuButton = document.createElement('button');
-  menuButton.className = 'scripts-menu-button mat-flat-button mat-primary';
-  menuButton.title = `Navigation (${getHotkeyString('V')})`; // Add hotkey to tooltip
+  menuButton.setAttribute('mat-flat-button', '');
+  menuButton.setAttribute('color', 'primary');
+  menuButton.className = 'mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary';
+  menuButton.title = `Navigation - ${getHotkeyString('V')}`;
+  menuButton.setAttribute('aria-haspopup', 'menu');
+  menuButton.setAttribute('aria-expanded', 'false');
   
-  // Create and style button icon using CSS
-  const iconImg = document.createElement('img');
-  iconImg.src = chrome.runtime.getURL('icon128.png');
-  // Image styles are handled by CSS
+  // Create button wrapper span
+  const menuButtonWrapper = document.createElement('span');
+  menuButtonWrapper.className = 'mat-button-wrapper';
+  
+  // Create button caption div
+  const menuButtonCaption = document.createElement('div');
+  menuButtonCaption.className = 'compile-button-caption';
+  menuButtonCaption.innerHTML = 'Na<u>v</u>igation';
+  
+  // Create arrow wrapper (dropdown indicator)
+  const menuArrowWrapper = document.createElement('div');
+  menuArrowWrapper.className = 'mat-select-arrow-wrapper';
+  const menuArrow = document.createElement('div');
+  menuArrow.className = 'mat-select-arrow';
+  menuArrowWrapper.appendChild(menuArrow);
+  
+  // Assemble menu button
+  menuButtonWrapper.appendChild(menuButtonCaption);
+  menuButtonWrapper.appendChild(menuArrowWrapper);
+  menuButton.appendChild(menuButtonWrapper);
+  
+  // Add ripple effect
+  const menuRipple = document.createElement('span');
+  menuRipple.setAttribute('matripple', '');
+  menuRipple.className = 'mat-ripple mat-button-ripple';
+  menuButton.appendChild(menuRipple);
+  
+  // Add focus overlay
+  const menuFocusOverlay = document.createElement('span');
+  menuFocusOverlay.className = 'mat-button-focus-overlay';
+  menuButton.appendChild(menuFocusOverlay);
 
-  const buttonText = document.createElement('span');
-  buttonText.innerHTML = `Na<u>v</u>igation`;
-
-  menuButton.appendChild(iconImg);
-  menuButton.appendChild(buttonText);
-
-  // Create actions button with CSS class
+  // Create actions button with exact structure as Configuration buttons
   const actionsButton = document.createElement('button');
-  actionsButton.className = 'actions-button mat-flat-button mat-accent';
-
-  // Create actions button icon with CSS class
-  const actionsButtonIcon = document.createElement('span');
-  actionsButtonIcon.className = 'actions-button-icon';
-  actionsButtonIcon.textContent = '⚡'; // Lightning bolt icon
+  actionsButton.setAttribute('mat-flat-button', '');
+  actionsButton.setAttribute('color', 'accent');
+  actionsButton.className = 'mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent';
+  actionsButton.title = `Actions - ${getHotkeyString('A')}`;
+  actionsButton.setAttribute('aria-haspopup', 'menu');
+  actionsButton.setAttribute('aria-expanded', 'false');
   
-  actionsButton.appendChild(actionsButtonIcon);
+  // Create button wrapper span
+  const actionsButtonWrapper = document.createElement('span');
+  actionsButtonWrapper.className = 'mat-button-wrapper';
+  
+  // Create button caption div
+  const actionsButtonCaption = document.createElement('div');
+  actionsButtonCaption.className = 'compile-button-caption';
+  actionsButtonCaption.innerHTML = '<u>A</u>ctions';
+  
+  // Create arrow wrapper (dropdown indicator)
+  const actionsArrowWrapper = document.createElement('div');
+  actionsArrowWrapper.className = 'mat-select-arrow-wrapper';
+  const actionsArrow = document.createElement('div');
+  actionsArrow.className = 'mat-select-arrow';
+  actionsArrowWrapper.appendChild(actionsArrow);
+  
+  // Assemble actions button
+  actionsButtonWrapper.appendChild(actionsButtonCaption);
+  actionsButtonWrapper.appendChild(actionsArrowWrapper);
+  actionsButton.appendChild(actionsButtonWrapper);
+  
+  // Add ripple effect
+  const actionsRipple = document.createElement('span');
+  actionsRipple.setAttribute('matripple', '');
+  actionsRipple.className = 'mat-ripple mat-button-ripple';
+  actionsButton.appendChild(actionsRipple);
+  
+  // Add focus overlay
+  const actionsFocusOverlay = document.createElement('span');
+  actionsFocusOverlay.className = 'mat-button-focus-overlay';
+  actionsButton.appendChild(actionsFocusOverlay);
 
   // Add enhanced tooltip to Actions button
-  let actionsTooltip = null;
-  
-  actionsButton.addEventListener('mouseenter', () => {
-    const hotkeyText = getHotkeyString('A');
-    const tooltipText = '<strong>⚡ Быстрые действия</strong><br>' +
-                       '• Перезапуск приложения<br>' +
-                       '• Очистка Redis DB<br>' +
-                       '• Настройки плагина<br>' +
-                       '<br>' +
-                       '<em>Hotkey: ' + hotkeyText + '</em>';
-    actionsTooltip = createEnhancedTooltip(tooltipText, actionsButton);
-  });
-  
-  actionsButton.addEventListener('mouseleave', () => {
-    if (actionsTooltip) {
-      actionsTooltip.style.opacity = '0';
-      setTimeout(() => {
-        if (actionsTooltip && actionsTooltip.parentNode) {
-          actionsTooltip.parentNode.removeChild(actionsTooltip);
-        }
-        actionsTooltip = null;
-      }, 300);
-    }
-  });
+  // Удалён тултип с кнопки Actions по требованию
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);
@@ -477,8 +544,7 @@ function createScriptsMenu() {
   const menuContainer = document.createElement('div');
   menuContainer.classList.add('scripts-menu-container');
   hideMenuContainer(menuContainer); // Initially hidden
-  // Only set dynamic position based on search element
-  menuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
+  // Position will be set by adjustMenuPosition function
 
   const scriptDescriptions = {
     'Features': `Open system features management page (${getHotkeyString('E')})`,
@@ -506,99 +572,93 @@ function createScriptsMenu() {
 
   scriptFiles.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
-
     const menuIcons = {
-      'Features': '⚙️',
-      'Application_Managment': '🔧',
-      'Lookups': '🔍',
-      'Process_library': '📚',
-      'Process_log': '📋',
-      'SysSettings': '⚙️',
-      'Users': '👥',
-      'Configuration': '⚙️',
-      'TIDE': '💻'
-    };
-
-    // Create menu item with CSS classes
-    const menuItem = document.createElement('div');
-    menuItem.className = 'scripts-menu-item';
-    
-    // Create icon with CSS class
-    const iconElement = document.createElement('span');
-    iconElement.className = 'menu-item-icon';
-    iconElement.textContent = menuIcons[scriptName] || '📄';
-    
-    // Create text container with CSS class
-    const textContainer = document.createElement('div');
-    textContainer.className = 'menu-item-text';
-    
-    // Create title with CSS class
-    const title = document.createElement('div');
-    title.className = 'menu-item-title';
-    
-    // Highlight hotkey letter in title
-    const scriptNameForDisplay = scriptName.replace('_', ' ');
-    const hotkeyLetters = {
-      'Features': 'E',
-      'Application Managment': 'M', 
-      'Lookups': 'L',
-      'Process library': 'P',
-      'Process log': 'G',
-      'SysSettings': 'Y',
-      'Users': 'U',
-      'Configuration': 'C',
-      'TIDE': 'T'
-    };
-    
-    const hotkeyLetter = hotkeyLetters[scriptNameForDisplay] || hotkeyLetters[scriptName];
-    if (hotkeyLetter) {
-      // Special handling for specific words
-      let highlightedTitle = scriptNameForDisplay;
-      switch(hotkeyLetter) {
-        case 'E':
-          highlightedTitle = highlightedTitle.replace(/Features/i, 'F<u>e</u>atures');
-          break;
-        case 'M':
-          highlightedTitle = highlightedTitle.replace(/Managment/i, '<u>M</u>anagment');
-          break;
-        case 'G':
-          highlightedTitle = highlightedTitle.replace(/log/i, 'lo<u>g</u>');
-          break;
-        case 'Y':
-          highlightedTitle = highlightedTitle.replace(/SysSettings/i, 'S<u>y</u>sSettings');
-          break;
-        default:
-          const regex = new RegExp(`(${hotkeyLetter.toLowerCase()}|${hotkeyLetter.toUpperCase()})`, '');
-          highlightedTitle = highlightedTitle.replace(regex, '<u>$1</u>');
+      'Features': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path></svg>`,
+        name: 'online-help'
+      },
+      'Application_Managment': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2H14V15H2V2ZM3.333 3.333V13.333H12.667V3.333H3.333Z" fill="currentColor"/></svg>`,
+        name: 'application_management'
+      },
+      'Lookups': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        name: 'lookups'
+      },
+      'Process_library': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/></svg>`,
+        name: 'process_library'
+      },
+      'Process_log': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/><path d="M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2"/></svg>`,
+        name: 'process_log'
+      },
+      'SysSettings': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
+        name: 'sys_settings'
+      },
+      'Users': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="2"/><path d="M2 14c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="2"/></svg>`,
+        name: 'users'
+      },
+      'Configuration': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>`,
+        name: 'configuration'
+      },
+      'TIDE': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/><path d="M5 5h6v6H5V5Z" fill="#fff"/></svg>`,
+        name: 'tide'
       }
-      title.innerHTML = highlightedTitle;
-    } else {
-      title.textContent = scriptNameForDisplay;
-    }
-    
-    // Create description with CSS class
-    const description = document.createElement('div');
-    description.className = 'menu-item-description';
-    description.textContent = scriptDescriptions[scriptName] || 'Run script ' + scriptName;
-    
-    // Menu item hover effects are handled by CSS
+    };
+    const iconData = menuIcons[scriptName] || {svg: '', name: ''};
 
+    // Создаём контейнер пункта меню как в Actions
+    const menuItem = document.createElement('div');
+    menuItem.className = 'crt-menu-item-container mat-menu-item';
+    menuItem.setAttribute('mat-menu-item', '');
+    menuItem.setAttribute('aria-disabled', 'false');
+    menuItem.setAttribute('role', 'menuitem');
+    menuItem.setAttribute('tabindex', '0');
+
+    // Кнопка
+    const button = document.createElement('button');
+    button.setAttribute('mat-flat-button', '');
+    button.className = 'crt-menu-item mat-flat-button';
+    button.setAttribute('data-item-marker', scriptName);
+    button.setAttribute('aria-haspopup', 'false');
+    button.setAttribute('aria-expanded', 'false');
+
+    // mat-icon с SVG
+    const matIcon = document.createElement('mat-icon');
+    matIcon.setAttribute('role', 'img');
+    matIcon.className = 'mat-icon notranslate mat-icon-no-color ng-star-inserted';
+    matIcon.setAttribute('aria-hidden', 'true');
+    matIcon.setAttribute('data-mat-icon-type', 'svg');
+    if (iconData.name) matIcon.setAttribute('data-mat-icon-name', iconData.name);
+    matIcon.innerHTML = iconData.svg;
+
+    // caption
+    const caption = document.createElement('span');
+    caption.className = 'caption ng-star-inserted';
+    caption.setAttribute('crttextoverflowtitle', '');
+    caption.textContent = ' ' + scriptName.replace('_', ' ');
+
+    // Сборка
+    button.appendChild(matIcon);
+    button.appendChild(caption);
+    menuItem.appendChild(button);
+
+    // Клик
     menuItem.addEventListener('click', () => {
-      // Send correct path under scripts/navigation to background for proper script injection
       chrome.runtime.sendMessage({
         action: 'executeScript',
         scriptPath: `navigation/${scriptFile}`
       }, response => {
         debugLog('Navigation script sent to background for injection');
       });
-
       hideMenuContainer(menuContainer);
     });
 
-    textContainer.appendChild(title);
-    textContainer.appendChild(description);
-    menuItem.appendChild(iconElement);
-    menuItem.appendChild(textContainer);
     menuContainer.appendChild(menuItem);
   });
 
@@ -606,7 +666,7 @@ function createScriptsMenu() {
   const actionsMenuContainer = document.createElement('div');
   actionsMenuContainer.classList.add('actions-menu-container');
   hideMenuContainer(actionsMenuContainer); // Initially hidden
-  actionsMenuContainer.style.top = (parseFloat(topPosition) + 40) + 'px';
+  // Position will be set by adjustMenuPosition function
 
   // Function to refresh actions menu dynamically
   function refreshActionsMenu() {
@@ -618,56 +678,46 @@ function createScriptsMenu() {
       const profile = data.userProfiles.find(p => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
       const actionDetails = {
-        'RestartApp': { file: 'RestartApp.js', icon: '🔄', desc: 'Reload the Creatio application', hotkey: getHotkeyString('R') },
-        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: '🗑️', desc: 'Clear Redis database', hotkey: getHotkeyString('F') },
-        'EnableAutologin': { file: null, icon: '✅', desc: 'Enable autologin for this site' },
-        'DisableAutologin': { file: null, icon: '🚫', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: '⚙️', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
+        'RestartApp': { file: 'RestartApp.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M8 2v6l4 2\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`, name: 'refresh', desc: 'Reload the Creatio application', hotkey: getHotkeyString('R') },
+        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database', hotkey: getHotkeyString('F') },
+        'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
+        'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 5l6 6M11 5l-6 6\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'block', desc: 'Disable autologin for this site' },
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2\" stroke=\"currentColor\" stroke-width=\"2"/></svg>`, name: 'settings', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
       actionsList.push('Settings');
       actionsList.forEach(scriptName => {
         const detail = actionDetails[scriptName];
-        const menuItem = document.createElement('div'); menuItem.className='actions-menu-item';
-        const iconElem = document.createElement('span'); iconElem.className='menu-item-icon'; iconElem.textContent=detail.icon;
-        const textCont = document.createElement('div'); textCont.className='menu-item-text';
-        const title = document.createElement('div'); title.className='menu-item-title'; 
-        
-        // Highlight hotkey letter in action titles
-        let displayTitle = scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
-        // Fix specific cases
-        if (scriptName === 'FlushRedisDB') {
-          displayTitle = 'Flush Redis DB';
-        }
-        
-        const actionHotkeys = {
-          'Restart App': 'R',
-          'Flush Redis DB': 'F', 
-          'Settings': 'S'
-        };
-        
-        const hotkeyLetter = actionHotkeys[displayTitle];
-        if (hotkeyLetter) {
-          switch(hotkeyLetter) {
-            case 'R':
-              title.innerHTML = displayTitle.replace(/Restart/i, '<u>R</u>estart');
-              break;
-            case 'F':
-              title.innerHTML = displayTitle.replace(/Flush/i, '<u>F</u>lush');
-              break;
-            case 'S':
-              title.innerHTML = displayTitle.replace(/Settings/i, '<u>S</u>ettings');
-              break;
-            default:
-              title.textContent = displayTitle;
-          }
-        } else {
-          title.textContent = displayTitle;
-        }
-        
-        const desc = document.createElement('div'); desc.className='menu-item-description'; 
-        desc.textContent = detail.desc + (detail.hotkey ? ` (${detail.hotkey})` : '');
+        // Create menu item container
+        const menuItem = document.createElement('div');
+        menuItem.className = 'crt-menu-item-container mat-menu-item';
+        menuItem.setAttribute('mat-menu-item', '');
+        menuItem.setAttribute('aria-disabled', 'false');
+        menuItem.setAttribute('role', 'menuitem');
+        menuItem.setAttribute('tabindex', '0');
+        // Create button as in Creatio
+        const menuButtonEl = document.createElement('button');
+        menuButtonEl.className = 'crt-menu-item mat-flat-button';
+        menuButtonEl.setAttribute('mat-flat-button', '');
+        menuButtonEl.setAttribute('data-item-marker', scriptName);
+        // Create mat-icon (svg inline)
+        const iconWrap = document.createElement('mat-icon');
+        iconWrap.setAttribute('role', 'img');
+        iconWrap.className = 'mat-icon notranslate mat-icon-no-color';
+        iconWrap.setAttribute('aria-hidden', 'true');
+        iconWrap.setAttribute('data-mat-icon-type', 'svg');
+        iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
+        iconWrap.innerHTML = detail.icon || '';
+        // Create caption
+        const caption = document.createElement('span');
+        caption.className = 'caption';
+        caption.setAttribute('crttextoverflowtitle', '');
+        caption.textContent = ' ' + scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
+        // Assemble button
+        menuButtonEl.appendChild(iconWrap);
+        menuButtonEl.appendChild(caption);
+        menuItem.appendChild(menuButtonEl);
         menuItem.addEventListener('click', () => {
           if (scriptName==='Settings') {
             chrome.runtime.sendMessage({action:'openOptionsPage'});
@@ -683,8 +733,6 @@ function createScriptsMenu() {
           }
           hideMenuContainer(actionsMenuContainer);
         });
-        textCont.appendChild(title); textCont.appendChild(desc);
-        menuItem.appendChild(iconElem); menuItem.appendChild(textCont);
         actionsMenuContainer.appendChild(menuItem);
       });
     });
@@ -695,17 +743,18 @@ function createScriptsMenu() {
 
   actionsButton.addEventListener('click', (target) => {
     hideMenuContainer(menuContainer);
-    // Refresh actions menu before showing
     refreshActionsMenu();
     showMenuContainer(actionsMenuContainer);
-    adjustMenuPosition(target.currentTarget, actionsMenuContainer);
+    // Корректное позиционирование для всех страниц
+    adjustMenuPosition(actionsButton, actionsMenuContainer);
   });
 
   menuButton.addEventListener('click', (target) => {
-      showMenuContainer(menuContainer);
-      hideMenuContainer(actionsMenuContainer);
-      adjustMenuPosition(target.currentTarget, menuContainer);
-    });
+    showMenuContainer(menuContainer);
+    hideMenuContainer(actionsMenuContainer);
+    // Корректное позиционирование для всех страниц
+    adjustMenuPosition(menuButton, menuContainer);
+  });
 
   document.addEventListener('click', (event) => {
     if (!menuButton.contains(event.target) && !menuContainer.contains(event.target)) {
@@ -720,25 +769,39 @@ function createScriptsMenu() {
     if (pageType === 'configuration') {
       // For Configuration page, create a floating container for buttons
       if (targetContainer) {
+        // Получаем отступы для позиционирования
+        const filters = document.querySelector('.workspace-items-filters');
+        const leftContainer = document.querySelector('.left-container');
+        let leftOffset = 20;
+        let topOffset = 20;
+        if (filters) {
+          const filtersRect = filters.getBoundingClientRect();
+          leftOffset = filtersRect.left;
+        }
+        if (leftContainer) {
+          const leftRect = leftContainer.getBoundingClientRect();
+          topOffset = leftRect.top;
+        }
         // Create a floating button container that doesn't affect layout
         const floatingContainer = document.createElement('div');
         floatingContainer.className = 'creatio-satelite-floating';
-        
-        // Make it draggable
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-        
         floatingContainer.style.cssText = `
           position: fixed;
-          top: 20px;
-          right: 20px;
+          top: ${topOffset}px;
+          left: ${leftOffset}px;
           z-index: 1000;
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           gap: 8px;
           cursor: move;
           user-select: none;
+          width: auto;
+          height: auto;
         `;
+        
+        // Add drag functionality
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
         
         // Add drag functionality
         floatingContainer.addEventListener('mousedown', (e) => {
@@ -779,6 +842,8 @@ function createScriptsMenu() {
         
         // Add special class for configuration page styling
         buttonWrapper.classList.add('creatio-satelite-configuration');
+        // Удаляем возможный конфликтующий стиль flex-direction
+        buttonWrapper.style.flexDirection = 'row';
         debugLog('Buttons placed in draggable floating container for Configuration page');
       }
     } else if (pageType === 'shell') {
@@ -953,6 +1018,13 @@ const positionObserver = new MutationObserver(() => {
 function checkCreatioPageAndCreateMenu() {
   debugLog("Checking for Creatio page");
   const pageType = getCreatioPageType();
+  
+  // Block menu creation on login pages
+  if (pageType === 'login') {
+    debugLog('Login page detected - Navigation/Actions menu creation blocked');
+    return false;
+  }
+  
   if (pageType && !menuCreated) {
     debugLog(`${pageType} page detected, creating scripts menu`);
     const success = createScriptsMenu();

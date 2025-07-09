@@ -13,10 +13,21 @@
     parent.appendChild(option);
   }
 
-  // Find login form elements
-  const usernameField = document.querySelector('#loginEdit-el');
-  const passwordField = document.querySelector('#passwordEdit-el');
-  const loginButton = document.querySelector('.login-button-login');
+  // Find login form elements - universal selectors
+  const usernameField = document.querySelector('#loginEdit-el') || 
+                       document.querySelector('input[name*="username"]') ||
+                       document.querySelector('input[name*="login"]') ||
+                       document.querySelector('input[name*="email"]') ||
+                       document.querySelector('input[name*="user"]') ||
+                       document.querySelector('input[type="text"]') ||
+                       document.querySelector('input[type="email"]');
+                       
+  const passwordField = document.querySelector('#passwordEdit-el') ||
+                       document.querySelector('input[type="password"]');
+                       
+  const loginButton = document.querySelector('.login-button-login') ||
+                     document.querySelector('button[type="submit"]') ||
+                     document.querySelector('input[type="submit"]');
 
   if (usernameField && passwordField && loginButton) {
     // Create login profiles container
@@ -26,7 +37,10 @@
     // Create dropdown select element
     const profileSelect = document.createElement('select');
     profileSelect.className = 'creatio-satelite-login-profile-select';
-    profileSelect.style.width = loginButton.offsetWidth + 'px';
+    profileSelect.style.width = (loginButton.offsetWidth || 200) + 'px';
+    profileSelect.style.padding = '8px';
+    profileSelect.style.borderRadius = '4px';
+    profileSelect.style.border = '1px solid #ddd';
 
     // Get current profiles and add the new one
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
@@ -71,9 +85,19 @@
       });
     });
 
-    // Add caption text
+    // Add caption text - login button
     const loginCaption = document.createElement('button');
     loginCaption.classList.add('creatio-satelite');
+    loginCaption.classList.add('auto-login-button');
+    loginCaption.textContent = 'Login with profile';
+    loginCaption.style.width = (loginButton.offsetWidth || 200) + 'px';
+    loginCaption.style.height = (loginButton.offsetHeight || 40) + 'px';
+    loginCaption.style.padding = '8px 16px';
+    loginCaption.style.backgroundColor = '#007bff';
+    loginCaption.style.color = 'white';
+    loginCaption.style.border = 'none';
+    loginCaption.style.borderRadius = '4px';
+    loginCaption.style.cursor = 'pointer';
     loginCaption.classList.add('auto-login-button');
     loginCaption.textContent = 'Login with profile';
     loginCaption.style.width = loginButton.offsetWidth + 'px';
