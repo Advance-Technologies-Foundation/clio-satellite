@@ -23,7 +23,8 @@ function getHotkeyString(letter) {
 }
 
 // Determine the correct modifier prefix based on the OS
-const mod = isMac ? 'alt' : 'ctrl';
+// On all OS, use ctrl+shift+key for plugin hotkeys
+const mod = 'ctrl';
 
 // HotKey combinations for extension functions
 const hotKeyCombinations = {
@@ -207,16 +208,9 @@ function handleKeyDown(event) {
   let combo = '';
   const key = event.key.toLowerCase();
 
-  if (isMac) {
-    // On macOS, we use Alt(Option)+Shift
-    if (hotKeyState.alt && hotKeyState.shift && !hotKeyState.ctrl && key.length === 1) {
-      combo = `alt+shift+${key}`;
-    }
-  } else {
-    // On Windows/Linux, we use Ctrl+Shift
-    if (hotKeyState.ctrl && hotKeyState.shift && !hotKeyState.alt && key.length === 1) {
-      combo = `ctrl+shift+${key}`;
-    }
+  // Use ctrl+shift+key for all OS
+  if (hotKeyState.ctrl && hotKeyState.shift && key.length === 1) {
+    combo = `ctrl+shift+${key}`;
   }
 
   // Check if the built combination exists in our map
