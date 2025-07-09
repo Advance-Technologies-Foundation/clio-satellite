@@ -6,7 +6,7 @@ const debugExtension = true;
 
 // Detect operating system for proper hotkey display
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+const modifierKey = isMac ? 'Opt' : 'Ctrl';
 
 // HotKey functionality
 let hotKeysEnabled = true;
@@ -22,30 +22,27 @@ function getHotkeyString(letter) {
   return `${modifierKey}+Shift+${letter.toUpperCase()}`;
 }
 
+// Determine the correct modifier prefix based on the OS
+const mod = isMac ? 'alt' : 'ctrl';
+
 // HotKey combinations for extension functions
 const hotKeyCombinations = {
-  // Navigation menu - Ctrl+Shift+V (naVigation)
-  'ctrl+shift+v': () => toggleNavigationMenu(),
-  // Actions menu - Ctrl+Shift+A (Actions) 
-  'ctrl+shift+a': () => toggleActionsMenu(),
-  
-  // Quick Actions
-  'ctrl+shift+r': () => executeQuickAction('RestartApp'), // Restart
-  'ctrl+shift+f': () => executeQuickAction('FlushRedisDB'), // Flush
-  'ctrl+shift+s': () => executeQuickAction('Settings'), // Settings
-  
-  // Navigation Scripts (using first letter of section name)
-  'ctrl+shift+e': () => executeNavigationScript('Features'), // F(e)atures (avoiding conflict with Flush)
-  'ctrl+shift+m': () => executeNavigationScript('Application_Managment'), // (M)anagement
-  'ctrl+shift+l': () => executeNavigationScript('Lookups'), // Lookups
-  'ctrl+shift+p': () => executeNavigationScript('Process_library'), // Process library
-  'ctrl+shift+g': () => executeNavigationScript('Process_log'), // Process lo(g)
-  'ctrl+shift+y': () => executeNavigationScript('SysSettings'), // S(y)sSettings (avoiding conflict with Settings)
-  'ctrl+shift=u': () => executeNavigationScript('Users'), // Users
-  'ctrl+shift+c': () => executeNavigationScript('Configuration'), // Configuration
-  'ctrl+shift+t': () => executeNavigationScript('TIDE') // TIDE
+  [`${mod}+shift+v`]: () => toggleNavigationMenu(),
+  [`${mod}+shift+a`]: () => toggleActionsMenu(),
+  [`${mod}+shift+r`]: () => executeQuickAction('RestartApp'),
+  [`${mod}+shift+f`]: () => executeQuickAction('FlushRedisDB'),
+  [`${mod}+shift+s`]: () => executeQuickAction('Settings'),
+  [`${mod}+shift+e`]: () => executeNavigationScript('Features'),
+  [`${mod}+shift+m`]: () => executeNavigationScript('Application_Managment'),
+  [`${mod}+shift+l`]: () => executeNavigationScript('Lookups'),
+  [`${mod}+shift+p`]: () => executeNavigationScript('Process_library'),
+  [`${mod}+shift+g`]: () => executeNavigationScript('Process_log'),
+  [`${mod}+shift+y`]: () => executeNavigationScript('SysSettings'),
+  [`${mod}+shift+u`]: () => executeNavigationScript('Users'),
+  [`${mod}+shift+c`]: () => executeNavigationScript('Configuration'),
+  [`${mod}+shift+t`]: () => executeNavigationScript('TIDE')
 };
-
+  
 function executeQuickAction(actionName) {
   const pageType = getCreatioPageType();
   if (pageType !== 'shell' && pageType !== 'configuration') {
@@ -193,7 +190,6 @@ function showHotKeyFeedback(message) {
 function handleKeyDown(event) {
   if (!hotKeysEnabled) return;
   
-  // Get page type for debugging
   const pageType = getCreatioPageType();
   const isValidPage = pageType === 'shell' || pageType === 'configuration';
   
@@ -201,20 +197,29 @@ function handleKeyDown(event) {
     debugLog(`Hotkeys blocked: page type is ${pageType}`);
     return;
   }
-  
-  // Track modifier keys
-  hotKeyState.ctrl = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd
-  hotKeyState.shift = event.shiftKey;
-  hotKeyState.alt = event.altKey;
-  
+
+  // Track modifier keys state
+  if (event.key === 'Control' || event.key === 'Meta') hotKeyState.ctrl = true;
+  if (event.key === 'Shift') hotKeyState.shift = true;
+  if (event.key === 'Alt') hotKeyState.alt = true;
+
   // Build combination string
   let combo = '';
-  if (hotKeyState.ctrl) combo += 'ctrl+';
-  if (hotKeyState.shift) combo += 'shift+';
-  if (hotKeyState.alt) combo += 'alt+';
-  combo += event.key.toLowerCase();
-  
-  // Check if combination matches any hotkey
+  const key = event.key.toLowerCase();
+
+  if (isMac) {
+    // On macOS, we use Alt(Option)+Shift
+    if (hotKeyState.alt && hotKeyState.shift && !hotKeyState.ctrl && key.length === 1) {
+      combo = `alt+shift+${key}`;
+    }
+  } else {
+    // On Windows/Linux, we use Ctrl+Shift
+    if (hotKeyState.ctrl && hotKeyState.shift && !hotKeyState.alt && key.length === 1) {
+      combo = `ctrl+shift+${key}`;
+    }
+  }
+
+  // Check if the built combination exists in our map
   if (hotKeyCombinations[combo]) {
     debugLog(`Hotkey detected: ${combo} on ${pageType} page`);
     event.preventDefault();
@@ -224,15 +229,23 @@ function handleKeyDown(event) {
 }
 
 function handleKeyUp(event) {
-  // Reset modifier key states
-  if (!event.ctrlKey && !event.metaKey) hotKeyState.ctrl = false;
-  if (!event.shiftKey) hotKeyState.shift = false;
-  if (!event.altKey) hotKeyState.alt = false;
+  // Reset modifier key states on key up
+  if (event.key === 'Control' || event.key === 'Meta') hotKeyState.ctrl = false;
+  if (event.key === 'Shift') hotKeyState.shift = false;
+  if (event.key === 'Alt') hotKeyState.alt = false;
 }
 
-// Add keyboard event listeners
-document.addEventListener('keydown', handleKeyDown, true);
-document.addEventListener('keyup', handleKeyUp, true);
+// Function to ensure hotkey listeners are attached
+function ensureHotkeysAreRegistered() {
+  debugLog('Registering hotkey event listeners.');
+  document.removeEventListener('keydown', handleKeyDown, true);
+  document.removeEventListener('keyup', handleKeyUp, true);
+  document.addEventListener('keydown', handleKeyDown, true);
+  document.addEventListener('keyup', handleKeyUp, true);
+}
+
+// Add keyboard event listeners securely
+ensureHotkeysAreRegistered();
 
 function debugLog(message) {
   if (debugExtension) {
@@ -670,6 +683,19 @@ function createScriptsMenu() {
   hideMenuContainer(menuContainer); // Initially hidden
   // Position will be set by adjustMenuPosition function
 
+  const hotkeyMap = {
+    'Features': 'E',
+    'Application_Managment': 'M',
+    'Lookups': 'L',
+    'Process_library': 'P',
+    'Process_log': 'G',
+    'SysSettings': 'Y',
+    'Users': 'U',
+    'Configuration': 'C',
+    'TIDE': 'T',
+    'Hotkeys': 'H'
+  };
+
   const scriptDescriptions = {
     'Features': `Open system features management page (${getHotkeyString('E')})`,
     'Application_Managment': `Application managment - App Hub (${getHotkeyString('M')})`,
@@ -678,8 +704,9 @@ function createScriptsMenu() {
     'Process_log': `View process log (${getHotkeyString('G')})`,
     'SysSettings': `System settings and parameters (${getHotkeyString('Y')})`,
     'Users': `Manage system users (${getHotkeyString('U')})`,
-    'Configuration': `Open configuration (${getHotkeyString('C')})`,
-    'TIDE': `Open Team Integrated Development Environment (${getHotkeyString('T')})`
+    'Configuration': `Open system configuration (${getHotkeyString('C')})`,
+    'TIDE': `Open TIDE tools (${getHotkeyString('T')})`,
+    'Hotkeys': `View HotKeys Guide (${getHotkeyString('H')})`
   };
 
   const scriptFiles = [
@@ -763,9 +790,21 @@ function createScriptsMenu() {
 
     // caption
     const caption = document.createElement('span');
-    caption.className = 'caption ng-star-inserted';
+    caption.className = 'caption';
     caption.setAttribute('crttextoverflowtitle', '');
-    caption.textContent = ' ' + scriptName.replace('_', ' ');
+
+    // Underline the hotkey letter
+    let displayName = ' ' + scriptName.replace(/_/g, ' ');
+    const hotkeyLetter = hotkeyMap[scriptName];
+    if (hotkeyLetter) {
+      const idx = displayName.toLowerCase().indexOf(hotkeyLetter.toLowerCase());
+      if (idx !== -1) {
+        displayName = displayName.slice(0, idx) + '<u>' + displayName[idx] + '</u>' + displayName.slice(idx + 1);
+      }
+      caption.innerHTML = displayName;
+    } else {
+      caption.textContent = displayName;
+    }
 
     // Сборка
     button.appendChild(matIcon);
@@ -837,7 +876,19 @@ function createScriptsMenu() {
         const caption = document.createElement('span');
         caption.className = 'caption';
         caption.setAttribute('crttextoverflowtitle', '');
-        caption.textContent = ' ' + scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
+        // Подчеркиваем букву горячей клавиши
+        let displayName = ' ' + scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
+        const hotkeyLetterMap = { 'RestartApp': 'R', 'FlushRedisDB': 'F', 'Settings': 'S' };
+        const hotkeyLetter = hotkeyLetterMap[scriptName] || (scriptName.startsWith('Enable') ? 'E' : scriptName.startsWith('Disable') ? 'D' : null);
+        if (hotkeyLetter) {
+          const idx = displayName.toLowerCase().indexOf(hotkeyLetter.toLowerCase());
+          if (idx !== -1) {
+            displayName = displayName.slice(0, idx) + '<u>' + displayName[idx] + '</u>' + displayName.slice(idx + 1);
+          }
+          caption.innerHTML = displayName;
+        } else {
+          caption.textContent = displayName;
+        }
         // Assemble button
         menuButtonEl.appendChild(iconWrap);
         menuButtonEl.appendChild(caption);
@@ -1149,6 +1200,21 @@ const positionObserver = new MutationObserver(() => {
   updateMenuPosition();
   moveButtonToToolbar();
 });
+
+// Add a function to validate unique hotkeys
+function validateHotKeyCombinations() {
+  const seen = new Set();
+  for (const combo in hotKeyCombinations) {
+    if (seen.has(combo)) {
+      console.error(`Duplicate hotkey detected: ${combo}`);
+    } else {
+      seen.add(combo);
+    }
+  }
+}
+
+// Call validation during initialization
+validateHotKeyCombinations();
 
 // Debug function to check current page status - can be called from console
 window.creatioSatelliteDebug = function() {

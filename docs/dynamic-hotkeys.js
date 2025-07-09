@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Detect operating system
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+  const modifierKey = isMac ? 'Opt' : 'Ctrl';
   
   // Function to get hotkey string with proper modifier
   function getHotkeyString(letter) {

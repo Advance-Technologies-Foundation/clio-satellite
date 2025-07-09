@@ -11,32 +11,34 @@ This Chrome extension now supports convenient keyboard shortcuts (HotKeys) for q
 ## Available HotKeys
 
 ### 🔍 Main Menus
-**Navigation Menu:** `Ctrl+Shift+V` (Windows/Linux) or `Cmd+Shift+V` (Mac)
+**Navigation Menu:** `Ctrl+Shift+V` (Windows/Linux) or `Opt+Shift+V` (Mac)
 - Opens/closes the main navigation menu
 
-**Actions Menu:** `Ctrl+Shift+A` (Windows/Linux) or `Cmd+Shift+A` (Mac)  
+**Actions Menu:** `Ctrl+Shift+A` (Windows/Linux) or `Opt+Shift+A` (Mac)
 - Opens/closes the quick actions menu
 
 ### ⚡ Quick Actions
-**Quick Restart:** `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+**Quick Restart:** `Ctrl+Shift+R` (Windows/Linux) or `Opt+Shift+R` (Mac)
 - Instantly restarts the Creatio application
 
-**Plugin Settings:** `Ctrl+Shift+S` (Windows/Linux) or `Cmd+Shift+S` (Mac)
+**Plugin Settings:** `Ctrl+Shift+S` (Windows/Linux) or `Opt+Shift+S` (Mac)
 - Opens the plugin settings page
 
-**Flush Redis:** `Ctrl+Shift+F` (Windows/Linux) or `Cmd+Shift+F` (Mac)
+**Flush Redis:** `Ctrl+Shift+F` (Windows/Linux) or `Opt+Shift+F` (Mac)
 - Clears the Redis database
 
-### � Direct Navigation (Ctrl+Shift+Letter)
-**Ctrl+Shift+E** - **F(e)atures** (System features management)
-**Ctrl+Shift+M** - **Application (M)anagement** (App Hub)
-**Ctrl+Shift+L** - **Lookups** (System lookups)
-**Ctrl+Shift+P** - **Process Library** (Business processes)
-**Ctrl+Shift+G** - **Process Lo(g)** (Process execution log)
-**Ctrl+Shift+Y** - **S(y)stem Settings** (Configuration parameters)
-**Ctrl+Shift+U** - **Users** (User management)
-**Ctrl+Shift+C** - **Configuration** (System configuration)
-**Ctrl+Shift+T** - **TIDE** (Team Integrated Development Environment)
+### 🎯 Direct Navigation (Opt+Shift+Letter on Mac, Ctrl+Shift+Letter on Windows/Linux)
+- **F<u>e</u>atures**: `Opt+Shift+E` / `Ctrl+Shift+E`
+- **A<u>p</u>plication Management**: `Opt+Shift+M` / `Ctrl+Shift+M`
+- **L<u>o</u>okups**: `Opt+Shift+L` / `Ctrl+Shift+L`
+- **P<u>r</u>ocess Library**: `Opt+Shift+P` / `Ctrl+Shift+P`
+- **P<u>r</u>ocess Log**: `Opt+Shift+G` / `Ctrl+Shift+G`
+- **S<u>y</u>sSettings**: `Opt+Shift+Y` / `Ctrl+Shift+Y`
+- **U<u>s</u>ers**: `Opt+Shift+U` / `Ctrl+Shift+U`
+- **C<u>o</u>nfiguration**: `Opt+Shift+C` / `Ctrl+Shift+C`
+- **T<u>i</u>de**: `Opt+Shift+T` / `Ctrl+Shift+T`
+
+> **Note:** On Mac, use the <kbd>Option</kbd> (⌥) key instead of <kbd>Command</kbd> (⌘) for all extension hotkeys.
 
 ## Key Features
 

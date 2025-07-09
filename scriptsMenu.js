@@ -86,6 +86,17 @@ function createScriptsMenu() {
 
     scriptFiles.forEach(scriptFile => {
       const scriptName = scriptFile.replace('.js', '');
+      // Определяем букву для подчеркивания (совпадает с hotkey)
+      const hotkeyMap = {
+        'Features': 'E',
+        'Application_Managment': 'M',
+        'Lookups': 'L',
+        'Process_library': 'P',
+        'Process_log': 'G',
+        'SysSettings': 'Y',
+        'Users': 'U'
+      };
+      const hotkeyLetter = hotkeyMap[scriptName] || scriptName[0].toUpperCase();
       
       // Create menu item
       const menuItem = document.createElement('div');
@@ -99,7 +110,14 @@ function createScriptsMenu() {
       
       // Create title element
       const title = document.createElement('div');
-      title.textContent = scriptName.replace('_', ' ');
+      // Вставляем <u> для буквы горячей клавиши
+      const name = scriptName.replace('_', ' ');
+      const hotkeyIndex = name.toLowerCase().indexOf(hotkeyLetter.toLowerCase());
+      if (hotkeyIndex !== -1) {
+        title.innerHTML = name.slice(0, hotkeyIndex) + '<u>' + name[hotkeyIndex] + '</u>' + name.slice(hotkeyIndex + 1);
+      } else {
+        title.textContent = name;
+      }
       title.style.fontWeight = 'bold';
       title.style.marginBottom = '5px';
       
