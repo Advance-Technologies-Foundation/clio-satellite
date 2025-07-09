@@ -397,7 +397,7 @@ function adjustMenuPosition(relatedContainer, container) {
   container.style.bottom = '';
   container.style.transform = 'none';
   container.style.position = 'fixed';
-  container.style.zIndex = '1000';
+  container.style.zIndex = '9999';
 
   // Если кнопка внутри floatingContainer (конфигурация), позиционируем относительно экрана
   const floating = relatedContainer.closest('.creatio-satelite-floating');
@@ -412,7 +412,7 @@ function adjustMenuPosition(relatedContainer, container) {
     
     // Позиционируем меню с начальными значениями
     container.style.position = 'fixed';
-    container.style.zIndex = '1001';
+    container.style.zIndex = '9999';
     container.style.visibility = 'hidden'; // скрываем для расчета размеров
     container.style.top = (btnRect.bottom + 4) + 'px';
     container.style.left = btnRect.left + 'px';

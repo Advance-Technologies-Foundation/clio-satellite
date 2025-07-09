@@ -44,21 +44,23 @@ function createScriptsMenu() {
     menuButton.style.cursor = 'pointer';
     menuButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
 
-    // Create the dropdown menu container
+    // Create menu container
     const menuContainer = document.createElement('div');
     menuContainer.className = 'scripts-menu-container';
+    menuContainer.style.display = 'none';
     menuContainer.style.position = 'fixed';
     menuContainer.style.top = '60px';
     menuContainer.style.right = '20px';
-    menuContainer.style.zIndex = '9999';
     menuContainer.style.backgroundColor = 'white';
+    menuContainer.style.border = '1px solid #ccc';
     menuContainer.style.borderRadius = '4px';
-    menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    menuContainer.style.display = 'none';
+    menuContainer.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+    menuContainer.style.zIndex = '9998';
+    menuContainer.style.minWidth = '200px';
+    menuContainer.style.maxWidth = '300px';
     menuContainer.style.flexDirection = 'column';
-    menuContainer.style.width = '250px';
-    menuContainer.style.maxHeight = '80vh';
-    menuContainer.style.overflowY = 'auto';
+    menuContainer.tabIndex = -1; // Make focusable but not in tab order
+    menuContainer.setAttribute('role', 'menu'); // Accessibility
 
     // Script descriptions in English
     const scriptDescriptions = {
@@ -92,6 +94,8 @@ function createScriptsMenu() {
       menuItem.style.borderBottom = '1px solid #eee';
       menuItem.style.cursor = 'pointer';
       menuItem.style.transition = 'background-color 0.2s';
+      menuItem.tabIndex = 0; // Make focusable
+      menuItem.setAttribute('role', 'menuitem'); // Accessibility
       
       // Create title element
       const title = document.createElement('div');
@@ -105,7 +109,7 @@ function createScriptsMenu() {
       description.style.fontSize = '12px';
       description.style.color = '#666';
       
-      // Add hover effect
+      // Add hover and focus effects
       menuItem.addEventListener('mouseover', () => {
         menuItem.style.backgroundColor = '#f5f5f5';
       });
@@ -113,9 +117,17 @@ function createScriptsMenu() {
       menuItem.addEventListener('mouseout', () => {
         menuItem.style.backgroundColor = 'white';
       });
+
+      menuItem.addEventListener('focus', () => {
+        menuItem.style.backgroundColor = '#f5f5f5';
+      });
+
+      menuItem.addEventListener('blur', () => {
+        menuItem.style.backgroundColor = 'white';
+      });
       
-      // Add click event
-      menuItem.addEventListener('click', () => {
+      // Add click and keyboard event
+      const executeScript = () => {
         // Use a custom event to communicate with content script instead of chrome.runtime API
         const customEvent = new CustomEvent('executeScript', {
           detail: {
@@ -126,6 +138,15 @@ function createScriptsMenu() {
         
         // Hide menu after click
         menuContainer.style.display = 'none';
+      };
+
+      menuItem.addEventListener('click', executeScript);
+      
+      menuItem.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          executeScript();
+        }
       });
       
       // Append elements
@@ -140,6 +161,32 @@ function createScriptsMenu() {
         menuContainer.style.display = 'flex';
       } else {
         menuContainer.style.display = 'none';
+      }
+    });
+
+    // Close menu when button loses focus
+    menuButton.addEventListener('blur', () => {
+      // Delay hiding to allow click on menu items
+      setTimeout(() => {
+        if (!menuContainer.contains(document.activeElement)) {
+          menuContainer.style.display = 'none';
+        }
+      }, 150);
+    });
+
+    // Close menu when container loses focus
+    menuContainer.addEventListener('focusout', (event) => {
+      // Check if focus moved outside the menu container
+      if (!menuContainer.contains(event.relatedTarget) && !menuButton.contains(event.relatedTarget)) {
+        menuContainer.style.display = 'none';
+      }
+    });
+
+    // Make menu items focusable for keyboard navigation
+    menuContainer.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        menuContainer.style.display = 'none';
+        menuButton.focus();
       }
     });
 
