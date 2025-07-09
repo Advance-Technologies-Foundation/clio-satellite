@@ -5,7 +5,7 @@
     font-family: Roboto, "Helvetica Neue", Arial, sans-serif !important;
     font-size: 14px !important;
     font-weight: 500 !important;
-    line-height: 36px !important;
+    line-height: 32px !important;
     border-radius: 4px !important;
     padding: 0 16px !important;
     border: none !important;
@@ -20,7 +20,7 @@
     vertical-align: middle !important;
     -webkit-tap-highlight-color: transparent !important;
     min-width: 64px !important;
-    min-height: 36px !important;
+    min-height: 32px !important;
     transition: all 0.2s ease !important;
     box-sizing: border-box !important;
     text-align: center !important;
@@ -79,8 +79,8 @@
     margin-right: 28px !important; /* увеличить отступ справа для стрелки */
     font-size: 14px !important;
     font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
-    line-height: 36px !important;
-    height: 36px !important;
+    line-height: 32px !important;
+    height: 32px !important;
 }
 
 .creatio-satelite .mat-select-arrow-wrapper {
@@ -90,7 +90,7 @@
     transform: translateY(-50%);
     display: flex;
     align-items: center;
-    height: 36px;
+    height: 32px;
 }
 
 .creatio-satelite .mat-select-arrow {
@@ -259,8 +259,8 @@
   min-width: 120px;
   padding: 0 16px;
   margin: 0;
-  height: 36px;
-  min-height: 36px;
+  height: 32px;
+  min-height: 32px;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.075em;
