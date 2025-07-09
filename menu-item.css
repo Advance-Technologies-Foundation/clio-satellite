@@ -402,24 +402,7 @@
   font-size: 14px;
 }
 
-/* Configuration page menu containers positioning - positioned relative to floating buttons */
-.creatio-satelite-floating ~ .creatio-satelite-menu-container .scripts-menu-container,
-.creatio-satelite-floating ~ .creatio-satelite-menu-container .actions-menu-container {
-  position: fixed;
-  top: 20px;
-  right: 240px;
-  transform: none;
-}
-
-/* Alternative positioning if floating container is present */
-body:has(.creatio-satelite-floating) .creatio-satelite-menu-container .scripts-menu-container,
-body:has(.creatio-satelite-floating) .creatio-satelite-menu-container .actions-menu-container {
-  position: fixed !important;
-  top: 20px !important;
-  right: 240px !important;
-  left: auto !important;
-  transform: none !important;
-}
+/* Menu positioning is handled by JavaScript adjustMenuPosition function */
 
 .mat-flat-button,
 .crt-menu-item.mat-flat-button,

@@ -349,19 +349,52 @@ function adjustMenuPosition(relatedContainer, container) {
   container.style.position = 'fixed';
   container.style.zIndex = '1000';
 
-  // Если кнопка внутри floatingContainer (конфигурация), позиционируем относительно него
+  // Если кнопка внутри floatingContainer (конфигурация), позиционируем относительно экрана
   const floating = relatedContainer.closest('.creatio-satelite-floating');
   if (floating) {
-    // Получаем позицию кнопки внутри floatingContainer
+    // Получаем позицию кнопки относительно экрана
     const btnRect = relatedContainer.getBoundingClientRect();
-    const floatRect = floating.getBoundingClientRect();
-    // Смещение кнопки относительно контейнера
-    const offsetLeft = btnRect.left - floatRect.left;
-    const offsetTop = btnRect.top - floatRect.top;
-    container.style.position = 'absolute';
-    container.style.top = (offsetTop + relatedContainer.offsetHeight + 2) + 'px';
-    container.style.left = offsetLeft + 'px';
-    floating.appendChild(container); // меню должно быть внутри floatingContainer
+    
+    // Меню добавляем в body, а не в floating контейнер (сначала для получения размеров)
+    if (container.parentNode !== document.body) {
+      document.body.appendChild(container);
+    }
+    
+    // Позиционируем меню с начальными значениями
+    container.style.position = 'fixed';
+    container.style.zIndex = '1001';
+    container.style.visibility = 'hidden'; // скрываем для расчета размеров
+    container.style.top = (btnRect.bottom + 4) + 'px';
+    container.style.left = btnRect.left + 'px';
+    container.style.minWidth = btnRect.width + 'px'; // Минимальная ширина меню = ширине кнопки
+    
+    // Принудительно запускаем reflow для получения актуальных размеров
+    container.offsetHeight;
+    
+    // Получаем размеры меню после применения стилей
+    const menuRect = container.getBoundingClientRect();
+    
+    // Корректируем позицию если меню выходит за границы экрана
+    let newLeft = btnRect.left;
+    let newTop = btnRect.bottom + 4;
+    
+    if (menuRect.right > window.innerWidth) {
+      newLeft = btnRect.right - menuRect.width;
+      // Убеждаемся, что не выходим за левую границу
+      if (newLeft < 0) {
+        newLeft = 0;
+      }
+    }
+    
+    if (menuRect.bottom > window.innerHeight) {
+      newTop = btnRect.top - menuRect.height - 4;
+    }
+    
+    // Применяем финальные координаты
+    container.style.top = newTop + 'px';
+    container.style.left = newLeft + 'px';
+    container.style.visibility = 'visible'; // показываем меню
+    
     return;
   }
 
