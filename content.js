@@ -392,7 +392,6 @@ function createScriptsMenu() {
   debugLog(`Creating menu for page type: ${pageType}`);
 
   let targetContainer = null;
-  let topPosition = '20px';
 
   if (pageType === 'configuration') {
     // For Configuration page, find the left-container
@@ -402,17 +401,6 @@ function createScriptsMenu() {
       return false;
     }
     debugLog('Configuration page: targeting .left-container');
-  } else if (pageType === 'shell') {
-    // For Shell page, use existing logic
-    const searchElement = document.querySelector('[id*="AppToolbarGlobalSearch"]') ||
-                         document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
-                         document.querySelector('.global-search');
-
-    if (searchElement) {
-      const searchRect = searchElement.getBoundingClientRect();
-      topPosition = searchRect.top + 'px';
-      debugLog(`Shell page: Found search element, position: ${topPosition}`);
-    }
   }
 
   // Create button wrapper with CSS class
@@ -881,38 +869,72 @@ function createScriptsMenu() {
         debugLog('Buttons placed in draggable floating container for Configuration page');
       }
     } else if (pageType === 'shell') {
-      // For Shell page, use existing logic
-      const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
-
-      if (searchElement && searchElement.parentElement) {
-        searchElement.insertAdjacentElement('afterend', buttonWrapper);
-        
-        // Apply creatio-satelite-button-next-to-search class
-        buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
-        
-        debugLog('Button placed next to search element on initial creation');
-      } else {
-        const appToolbar = document.querySelector('crt-app-toolbar');
-
-        if (appToolbar) {
-          appToolbar.appendChild(buttonWrapper);
-          debugLog('Button inserted into crt-app-toolbar');
-
-          // Create center container with CSS class
-          const centerContainer = document.createElement('div');
-          centerContainer.className = 'center-container';
-
-          buttonWrapper.remove();
-          centerContainer.appendChild(buttonWrapper);
-          appToolbar.appendChild(centerContainer);
-          
-          // Apply button-in-toolbar class
-          buttonWrapper.className += ' button-in-toolbar';
-        } else {
-          document.body.appendChild(buttonWrapper);
-          debugLog('crt-app-toolbar not found, button added to body');
+      // For Shell page, create floating container like Configuration page
+      debugLog('Creating floating container for shell page');
+      
+      // Create a floating button container for shell page
+      const floatingContainer = document.createElement('div');
+      floatingContainer.className = 'creatio-satelite-floating';
+      floatingContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        cursor: move;
+        user-select: none;
+        width: auto;
+        height: auto;
+        background: transparent;
+        padding: 0;
+      `;
+      
+      // Add drag functionality
+      let isDragging = false;
+      let startX, startY, initialX, initialY;
+      
+      floatingContainer.addEventListener('mousedown', (e) => {
+        if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          const rect = floatingContainer.getBoundingClientRect();
+          initialX = rect.left;
+          initialY = rect.top;
+          floatingContainer.style.cursor = 'grabbing';
+          e.preventDefault();
         }
-      }
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+          const deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+          const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
+          const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
+          
+          floatingContainer.style.left = newX + 'px';
+          floatingContainer.style.top = newY + 'px';
+          floatingContainer.style.right = 'auto';
+        }
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          floatingContainer.style.cursor = 'move';
+        }
+      });
+      
+      floatingContainer.appendChild(buttonWrapper);
+      document.body.appendChild(floatingContainer);
+      
+      // Add special class for shell page styling
+      buttonWrapper.classList.add('creatio-satelite-shell');
+      buttonWrapper.style.flexDirection = 'row';
+      debugLog('Buttons placed in draggable floating container for shell page');
     }
 
     const rootMenuContainer = document.createElement('div');
@@ -932,121 +954,13 @@ function createScriptsMenu() {
   }
 }
 
-// Function to place button next to search element if it exists
-function placeButtonNextToSearch() {
-  const buttonWrapper = document.querySelector('.creatio-satelite');
-  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]');
+// Function placeButtonNextToSearch removed - buttons will remain in floating container only
 
-  if (!buttonWrapper || !searchElement || !searchElement.parentElement) {
-    return false;
-  }
+// Function updateMenuPosition removed - buttons will remain in floating container only
 
-  // If button is already next to search, don't do anything
-  if (buttonWrapper.nextElementSibling === searchElement ||
-      buttonWrapper.previousElementSibling === searchElement) {
-    return true;
-  }
+// Function moveButtonToToolbar removed - buttons will remain in floating container only
 
-  try {
-    // Place button next to search element
-    searchElement.insertAdjacentElement('afterend', buttonWrapper);
-    
-    // Apply creatio-satelite-button-next-to-search class
-    buttonWrapper.classList.add('creatio-satelite-button-next-to-search');
-    
-    debugLog('Button placed next to search element dynamically');
-    return true;
-  } catch (error) {
-    console.error('Error placing button next to search:', error);
-    return false;
-  }
-}
-
-// Функция, которая ищет элемент поиска и обновляет позицию кнопки скриптов
-function updateMenuPosition() {
-  const buttonWrapper = document.querySelector('.creatio-satelite');
-  const menuContainer = document.querySelector('.creatio-satelite-menu-container .scripts-menu-container');
-  const actionsMenuContainer = document.querySelector('.creatio-satelite-menu-container .actions-menu-container');
-
-  if (!buttonWrapper || !menuContainer) return;
-
-  const isInToolbar = !!buttonWrapper.closest('crt-app-toolbar');
-
-  if (isInToolbar) {
-    const buttonRect = buttonWrapper.getBoundingClientRect();
-    menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    
-    if (actionsMenuContainer) {
-      actionsMenuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-    }
-    return;
-  }
-
-  const searchElement = document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]') ||
-                       document.querySelector('[class*="AppToolbarGlobalSearch"]') ||
-                       document.querySelector('.global-search');
-
-  if (searchElement) {
-    const searchRect = searchElement.getBoundingClientRect();
-    menuContainer.style.top = (searchRect.top + 40) + 'px';
-
-    if (actionsMenuContainer) {
-      actionsMenuContainer.style.top = (searchRect.top + 40) + 'px';
-    }
-
-    debugLog(`Updated menu position to match search element: ${searchRect.top}px`);
-  }
-}
-
-// Функция для перемещения кнопки в toolbar, если он появился
-function moveButtonToToolbar() {
-  const menuButton = document.querySelector('.scripts-menu-button');
-  const menuContainer = document.querySelector('.creatio-satelite-menu-container .scripts-menu-container');
-  const actionsMenuContainer = document.querySelector('.creatio-satelite-menu-container .actions-menu-container');
-  const buttonWrapper = document.querySelector('div:has(.scripts-menu-button)');
-
-  if (!menuButton || !buttonWrapper) return false;
-
-  const isInToolbar = !!menuButton.closest('crt-app-toolbar');
-  if (isInToolbar) return true;
-
-  const appToolbar = document.querySelector('crt-app-toolbar');
-  if (!appToolbar) return false;
-
-  // Create center container with CSS class
-  const centerContainer = document.createElement('div');
-  centerContainer.className = 'center-container';
-
-  buttonWrapper.remove();
-  centerContainer.appendChild(buttonWrapper);
-  appToolbar.appendChild(centerContainer);
-  
-  // Apply button-in-toolbar class
-  buttonWrapper.className += 'button-in-toolbar';
-
-  if (menuContainer) {
-    const buttonRect = menuButton.getBoundingClientRect();
-    menuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-  }
-
-  if (actionsMenuContainer) {
-    const buttonRect = menuButton.getBoundingClientRect();
-    actionsMenuContainer.style.top = (buttonRect.bottom + 5) + 'px';
-  }
-
-  debugLog('Button moved to crt-app-toolbar and centered');
-  return true;
-}
-
-// Наблюдаем за изменениями в DOM и обновляем позицию меню
-const positionObserver = new MutationObserver(() => {
-  if (placeButtonNextToSearch()) {
-    return;
-  }
-
-  updateMenuPosition();
-  moveButtonToToolbar();
-});
+// Position observer removed - buttons will remain in floating container only
 
 // Debug function to check current page status - can be called from console
 window.creatioSatelliteDebug = function() {
@@ -1103,12 +1017,6 @@ function checkCreatioPageAndCreateMenu() {
   debugLog("Checking for Creatio page");
   const pageType = getCreatioPageType();
   
-  // Remove menu from inappropriate pages first
-  if (removeMenuFromPage()) {
-    debugLog('Menu removed from inappropriate page');
-    return false;
-  }
-  
   // Block menu creation on login pages
   if (pageType === 'login') {
     debugLog('Login page detected - Navigation/Actions menu creation blocked');
@@ -1159,14 +1067,11 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('load', () => {
   debugLog('Window load event fired, checking for Creatio page');
   checkCreatioPageAndCreateMenu();
-
-  setTimeout(updateMenuPosition, 2000);
+  
+  // Removed updateMenuPosition timeout - buttons stay in floating container
 });
 
-// Наблюдаем за изменениями в DOM и обновляем позицию меню
-setTimeout(() => {
-  positionObserver.observe(document.body, { childList: true, subtree: true });
-}, 3000);
+// Position observer initialization removed - buttons stay in floating container only
 
 // Periodic check in case the page loads Creatio content dynamically
 let checkCount = 0;
@@ -1213,10 +1118,10 @@ const observer = new MutationObserver(mutations => {
     }
   }
 
-  // Always check for inappropriate pages and remove menu if needed
+  // Always check for inappropriate pages and block menu creation on login pages
   const pageType = getCreatioPageType();
   if (pageType === 'login' || !pageType) {
-    removeMenuFromPage();
+    // Skip menu creation on login pages or unrecognized pages
     return;
   }
 
@@ -1229,42 +1134,68 @@ const observer = new MutationObserver(mutations => {
   }
 });
 
-// Function to remove menu from inappropriate pages
-function removeMenuFromPage() {
+// Function to remove menu from inappropriate pages - REMOVED
+// Navigation and Actions buttons will no longer be automatically removed
+
+// Removed automatic menu removal functionality
+// Navigation and Actions buttons will no longer be automatically removed from pages
+
+// Function to monitor and restore buttons if they disappear
+function monitorButtons() {
   const pageType = getCreatioPageType();
   
-  // Remove Navigation/Actions menu if it exists on login pages or unrecognized pages
-  if (!pageType || pageType === 'login') {
-    // Only remove Navigation and Actions buttons, NOT login-related buttons
-    const navigationButtonWrapper = document.querySelector('.creatio-satelite:not(.auto-login-button):not(.settings-button)');
-    const floatingContainer = document.querySelector('.creatio-satelite-floating');
-    const menuContainer = document.querySelector('.creatio-satelite-menu-container');
+  // Only monitor on shell and configuration pages
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    return;
+  }
+  
+  // Check if Navigation and Actions buttons exist
+  const navigationButton = document.querySelector('.scripts-menu-button');
+  const actionsButton = document.querySelector('.actions-button');
+  const floatingContainer = document.querySelector('.creatio-satelite-floating');
+  
+  // If buttons are missing and menu should be created, recreate them
+  if (!navigationButton || !actionsButton || !floatingContainer) {
+    debugLog('Buttons missing, attempting to restore...');
     
-    if (navigationButtonWrapper) {
-      debugLog('Removing Navigation/Actions buttons from inappropriate page');
-      navigationButtonWrapper.remove();
-    }
-    
-    if (floatingContainer) {
-      debugLog('Removing floating container from inappropriate page');
-      floatingContainer.remove();
-    }
-    
-    if (menuContainer) {
-      debugLog('Removing menu container from inappropriate page');
-      menuContainer.remove();
-    }
-    
-    // Reset flags for Navigation/Actions menu only
+    // Reset flags to allow recreation
     menuCreated = false;
     actionsMenuCreated = false;
     
-    return true;
+    // Recreate the menu
+    const success = createScriptsMenu();
+    if (success) {
+      debugLog('Buttons successfully restored');
+    } else {
+      debugLog('Failed to restore buttons');
+    }
   }
-  
-  return false;
 }
 
-// Call removeMenuFromPage on initial load and on significant DOM changes
-setTimeout(removeMenuFromPage, 1000);
-observer.observe(document.body, { childList: true, subtree: true });
+// Start monitoring every 2 seconds
+setInterval(monitorButtons, 2000);
+
+// Test function for creating shell floating menu
+window.createShellFloatingMenu = function() {
+  console.log('Creating shell floating menu...');
+  
+  // Remove existing menus
+  document.querySelectorAll('.creatio-satelite-floating, .creatio-satelite').forEach(el => el.remove());
+  
+  // Reset flags
+  menuCreated = false;
+  actionsMenuCreated = false;
+  
+  // Force page type to shell for testing
+  const originalGetCreatioPageType = getCreatioPageType;
+  window.getCreatioPageType = () => 'shell';
+  
+  // Create menu
+  const result = createScriptsMenu();
+  
+  // Restore original function
+  window.getCreatioPageType = originalGetCreatioPageType;
+  
+  console.log('Shell floating menu creation result:', result);
+  return result;
+};
