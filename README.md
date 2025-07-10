@@ -10,28 +10,6 @@
   - Navigation scripts (Features, Lookups, Process Log, etc.)
   - Actions (Restart App, Flush Redis, toggle autologin, open settings)
 - Open and configure all settings from the **Setup profiles** or extension toolbar menu.
-- **⌨️ HotKeys support**: Use keyboard shortcuts for quick access to all functions
-
-## 🔥 HotKeys
-> 🖥️ **Smart OS Detection**: The extension automatically shows `Ctrl` for Windows/Linux and `Cmd` for Mac
-> 
-> 📋 **Page Focus Required**: All hotkeys work only when the Creatio page is active and focused
->
-> 🎯 **Visual Hints**: Hotkey letters are underlined in menu items (e.g., F<u>e</u>atures, <u>R</u>estart)
-
-### Main Controls
-- **Ctrl+Shift+V** (Cmd+Shift+V on Mac): Toggle Navigation Menu
-- **Ctrl+Shift+A** (Cmd+Shift+A on Mac): Toggle Actions Menu  
-
-### Quick Actions
-- **Ctrl+Shift+R**: Restart Application
-- **Ctrl+Shift+F**: Flush Redis Database  
-- **Ctrl+Shift+S**: Open Plugin Settings
-
-### Direct Navigation (Ctrl+Shift+Letter)
-- **E**: Features • **M**: App Management • **L**: Lookups
-- **P**: Process Library • **G**: Process Log • **Y**: System Settings  
-- **U**: Users • **C**: Configuration • **T**: TIDE
 
 ## Installation
 1. Clone or download this repository.

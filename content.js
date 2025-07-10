@@ -3,46 +3,6 @@ let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
 const debugExtension = true;
-
-// Detect operating system for proper hotkey display
-const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-const modifierKey = isMac ? 'Opt' : 'Ctrl';
-
-// HotKey functionality
-let hotKeysEnabled = true;
-const hotKeyState = {
-  ctrl: false,
-  shift: false,
-  alt: false,
-  keys: []
-};
-
-// Function to get hotkey string with proper modifier
-function getHotkeyString(letter) {
-  return `${modifierKey}+Shift+${letter.toUpperCase()}`;
-}
-
-// Determine the correct modifier prefix based on the OS
-// On all OS, use ctrl+shift+key for plugin hotkeys
-const mod = 'ctrl';
-
-// HotKey combinations for extension functions
-const hotKeyCombinations = {
-  [`${mod}+shift+v`]: () => toggleNavigationMenu(),
-  [`${mod}+shift+a`]: () => toggleActionsMenu(),
-  [`${mod}+shift+r`]: () => executeQuickAction('RestartApp'),
-  [`${mod}+shift+f`]: () => executeQuickAction('FlushRedisDB'),
-  [`${mod}+shift+s`]: () => executeQuickAction('Settings'),
-  [`${mod}+shift+e`]: () => executeNavigationScript('Features'),
-  [`${mod}+shift+m`]: () => executeNavigationScript('Application_Managment'),
-  [`${mod}+shift+l`]: () => executeNavigationScript('Lookups'),
-  [`${mod}+shift+p`]: () => executeNavigationScript('Process_library'),
-  [`${mod}+shift+g`]: () => executeNavigationScript('Process_log'),
-  [`${mod}+shift+y`]: () => executeNavigationScript('SysSettings'),
-  [`${mod}+shift+u`]: () => executeNavigationScript('Users'),
-  [`${mod}+shift+c`]: () => executeNavigationScript('Configuration'),
-  [`${mod}+shift+t`]: () => executeNavigationScript('TIDE')
-};
   
 function executeQuickAction(actionName) {
   const pageType = getCreatioPageType();
@@ -53,7 +13,6 @@ function executeQuickAction(actionName) {
   
   if (actionName === 'Settings') {
     chrome.runtime.sendMessage({action: 'openOptionsPage'});
-    showHotKeyFeedback('Settings opened');
     return;
   }
   
@@ -67,9 +26,6 @@ function executeQuickAction(actionName) {
       action: 'executeScript',
       scriptPath: actionFiles[actionName]
     });
-    
-    // Show visual feedback
-    showHotKeyFeedback(`${actionName.replace(/([A-Z])/g, ' $1').trim()} executed`);
   }
 }
 
@@ -84,10 +40,6 @@ function executeNavigationScript(scriptName) {
     action: 'executeScript',
     scriptPath: `navigation/${scriptName}.js`
   });
-  
-  // Show visual feedback
-  const displayName = scriptName.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-  showHotKeyFeedback(`${displayName} opened`);
 }
 
 function toggleNavigationMenu() {
@@ -107,7 +59,6 @@ function toggleNavigationMenu() {
       hideMenuContainer(menuContainer);
     } else {
       showMenuContainer(menuContainer);
-      // Use same positioning as click handler
       adjustMenuPosition(menuButton, menuContainer);
     }
   }
@@ -129,117 +80,14 @@ function toggleActionsMenu() {
     if (actionsContainer.classList.contains('visible')) {
       hideMenuContainer(actionsContainer);
     } else {
-      // Refresh actions menu before showing
       if (window.refreshActionsMenu) {
         window.refreshActionsMenu();
       }
       showMenuContainer(actionsContainer);
-      // Use same positioning as click handler
       adjustMenuPosition(actionsButton, actionsContainer);
     }
   }
 }
-
-function showHotKeyFeedback(message) {
-  // Remove existing feedback
-  const existingFeedback = document.querySelector('.hotkey-feedback');
-  if (existingFeedback) {
-    existingFeedback.remove();
-  }
-  
-  // Create feedback element
-  const feedback = document.createElement('div');
-  feedback.className = 'hotkey-feedback';
-  feedback.textContent = message;
-  feedback.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10000;
-    background: #4CAF50;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  `;
-  
-  document.body.appendChild(feedback);
-  
-  // Animate in
-  setTimeout(() => {
-    feedback.style.opacity = '1';
-  }, 10);
-  
-  // Animate out and remove
-  setTimeout(() => {
-    feedback.style.opacity = '0';
-    setTimeout(() => {
-      if (feedback.parentNode) {
-        feedback.parentNode.removeChild(feedback);
-      }
-    }, 300);
-  }, 2000);
-}
-
-function handleKeyDown(event) {
-  if (!hotKeysEnabled) return;
-  
-  const pageType = getCreatioPageType();
-  const isValidPage = pageType === 'shell' || pageType === 'configuration';
-  
-  if (!isValidPage) {
-    debugLog(`Hotkeys blocked: page type is ${pageType}`);
-    return;
-  }
-
-  // Track modifier keys state
-  if (event.key === 'Control' || event.key === 'Meta') hotKeyState.ctrl = true;
-  if (event.key === 'Shift') hotKeyState.shift = true;
-  if (event.key === 'Alt') hotKeyState.alt = true;
-
-  // Build combination string
-  let combo = '';
-  const key = event.key.toLowerCase();
-
-  // Use ctrl+shift+key for all OS
-  if (hotKeyState.ctrl && hotKeyState.shift && key.length === 1) {
-    combo = `ctrl+shift+${key}`;
-  }
-
-  // Check if the built combination exists in our map
-  if (hotKeyCombinations[combo]) {
-    debugLog(`Hotkey detected: ${combo} on ${pageType} page`);
-    event.preventDefault();
-    event.stopPropagation();
-    hotKeyCombinations[combo]();
-  }
-}
-
-function handleKeyUp(event) {
-  // Reset modifier key states on key up
-  if (event.key === 'Control' || event.key === 'Meta') hotKeyState.ctrl = false;
-  if (event.key === 'Shift') hotKeyState.shift = false;
-  if (event.key === 'Alt') hotKeyState.alt = false;
-}
-
-// Function to ensure hotkey listeners are attached
-function ensureHotkeysAreRegistered() {
-  debugLog('Registering hotkey event listeners.');
-  document.removeEventListener('keydown', handleKeyDown, true);
-  document.removeEventListener('keyup', handleKeyUp, true);
-  document.addEventListener('keydown', handleKeyDown, true);
-  document.addEventListener('keyup', handleKeyUp, true);
-}
-
-// Add keyboard event listeners securely
-ensureHotkeysAreRegistered();
 
 function debugLog(message) {
   if (debugExtension) {
@@ -564,7 +412,7 @@ function createScriptsMenu() {
   menuButton.setAttribute('mat-flat-button', '');
   menuButton.setAttribute('color', 'primary');
   menuButton.className = 'mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary';
-  menuButton.title = `Navigation - ${getHotkeyString('V')}`;
+  menuButton.title = 'Navigation';
   menuButton.setAttribute('aria-haspopup', 'menu');
   menuButton.setAttribute('aria-expanded', 'false');
   
@@ -585,11 +433,7 @@ function createScriptsMenu() {
   </svg>`;
   
   menuButtonCaption.appendChild(navIcon);
-  menuButtonCaption.appendChild(document.createTextNode('Na'));
-  const underlineSpan = document.createElement('u');
-  underlineSpan.textContent = 'v';
-  menuButtonCaption.appendChild(underlineSpan);
-  menuButtonCaption.appendChild(document.createTextNode('igation'));
+  menuButtonCaption.appendChild(document.createTextNode('Navigation'));
   // Create arrow wrapper (dropdown indicator)
   const menuArrowWrapper = document.createElement('div');
   menuArrowWrapper.className = 'mat-select-arrow-wrapper';
@@ -618,7 +462,7 @@ function createScriptsMenu() {
   actionsButton.setAttribute('mat-flat-button', '');
   actionsButton.setAttribute('color', 'accent');
   actionsButton.className = 'mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent';
-  actionsButton.title = `Actions - ${getHotkeyString('A')}`;
+  actionsButton.title = 'Actions';
   actionsButton.setAttribute('aria-haspopup', 'menu');
   actionsButton.setAttribute('aria-expanded', 'false');
   
@@ -638,10 +482,7 @@ function createScriptsMenu() {
   </svg>`;
   
   actionsButtonCaption.appendChild(actionsIcon);
-  const underlineSpanA = document.createElement('u');
-  underlineSpanA.textContent = 'A';
-  actionsButtonCaption.appendChild(underlineSpanA);
-  actionsButtonCaption.appendChild(document.createTextNode('ctions'));
+  actionsButtonCaption.appendChild(document.createTextNode('Actions'));
   // Create arrow wrapper (dropdown indicator)
   const actionsArrowWrapper = document.createElement('div');
   actionsArrowWrapper.className = 'mat-select-arrow-wrapper';
@@ -677,30 +518,16 @@ function createScriptsMenu() {
   hideMenuContainer(menuContainer); // Initially hidden
   // Position will be set by adjustMenuPosition function
 
-  const hotkeyMap = {
-    'Features': 'E',
-    'Application_Managment': 'M',
-    'Lookups': 'L',
-    'Process_library': 'P',
-    'Process_log': 'G',
-    'SysSettings': 'Y',
-    'Users': 'U',
-    'Configuration': 'C',
-    'TIDE': 'T',
-    'Hotkeys': 'H'
-  };
-
   const scriptDescriptions = {
-    'Features': `Open system features management page (${getHotkeyString('E')})`,
-    'Application_Managment': `Application managment - App Hub (${getHotkeyString('M')})`,
-    'Lookups': `Open system lookups (${getHotkeyString('L')})`,
-    'Process_library': `Open process library (${getHotkeyString('P')})`,
-    'Process_log': `View process log (${getHotkeyString('G')})`,
-    'SysSettings': `System settings and parameters (${getHotkeyString('Y')})`,
-    'Users': `Manage system users (${getHotkeyString('U')})`,
-    'Configuration': `Open system configuration (${getHotkeyString('C')})`,
-    'TIDE': `Open TIDE tools (${getHotkeyString('T')})`,
-    'Hotkeys': `View HotKeys Guide (${getHotkeyString('H')})`
+    'Features': 'Open system features management page',
+    'Application_Managment': 'Application managment - App Hub',
+    'Lookups': 'Open system lookups',
+    'Process_library': 'Open process library',
+    'Process_log': 'View process log',
+    'SysSettings': 'System settings and parameters',
+    'Users': 'Manage system users',
+    'Configuration': 'Open system configuration',
+    'TIDE': 'Open TIDE tools'
   };
 
   const scriptFiles = [
@@ -787,18 +614,9 @@ function createScriptsMenu() {
     caption.className = 'caption';
     caption.setAttribute('crttextoverflowtitle', '');
 
-    // Underline the hotkey letter
+    // Simple display name without underlines
     let displayName = ' ' + scriptName.replace(/_/g, ' ');
-    const hotkeyLetter = hotkeyMap[scriptName];
-    if (hotkeyLetter) {
-      const idx = displayName.toLowerCase().indexOf(hotkeyLetter.toLowerCase());
-      if (idx !== -1) {
-        displayName = displayName.slice(0, idx) + '<u>' + displayName[idx] + '</u>' + displayName.slice(idx + 1);
-      }
-      caption.innerHTML = displayName;
-    } else {
-      caption.textContent = displayName;
-    }
+    caption.textContent = displayName;
 
     // Сборка
     button.appendChild(matIcon);
@@ -835,11 +653,11 @@ function createScriptsMenu() {
       const profile = data.userProfiles.find(p => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
       const actionDetails = {
-        'RestartApp': { file: 'RestartApp.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M8 2v6l4 2\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`, name: 'refresh', desc: 'Reload the Creatio application', hotkey: getHotkeyString('R') },
-        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database', hotkey: getHotkeyString('F') },
+        'RestartApp': { file: 'RestartApp.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M8 2v6l4 2\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`, name: 'refresh', desc: 'Reload the Creatio application' },
+        'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database' },
         'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
         'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 5l6 6M11 5l-6 6\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'block', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings', hotkey: getHotkeyString('S') }
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -870,19 +688,10 @@ function createScriptsMenu() {
         const caption = document.createElement('span');
         caption.className = 'caption';
         caption.setAttribute('crttextoverflowtitle', '');
-        // Подчеркиваем букву горячей клавиши
+        
+        // Simple display name without underlines
         let displayName = ' ' + scriptName.replace('Autologin',' autologin').replace(/([A-Z])/g,' $1').trim();
-        const hotkeyLetterMap = { 'RestartApp': 'R', 'FlushRedisDB': 'F', 'Settings': 'S' };
-        const hotkeyLetter = hotkeyLetterMap[scriptName] || (scriptName.startsWith('Enable') ? 'E' : scriptName.startsWith('Disable') ? 'D' : null);
-        if (hotkeyLetter) {
-          const idx = displayName.toLowerCase().indexOf(hotkeyLetter.toLowerCase());
-          if (idx !== -1) {
-            displayName = displayName.slice(0, idx) + '<u>' + displayName[idx] + '</u>' + displayName.slice(idx + 1);
-          }
-          caption.innerHTML = displayName;
-        } else {
-          caption.textContent = displayName;
-        }
+        caption.textContent = displayName;
         // Assemble button
         menuButtonEl.appendChild(iconWrap);
         menuButtonEl.appendChild(caption);
@@ -907,7 +716,7 @@ function createScriptsMenu() {
     });
   }
 
-  // Make refreshActionsMenu available globally for hotkey functions
+  // Make refreshActionsMenu available globally for menu functions
   window.refreshActionsMenu = refreshActionsMenu;
 
   actionsButton.addEventListener('click', (target) => {
@@ -1195,27 +1004,11 @@ const positionObserver = new MutationObserver(() => {
   moveButtonToToolbar();
 });
 
-// Add a function to validate unique hotkeys
-function validateHotKeyCombinations() {
-  const seen = new Set();
-  for (const combo in hotKeyCombinations) {
-    if (seen.has(combo)) {
-      console.error(`Duplicate hotkey detected: ${combo}`);
-    } else {
-      seen.add(combo);
-    }
-  }
-}
-
-// Call validation during initialization
-validateHotKeyCombinations();
-
 // Debug function to check current page status - can be called from console
 window.creatioSatelliteDebug = function() {
   const pageType = getCreatioPageType();
   console.log('=== Creatio Satellite Debug Info ===');
   console.log('Page Type:', pageType);
-  console.log('Hotkeys Enabled:', hotKeysEnabled);
   console.log('Menu Created:', menuCreated);
   console.log('Actions Menu Created:', actionsMenuCreated);
   console.log('Current URL:', window.location.href);
@@ -1254,7 +1047,6 @@ window.creatioSatelliteDebug = function() {
   
   return {
     pageType,
-    hotKeysEnabled,
     menuCreated,
     actionsMenuCreated,
     url: window.location.href,

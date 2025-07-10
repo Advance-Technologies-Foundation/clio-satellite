@@ -125,7 +125,7 @@ Complete integration test suite
     <span class="menu-item-icon mat-icon" role="img" aria-hidden="true">📄</span>
     <span class="menu-item-text caption" crttextoverflowtitle>
       <div class="menu-item-title">Configuration</div>
-      <div class="menu-item-description">Open configuration (Ctrl+Shift+C)</div>
+      <div class="menu-item-description">Open configuration</div>
     </span>
   </button>
   <div class="mat-ripple mat-menu-ripple" matripple></div>
