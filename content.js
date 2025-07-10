@@ -472,6 +472,7 @@ function createScriptsMenu() {
   // Create arrow wrapper (dropdown indicator)
   const menuArrowWrapper = document.createElement('div');
   menuArrowWrapper.className = 'mat-select-arrow-wrapper';
+  menuArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Уменьшен отступ справа в два раза
   const menuArrow = document.createElement('div');
   menuArrow.className = 'mat-select-arrow';
   menuArrowWrapper.appendChild(menuArrow);
@@ -518,6 +519,7 @@ function createScriptsMenu() {
   // Create arrow wrapper (dropdown indicator)
   const actionsArrowWrapper = document.createElement('div');
   actionsArrowWrapper.className = 'mat-select-arrow-wrapper';
+  actionsArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Уменьшен отступ справа в два раза
   const actionsArrow = document.createElement('div');
   actionsArrow.className = 'mat-select-arrow';
   actionsArrowWrapper.appendChild(actionsArrow);
