@@ -21,6 +21,9 @@
         notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
         document.body.appendChild(notification);
         
+        // Изменено, чтобы сделать текст элемента notification моргающим.
+        notification.style.animation = 'restartAnimation 1.5s infinite';
+        
         // Remove the notification after a few seconds
         setTimeout(function() {
             notification.remove();
@@ -50,6 +53,9 @@
             notification.style.zIndex = '10000';
             notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
             document.body.appendChild(notification);
+            
+            // Изменено, чтобы сделать текст элемента notification моргающим.
+            notification.style.animation = 'restartAnimation 1.5s infinite';
             
             // Store the notification element for later removal
             var notificationElement = notification;
@@ -155,56 +161,56 @@
             });
         } else {
             // Fallback using standard fetch if Terrasoft.AjaxProvider is not available
-            console.warn("Terrasoft service methods not available, using fetch fallback");
+            //console.warn("Terrasoft service methods not available, using fetch fallback");
             
             var baseUrl = window.location.protocol + '//' + window.location.host;
-            var unloadAppDomainUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/UnloadAppDomain";
+            var unloadAppDomainUrl = baseUrl.endsWith('/0')
+              ? baseUrl + '/ServiceModel/AppInstallerService.svc/UnloadAppDomain'
+              : baseUrl + '/0/ServiceModel/AppInstallerService.svc/UnloadAppDomain';
+            
+            console.log('Using fetch to restart app at URL: ' + unloadAppDomainUrl);
+            
+            // exclude BPMCSRF token
+            function getCookieValue(cookieName) {
+              const cookies = document.cookie.split(';');
+              for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === cookieName) {
+                  return value;
+                }
+              }
+              return null;
+            }
+            
+            const bpmCsrfToken = getCookieValue('BPMCSRF');
+            if (!bpmCsrfToken) {
+              console.error('BPMCSRF cookie not found. Request may fail.');
+            }
             
             fetch(unloadAppDomainUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'BPMCSRF': bpmCsrfToken || ''
                 },
-                body: JSON.stringify({}), // Empty JSON object
-                credentials: 'include' // Include cookies for authentication
+                body: JSON.stringify({}),
+                credentials: 'include'
             })
             .then(function(response) {
                 return response.json();
             })
             .then(function(data) {
                 if (data && data.success) {
-                    // Operation succeeded
-                    console.log("UnloadAppDomain successful, reloading page");
+                    console.log('UnloadAppDomain successful, reloading page');
                     reloadPage();
                 } else {
-                    // Operation failed
-                    var errorMessage = (data && data.errorInfo) ? 
-                        data.errorInfo : "Unknown error occurred";
-                    
-                    if (notificationElement) {
-                        notificationElement.textContent = 'Failed to restart application: ' + errorMessage;
-                        notificationElement.style.backgroundColor = '#f44336';
-                        setTimeout(function() {
-                            notificationElement.remove();
-                        }, 3000);
-                    }
-                    console.error("Restart operation failed:", errorMessage);
-                    
-                    // Try fallback reload method
+                    const errorMessage = (data && data.errorInfo) ? data.errorInfo : 'Unknown error occurred';
+                    console.error('Restart operation failed:', errorMessage);
                     reloadPage();
                 }
             })
             .catch(function(error) {
-                if (notificationElement) {
-                    notificationElement.textContent = 'Error executing restart: ' + error.message;
-                    notificationElement.style.backgroundColor = '#f44336';
-                    setTimeout(function() {
-                        notificationElement.remove();
-                    }, 3000);
-                }
-                console.error("Restart operation error:", error);
-                
-                // Try fallback reload method
+                console.error('Error executing restart:', error);
                 reloadPage();
             });
         }
@@ -236,4 +242,30 @@
             window.location.reload(true);
         }, 1500);
     }
+    
+    // To invisible actions menu and make header text blinking
+    const actionsMenuContainer = document.querySelector('.actions-menu-container');
+    if (actionsMenuContainer) {
+      actionsMenuContainer.style.visibility = 'hidden';
+    }
+    
+    // To invisible actions menu and make header text blinking
+    const header = document.querySelector('.header');
+    if (header) {
+      header.style.animation = 'restartAnimation 1.5s infinite';
+    }
+    
+    // Adding styles for animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes restartAnimation {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+      div[style*="fixed"] {
+        animation: restartAnimation 1.5s infinite;
+      }
+    `;
+    document.head.appendChild(style);
 })();
