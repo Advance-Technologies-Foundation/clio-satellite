@@ -631,6 +631,29 @@ function createScriptsMenu() {
     button.appendChild(caption);
     menuItem.appendChild(button);
 
+    // Add divider before Settings item
+    if (scriptName === 'Settings') {
+      const dividerContainer = document.createElement('div');
+      dividerContainer.className = 'ng-star-inserted';
+      dividerContainer.setAttribute('crt-menu-view-element-item', 'settings-divider');
+      dividerContainer.style.cssText = 'display: block; margin: 8px 0; opacity: 1; visibility: visible;';
+      
+      const crtMenuDivider = document.createElement('crt-menu-divider');
+      crtMenuDivider.className = 'ng-star-inserted';
+      crtMenuDivider.style.cssText = 'display: block; margin: 8px 0;';
+      
+      const matDivider = document.createElement('mat-divider');
+      matDivider.setAttribute('role', 'separator');
+      matDivider.className = 'mat-divider mat-divider-horizontal';
+      matDivider.setAttribute('aria-orientation', 'horizontal');
+      matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: #e0e0e0 !important; border: none !important; margin: 0 16px !important; opacity: 1 !important; visibility: visible !important;';
+      
+      crtMenuDivider.appendChild(matDivider);
+      dividerContainer.appendChild(crtMenuDivider);
+      
+      menuContainer.appendChild(dividerContainer);
+    }
+
     // Клик
     menuItem.addEventListener('click', () => {
       if (scriptName === 'Settings') {

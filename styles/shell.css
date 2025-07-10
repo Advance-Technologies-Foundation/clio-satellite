@@ -226,4 +226,39 @@
         color: #666;
     }
 
+    /* Menu Divider Styles */
+    crt-menu-divider {
+        display: block;
+        margin: 8px 0;
+        
+        mat-divider {
+            display: block;
+            height: 1px;
+            background-color: #e0e0e0;
+            border: none;
+            margin: 0 16px;
+        }
+    }
+
+    /* Alternative divider styles for better visibility */
+    .scripts-menu-container crt-menu-divider mat-divider,
+    .actions-menu-container crt-menu-divider mat-divider {
+        display: block !important;
+        height: 1px !important;
+        background-color: #e0e0e0 !important;
+        border: none !important;
+        margin: 0 16px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Ensure divider container is visible */
+    .scripts-menu-container div[crt-menu-view-element-item],
+    .actions-menu-container div[crt-menu-view-element-item] {
+        display: block !important;
+        margin: 8px 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
 }
