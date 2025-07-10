@@ -527,7 +527,8 @@ function createScriptsMenu() {
     'SysSettings': 'System settings and parameters',
     'Users': 'Manage system users',
     'Configuration': 'Open system configuration',
-    'TIDE': 'Open TIDE tools'
+    'TIDE': 'Open TIDE tools',
+    'Settings': 'Open plugin settings'
   };
 
   const scriptFiles = [
@@ -539,11 +540,14 @@ function createScriptsMenu() {
     'SysSettings.js',
     'Users.js',
     'Configuration.js',
-    'TIDE.js'
+    'TIDE.js',
+    'Settings'
   ];
 
   scriptFiles.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
+    // Handle Settings as a special case since it doesn't have a .js file
+    const isSettingsItem = scriptName === 'Settings';
     const menuIcons = {
       'Features': {
         svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path></svg>`,
@@ -580,6 +584,10 @@ function createScriptsMenu() {
       'TIDE': {
         svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/><path d="M5 5h6v6H5V5Z" fill="#fff"/></svg>`,
         name: 'tide'
+      },
+      'Settings': {
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/></svg>`,
+        name: 'settings'
       }
     };
     const iconData = menuIcons[scriptName] || {svg: '', name: ''};
@@ -625,12 +633,16 @@ function createScriptsMenu() {
 
     // Клик
     menuItem.addEventListener('click', () => {
-      chrome.runtime.sendMessage({
-        action: 'executeScript',
-        scriptPath: `navigation/${scriptFile}`
-      }, response => {
-        debugLog('Navigation script sent to background for injection');
-      });
+      if (scriptName === 'Settings') {
+        chrome.runtime.sendMessage({action: 'openOptionsPage'});
+      } else {
+        chrome.runtime.sendMessage({
+          action: 'executeScript',
+          scriptPath: `navigation/${scriptFile}`
+        }, response => {
+          debugLog('Navigation script sent to background for injection');
+        });
+      }
       hideMenuContainer(menuContainer);
     });
 
@@ -661,7 +673,6 @@ function createScriptsMenu() {
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
-      actionsList.push('Settings');
       actionsList.forEach(scriptName => {
         const detail = actionDetails[scriptName];
         // Create menu item container
@@ -697,9 +708,7 @@ function createScriptsMenu() {
         menuButtonEl.appendChild(caption);
         menuItem.appendChild(menuButtonEl);
         menuItem.addEventListener('click', () => {
-          if (scriptName==='Settings') {
-            chrome.runtime.sendMessage({action:'openOptionsPage'});
-          } else if (scriptName==='EnableAutologin') {
+          if (scriptName==='EnableAutologin') {
             chrome.storage.sync.get({userProfiles:[],lastLoginProfiles:{}}, ds=>{
               const profs=ds.userProfiles.map(p=>p.username===lastUser?{...p,autologin:true}:p);
               chrome.storage.sync.set({userProfiles:profs});
