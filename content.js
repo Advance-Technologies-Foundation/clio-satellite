@@ -724,8 +724,8 @@ function createScriptsMenu() {
         'RestartApp': { file: 'RestartApp.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M8 2v6l4 2\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`, name: 'refresh', desc: 'Reload the Creatio application' },
         'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database' },
         'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
-        'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 5l6 6M11 5l-6 6\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'block', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
+        'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="#fff" stroke-width="2" /></svg>`, name: 'block', desc: 'Disable autologin for this site' },
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -857,6 +857,9 @@ function createScriptsMenu() {
           border: none;
           box-shadow: none;
           border-radius: 0;
+          min-width: auto;
+          max-width: none;
+          box-sizing: border-box;
         `;
         
         // Add drag functionality
@@ -907,72 +910,9 @@ function createScriptsMenu() {
         debugLog('Buttons placed in draggable floating container for Configuration page');
       }
     } else if (pageType === 'shell') {
-      // For Shell page, create floating container like Configuration page
+      // For Shell page, create floating container with proper positioning
       debugLog('Creating floating container for shell page');
-      
-      // Create a floating button container for shell page
-      const floatingContainer = document.createElement('div');
-      floatingContainer.className = 'creatio-satelite-floating';
-      floatingContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        cursor: move;
-        user-select: none;
-        width: auto;
-        height: auto;
-        background: transparent;
-        padding: 0;
-      `;
-      
-      // Add drag functionality
-      let isDragging = false;
-      let startX, startY, initialX, initialY;
-      
-      floatingContainer.addEventListener('mousedown', (e) => {
-        if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
-          isDragging = true;
-          startX = e.clientX;
-          startY = e.clientY;
-          const rect = floatingContainer.getBoundingClientRect();
-          initialX = rect.left;
-          initialY = rect.top;
-          floatingContainer.style.cursor = 'grabbing';
-          e.preventDefault();
-        }
-      });
-      
-      document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
-          const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
-          const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
-          
-          floatingContainer.style.left = newX + 'px';
-          floatingContainer.style.top = newY + 'px';
-          floatingContainer.style.right = 'auto';
-        }
-      });
-      
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          floatingContainer.style.cursor = 'move';
-        }
-      });
-      
-      floatingContainer.appendChild(buttonWrapper);
-      document.body.appendChild(floatingContainer);
-      
-      // Add special class for shell page styling
-      buttonWrapper.classList.add('creatio-satelite-shell');
-      buttonWrapper.style.flexDirection = 'row';
-      debugLog('Buttons placed in draggable floating container for shell page');
+      setupShellFloatingContainer(buttonWrapper);
     }
 
     const rootMenuContainer = document.createElement('div');
@@ -990,6 +930,161 @@ function createScriptsMenu() {
     actionsMenuCreated = false;
     return false;
   }
+}
+
+// Function to position floating container relative to crt-global-search element
+function positionFloatingContainerRelativeToSearch() {
+  const floatingContainer = document.querySelector('.creatio-satelite-floating');
+  const searchElement = document.querySelector('crt-global-search');
+  
+  if (!floatingContainer || !searchElement) {
+    debugLog('Cannot position floating container - missing elements');
+    return false;
+  }
+  
+  // Get the position and dimensions of the search element
+  const searchRect = searchElement.getBoundingClientRect();
+  const containerRect = floatingContainer.getBoundingClientRect();
+  
+  // Check if search element has proper dimensions (not collapsed)
+  if (searchRect.width < 50 || searchRect.height < 20) {
+    debugLog(`Search element dimensions too small: ${searchRect.width}x${searchRect.height}, skipping positioning`);
+    return false;
+  }
+  
+  // Check if search element is visible (not hidden)
+  const computedStyle = window.getComputedStyle(searchElement);
+  if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
+    debugLog('Search element is not visible, skipping positioning');
+    return false;
+  }
+  
+  // Calculate position: right of search element, centered vertically
+  const leftPosition = searchRect.right + 20; // 20px gap after search element
+  const topPosition = searchRect.top + (searchRect.height - containerRect.height) / 2;
+  
+  // Ensure the container stays within viewport bounds
+  const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
+  const finalTop = Math.max(10, Math.min(window.innerHeight - containerRect.height - 10, topPosition));
+  
+  // Apply the positioning
+  floatingContainer.style.left = finalLeft + 'px';
+  floatingContainer.style.top = finalTop + 'px';
+  floatingContainer.style.right = 'auto';
+  
+  debugLog(`Positioned floating container relative to search element: left=${finalLeft}, top=${finalTop}, searchWidth=${searchRect.width}`);
+  return true;
+}
+
+// Function to setup floating container for shell page with proper positioning
+function setupShellFloatingContainer(buttonWrapper) {
+  // Create a floating button container for shell page
+  const floatingContainer = document.createElement('div');
+  floatingContainer.className = 'creatio-satelite-floating';
+  floatingContainer.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    cursor: move;
+    user-select: none;
+    width: auto;
+    height: auto;
+    background: transparent;
+    padding: 0;
+    min-width: auto;
+    max-width: none;
+    box-sizing: border-box;
+  `;
+  
+  // Add drag functionality
+  let isDragging = false;
+  let startX, startY, initialX, initialY;
+  
+  floatingContainer.addEventListener('mousedown', (e) => {
+    if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = floatingContainer.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+      floatingContainer.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
+      const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
+      
+      floatingContainer.style.left = newX + 'px';
+      floatingContainer.style.top = newY + 'px';
+      floatingContainer.style.right = 'auto';
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      floatingContainer.style.cursor = 'move';
+    }
+  });
+  
+  floatingContainer.appendChild(buttonWrapper);
+  document.body.appendChild(floatingContainer);
+  
+  // Add special class for shell page styling
+  buttonWrapper.classList.add('creatio-satelite-shell');
+  buttonWrapper.style.flexDirection = 'row';
+  
+  // Position relative to search element after delays to ensure DOM is fully loaded
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 300);
+  
+  // Try positioning again after more delays in case search element loads later
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 800);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 1500);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 2500);
+  
+  // Re-position when window is resized
+  window.addEventListener('resize', () => {
+    if (!isDragging) {
+      positionFloatingContainerRelativeToSearch();
+    }
+  });
+  
+  // Add periodic positioning check for newly created containers
+  let positionCheckCount = 0;
+  const maxPositionChecks = 20; // Increased from 10 to 20
+  const positionCheckInterval = setInterval(() => {
+    positionCheckCount++;
+    const positioned = positionFloatingContainerRelativeToSearch();
+    
+    // Stop checking after successful positioning or max attempts
+    if (positioned || positionCheckCount >= maxPositionChecks) {
+      clearInterval(positionCheckInterval);
+      debugLog(`Position check completed after ${positionCheckCount} attempts`);
+    }
+  }, 150); // Reduced from 200ms to 150ms for more frequent checks
+  
+  debugLog('Shell floating container created and positioned relative to search element');
+  return floatingContainer;
 }
 
 // Function placeButtonNextToSearch removed - buttons will remain in floating container only
@@ -1109,8 +1204,6 @@ window.addEventListener('load', () => {
   // Removed updateMenuPosition timeout - buttons stay in floating container
 });
 
-// Position observer initialization removed - buttons stay in floating container only
-
 // Periodic check in case the page loads Creatio content dynamically
 let checkCount = 0;
 const maxChecks = 20;
@@ -1129,6 +1222,7 @@ const checkInterval = setInterval(() => {
 const observer = new MutationObserver(mutations => {
   let shouldCheck = false;
   let hasLeftContainer = false;
+  let hasSearchElement = false;
 
   for (const mutation of mutations) {
     if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -1151,6 +1245,14 @@ const observer = new MutationObserver(mutations => {
             shouldCheck = true;
             debugLog('Left container found in added node children');
           }
+          
+          // Check for search element on Shell pages
+          if (node.tagName === 'CRT-GLOBAL-SEARCH' || 
+              (node.querySelector && node.querySelector('crt-global-search'))) {
+            hasSearchElement = true;
+            shouldCheck = true;
+            debugLog('Search element detected in DOM changes');
+          }
         }
       }
     }
@@ -1168,7 +1270,20 @@ const observer = new MutationObserver(mutations => {
     if (hasLeftContainer) {
       debugLog('Left container available, priority check for Configuration page');
     }
+    if (hasSearchElement) {
+      debugLog('Search element available, priority check for Shell page');
+    }
     checkCreatioPageAndCreateMenu();
+  } else if (hasSearchElement && pageType === 'shell') {
+    // If search element appears on shell page, reposition the container
+    debugLog('Search element detected on Shell page, repositioning container');
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 50);
+    // Try again after a longer delay
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 200);
   }
 });
 
@@ -1207,6 +1322,34 @@ function monitorButtons() {
     } else {
       debugLog('Failed to restore buttons');
     }
+  } else if (pageType === 'shell' && floatingContainer) {
+    // For shell page, check if the container is properly positioned relative to search
+    const searchElement = document.querySelector('crt-global-search');
+    if (searchElement) {
+      // Check if search element has proper dimensions
+      const searchRect = searchElement.getBoundingClientRect();
+      if (searchRect.width < 50 || searchRect.height < 20) {
+        debugLog('Search element dimensions too small, attempting to position container');
+        positionFloatingContainerRelativeToSearch();
+        return;
+      }
+      
+      // Check if container position needs adjustment
+      const containerRect = floatingContainer.getBoundingClientRect();
+      
+      // If container is too far from search element, reposition it
+      const expectedLeft = searchRect.right + 20; // 20px gap after search element
+      const currentLeft = containerRect.left;
+      
+      if (Math.abs(currentLeft - expectedLeft) > 50) {
+        debugLog('Container position needs adjustment, repositioning...');
+        positionFloatingContainerRelativeToSearch();
+      }
+    } else {
+      // If search element not found, try to position the container
+      debugLog('Search element not found, attempting to position container');
+      positionFloatingContainerRelativeToSearch();
+    }
   }
 }
 
@@ -1237,3 +1380,9 @@ window.createShellFloatingMenu = function() {
   console.log('Shell floating menu creation result:', result);
   return result;
 };
+
+// Export positioning function for testing
+window.positionFloatingContainerRelativeToSearch = positionFloatingContainerRelativeToSearch;
+
+// Export setup function for testing
+window.setupShellFloatingContainer = setupShellFloatingContainer;

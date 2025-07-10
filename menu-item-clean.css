@@ -185,3 +185,99 @@
   top: 0;
   transform: none;
 }
+
+/* Shell Page Specific Styles */
+.creatio-satelite-shell {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: auto;
+  max-width: none;
+  width: auto;
+  height: auto;
+}
+
+.creatio-satelite-shell .scripts-menu-button,
+.creatio-satelite-shell .actions-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 120px;
+  max-width: none;
+  justify-content: center;
+  padding: 8px 12px;
+  margin: 0;
+  min-height: 36px;
+  font-size: 13px;
+  text-align: center;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.creatio-satelite-shell .scripts-menu-button {
+  background: #1976d2;
+  color: white;
+  border: 1px solid #1565c0;
+}
+
+.creatio-satelite-shell .scripts-menu-button:hover {
+  background: rgba(21, 101, 192, 0.9);
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+}
+
+.creatio-satelite-shell .actions-button {
+  background: #f57c00;
+  color: white;
+  border: 1px solid #ef6c00;
+}
+
+.creatio-satelite-shell .actions-button:hover {
+  background: rgba(239, 108, 0, 0.9);
+  box-shadow: 0 2px 4px rgba(245, 124, 0, 0.3);
+}
+
+.creatio-satelite-shell .scripts-menu-button img {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.creatio-satelite-shell .actions-button-icon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* Shell page floating container should be minimal */
+.creatio-satelite-floating {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-width: auto !important;
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.creatio-satelite-floating:hover {
+  opacity: 0.9 !important;
+}
+
+/* Shell page menu containers positioning */
+.creatio-satelite-shell ~ .creatio-satelite-menu-container .scripts-menu-container,
+.creatio-satelite-shell ~ .creatio-satelite-menu-container .actions-menu-container {
+  position: fixed;
+  transform: none;
+}

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Test Suite - Shell Page Positioning</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    .nav-menu {
+      display: flex;
+      gap: 20px;
+      margin-left: auto;
+    }
+    
+    .nav-menu a {
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    
+    .nav-menu a:hover {
+      background-color: rgba(255,255,255,0.2);
+    }
+    
+    /* Custom element for global search */
+    crt-global-search {
+      display: inline-block;
+      width: 350px;
+      height: 44px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 10px 15px;
+      font-size: 14px;
+      color: #333;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+    
+    crt-global-search:before {
+      content: "🔍 Search across all modules...";
+      color: #666;
+      font-style: italic;
+    }
+    
+    .main-content {
+      display: flex;
+      min-height: calc(100vh - 74px);
+    }
+    
+    .sidebar {
+      width: 250px;
+      background: white;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    }
+    
+    .sidebar h3 {
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .sidebar li {
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .sidebar a {
+      color: #666;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .sidebar a:hover {
+      color: #007acc;
+    }
+    
+    .content-area {
+      flex: 1;
+      padding: 30px;
+      background: white;
+      margin: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .shell-indicator {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .test-section {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .test-section h3 {
+      margin-top: 0;
+      color: #007acc;
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+    
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .test-card {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .test-card h4 {
+      margin-top: 0;
+      color: #495057;
+      font-size: 16px;
+    }
+    
+    .test-card p {
+      margin-bottom: 12px;
+      color: #6c757d;
+      font-size: 14px;
+    }
+    
+    .test-button {
+      background: #007acc;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      width: 100%;
+    }
+    
+    .test-button:hover {
+      background: #005f99;
+    }
+    
+    .test-button.danger {
+      background: #dc3545;
+    }
+    
+    .test-button.danger:hover {
+      background: #c82333;
+    }
+    
+    .status-panel {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .status-panel h4 {
+      margin-top: 0;
+      color: #333;
+      font-family: Arial, sans-serif;
+    }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    
+    .status-label {
+      font-weight: bold;
+      color: #495057;
+    }
+    
+    .status-value {
+      color: #007acc;
+    }
+    
+    .status-value.success {
+      color: #28a745;
+    }
+    
+    .status-value.error {
+      color: #dc3545;
+    }
+    
+    .position-display {
+      background: #e8f4f8;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #006699;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🏢 Creatio Platform</div>
+    <crt-global-search></crt-global-search>
+    <div class="nav-menu">
+      <a href="#dashboard">Dashboard</a>
+      <a href="#contacts">Contacts</a>
+      <a href="#accounts">Accounts</a>
+      <a href="#reports">Reports</a>
+      <a href="#settings">Settings</a>
+    </div>
+  </div>
+  
+  <div class="main-content">
+    <div class="sidebar">
+      <h3>Navigation</h3>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#workspace">Workspace</a></li>
+        <li><a href="#applications">Applications</a></li>
+        <li><a href="#users">Users</a></li>
+        <li><a href="#system">System</a></li>
+        <li><a href="#lookups">Lookups</a></li>
+        <li><a href="#processes">Processes</a></li>
+        <li><a href="#features">Features</a></li>
+      </ul>
+    </div>
+    
+    <div class="content-area">
+      <div class="shell-indicator">
+        🏠 Shell Page - Advanced Positioning Test
+      </div>
+      
+      <div class="test-section">
+        <h3>Positioning Tests</h3>
+        <p>Тестируем позиционирование floating-контейнера с кнопками относительно элемента <code>&lt;crt-global-search/&gt;</code></p>
+        
+        <div class="test-grid">
+          <div class="test-card">
+            <h4>📍 Позиционирование</h4>
+            <p>Проверить автоматическое позиционирование контейнера относительно поиска</p>
+            <button class="test-button" onclick="testPositioning()">Позиционировать</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>📏 Информация о позиции</h4>
+            <p>Показать текущие координаты элементов</p>
+            <button class="test-button" onclick="showPositionInfo()">Показать координаты</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>🔄 Переключение видимости</h4>
+            <p>Скрыть/показать элемент поиска для тестирования</p>
+            <button class="test-button" onclick="toggleSearchVisibility()">Переключить поиск</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>📱 Изменение размера</h4>
+            <p>Изменить размер окна для тестирования адаптивности</p>
+            <button class="test-button" onclick="simulateResize()">Изменить размер</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>🗑️ Удаление контейнера</h4>
+            <p>Удалить контейнер для тестирования восстановления</p>
+            <button class="test-button danger" onclick="removeContainer()">Удалить контейнер</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>🔧 Сброс позиции</h4>
+            <p>Сбросить позицию контейнера в правый верхний угол</p>
+            <button class="test-button" onclick="resetPosition()">Сбросить позицию</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="test-section">
+        <h3>Drag & Drop Tests</h3>
+        <p>Тестируем функциональность перетаскивания контейнера</p>
+        
+        <div class="test-grid">
+          <div class="test-card">
+            <h4>👆 Drag Test</h4>
+            <p>Попробуйте перетащить контейнер с кнопками</p>
+            <button class="test-button" onclick="highlightContainer()">Подсветить контейнер</button>
+          </div>
+          
+          <div class="test-card">
+            <h4>🎯 Центрирование</h4>
+            <p>Переместить контейнер в центр экрана</p>
+            <button class="test-button" onclick="centerContainer()">В центр</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="status-panel">
+        <h4>🔍 Статус элементов</h4>
+        <div id="status-content">
+          <div class="status-item">
+            <span class="status-label">Тип страницы:</span>
+            <span class="status-value" id="page-type">Определяется...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Кнопка Navigation:</span>
+            <span class="status-value" id="nav-button">Поиск...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Кнопка Actions:</span>
+            <span class="status-value" id="actions-button">Поиск...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Floating Container:</span>
+            <span class="status-value" id="floating-container">Поиск...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Элемент поиска:</span>
+            <span class="status-value" id="search-element">Поиск...</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Последнее обновление:</span>
+            <span class="status-value" id="last-update">Не обновлялось</span>
+          </div>
+        </div>
+        
+        <div class="position-display" id="position-info">
+          <strong>Позиционирование:</strong><br>
+          <span id="position-details">Данные загружаются...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Test functions
+    function testPositioning() {
+      if (typeof window.positionFloatingContainerRelativeToSearch === 'function') {
+        window.positionFloatingContainerRelativeToSearch();
+        alert('✅ Функция позиционирования вызвана');
+      } else {
+        alert('❌ Функция позиционирования недоступна');
+      }
+    }
+    
+    function showPositionInfo() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      const search = document.querySelector('crt-global-search');
+      
+      let info = '📊 Информация о позиции:\n\n';
+      
+      if (search) {
+        const searchRect = search.getBoundingClientRect();
+        info += `🔍 Элемент поиска:\n`;
+        info += `  Left: ${Math.round(searchRect.left)}px\n`;
+        info += `  Top: ${Math.round(searchRect.top)}px\n`;
+        info += `  Width: ${Math.round(searchRect.width)}px\n`;
+        info += `  Height: ${Math.round(searchRect.height)}px\n\n`;
+      } else {
+        info += '❌ Элемент поиска не найден\n\n';
+      }
+      
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        info += `📦 Контейнер:\n`;
+        info += `  Left: ${Math.round(containerRect.left)}px\n`;
+        info += `  Top: ${Math.round(containerRect.top)}px\n`;
+        info += `  Width: ${Math.round(containerRect.width)}px\n`;
+        info += `  Height: ${Math.round(containerRect.height)}px\n\n`;
+        
+        if (search) {
+          const searchRect = search.getBoundingClientRect();
+          const distance = Math.round(searchRect.left - containerRect.right);
+          info += `📏 Расстояние до поиска: ${distance}px`;
+        }
+      } else {
+        info += '❌ Контейнер не найден';
+      }
+      
+      alert(info);
+    }
+    
+    function toggleSearchVisibility() {
+      const search = document.querySelector('crt-global-search');
+      if (search) {
+        search.style.display = search.style.display === 'none' ? 'inline-block' : 'none';
+        setTimeout(() => {
+          if (typeof window.positionFloatingContainerRelativeToSearch === 'function') {
+            window.positionFloatingContainerRelativeToSearch();
+          }
+        }, 100);
+      }
+    }
+    
+    function simulateResize() {
+      // Trigger resize event
+      window.dispatchEvent(new Event('resize'));
+      alert('🔄 Событие resize отправлено');
+    }
+    
+    function removeContainer() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        container.remove();
+        alert('🗑️ Контейнер удален. Ожидайте восстановления через 2 секунды...');
+      } else {
+        alert('❌ Контейнер не найден');
+      }
+    }
+    
+    function resetPosition() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        container.style.top = '20px';
+        container.style.right = '20px';
+        container.style.left = 'auto';
+        alert('🔧 Позиция сброшена');
+      } else {
+        alert('❌ Контейнер не найден');
+      }
+    }
+    
+    function highlightContainer() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        const originalBorder = container.style.border;
+        container.style.border = '3px solid #ff6b6b';
+        container.style.borderRadius = '8px';
+        
+        setTimeout(() => {
+          container.style.border = originalBorder;
+          container.style.borderRadius = '0';
+        }, 3000);
+        
+        alert('🎯 Контейнер подсвечен на 3 секунды');
+      } else {
+        alert('❌ Контейнер не найден');
+      }
+    }
+    
+    function centerContainer() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        const centerX = (window.innerWidth - containerRect.width) / 2;
+        const centerY = (window.innerHeight - containerRect.height) / 2;
+        
+        container.style.left = centerX + 'px';
+        container.style.top = centerY + 'px';
+        container.style.right = 'auto';
+        
+        alert('🎯 Контейнер перемещен в центр');
+      } else {
+        alert('❌ Контейнер не найден');
+      }
+    }
+    
+    // Status updater
+    function updateStatus() {
+      const pageType = typeof window.getCreatioPageType === 'function' ? window.getCreatioPageType() : 'Неизвестно';
+      const navButton = document.querySelector('.scripts-menu-button');
+      const actionsButton = document.querySelector('.actions-button');
+      const floatingContainer = document.querySelector('.creatio-satelite-floating');
+      const searchElement = document.querySelector('crt-global-search');
+      
+      document.getElementById('page-type').textContent = pageType;
+      document.getElementById('page-type').className = 'status-value ' + (pageType === 'shell' ? 'success' : 'error');
+      
+      document.getElementById('nav-button').textContent = navButton ? 'Найдена ✅' : 'Не найдена ❌';
+      document.getElementById('nav-button').className = 'status-value ' + (navButton ? 'success' : 'error');
+      
+      document.getElementById('actions-button').textContent = actionsButton ? 'Найдена ✅' : 'Не найдена ❌';
+      document.getElementById('actions-button').className = 'status-value ' + (actionsButton ? 'success' : 'error');
+      
+      document.getElementById('floating-container').textContent = floatingContainer ? 'Найден ✅' : 'Не найден ❌';
+      document.getElementById('floating-container').className = 'status-value ' + (floatingContainer ? 'success' : 'error');
+      
+      document.getElementById('search-element').textContent = searchElement ? 'Найден ✅' : 'Не найден ❌';
+      document.getElementById('search-element').className = 'status-value ' + (searchElement ? 'success' : 'error');
+      
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+      
+      // Update position info
+      let positionInfo = '';
+      if (floatingContainer && searchElement) {
+        const containerRect = floatingContainer.getBoundingClientRect();
+        const searchRect = searchElement.getBoundingClientRect();
+        const distance = Math.round(searchRect.left - containerRect.right);
+        
+        positionInfo = `Контейнер: ${Math.round(containerRect.left)}, ${Math.round(containerRect.top)} | `;
+        positionInfo += `Поиск: ${Math.round(searchRect.left)}, ${Math.round(searchRect.top)} | `;
+        positionInfo += `Расстояние: ${distance}px`;
+      } else {
+        positionInfo = 'Элементы не найдены для расчета позиции';
+      }
+      
+      document.getElementById('position-details').textContent = positionInfo;
+    }
+    
+    // Update every second
+    setInterval(updateStatus, 1000);
+    
+    // Initial update
+    setTimeout(updateStatus, 500);
+    
+    console.log('🚀 Final positioning test suite loaded');
+  </script>
+</body>
+</html>

@@ -7,3 +7,5 @@
 - When providing code examples, include comments explaining each step.
 - Follow the structure: background scripts, content scripts, popup UI, and options page.
 - Provide concise responses; avoid unnecessary details.
+- Don`t create any test files
+- Don`t create md files with changes description

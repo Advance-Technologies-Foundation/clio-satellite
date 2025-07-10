@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Shell Page with Search Element</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      background: #fff;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    crt-global-search {
+      display: inline-block;
+      width: 300px;
+      height: 40px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      line-height: 24px;
+      vertical-align: middle;
+    }
+    
+    crt-global-search:before {
+      content: "🔍 Global Search";
+      color: #666;
+    }
+    
+    .main-content {
+      margin-top: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .shell-indicator {
+      color: #007acc;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .test-info {
+      background: #e8f4f8;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .test-info h3 {
+      margin-top: 0;
+      color: #006699;
+    }
+    
+    .debug-panel {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .debug-panel h4 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .button-test {
+      margin-top: 20px;
+      padding: 10px;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 4px;
+    }
+    
+    .button-test button {
+      margin-right: 10px;
+      padding: 8px 16px;
+      border: 1px solid #007acc;
+      background: #007acc;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .button-test button:hover {
+      background: #005f99;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Creatio Shell</div>
+    <crt-global-search></crt-global-search>
+    <div style="margin-left: auto;">User Menu</div>
+  </div>
+  
+  <div class="main-content">
+    <div class="shell-indicator">🏠 Shell Page Active</div>
+    
+    <div class="test-info">
+      <h3>Test: Shell Page with Search Element Positioning</h3>
+      <p>Этот тест проверяет правильность позиционирования floating-контейнера с кнопками Navigation и Actions относительно элемента <code>&lt;crt-global-search/&gt;</code>.</p>
+      <p><strong>Ожидаемое поведение:</strong></p>
+      <ul>
+        <li>Кнопки Navigation и Actions должны появиться в floating-контейнере</li>
+        <li>Контейнер должен быть позиционирован слева от элемента поиска</li>
+        <li>Контейнер должен быть выровнен по центру относительно элемента поиска по вертикали</li>
+        <li>Контейнер должен иметь минимальный размер (не растягиваться)</li>
+        <li>Контейнер должен быть полностью прозрачным</li>
+        <li>Контейнер должен быть перетаскиваемым</li>
+      </ul>
+    </div>
+    
+    <div class="button-test">
+      <h4>Тестовые кнопки:</h4>
+      <button onclick="testSearchElementPosition()">Показать позицию элемента поиска</button>
+      <button onclick="testContainerPosition()">Показать позицию контейнера</button>
+      <button onclick="testRepositioning()">Переместить контейнер к поиску</button>
+      <button onclick="removeContainer()">Удалить контейнер (для тестирования восстановления)</button>
+    </div>
+    
+    <div class="debug-panel">
+      <h4>Debug Information:</h4>
+      <div id="debug-info">
+        <div>Page Type: <span id="page-type">Detecting...</span></div>
+        <div>Navigation Button: <span id="nav-button">Checking...</span></div>
+        <div>Actions Button: <span id="actions-button">Checking...</span></div>
+        <div>Floating Container: <span id="floating-container">Checking...</span></div>
+        <div>Search Element: <span id="search-element">Checking...</span></div>
+        <div>Container Position: <span id="container-position">Checking...</span></div>
+        <div>Search Position: <span id="search-position">Checking...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Test functions
+    function testSearchElementPosition() {
+      const searchElement = document.querySelector('crt-global-search');
+      if (searchElement) {
+        const rect = searchElement.getBoundingClientRect();
+        alert(`Search Element Position:\nLeft: ${rect.left}\nTop: ${rect.top}\nWidth: ${rect.width}\nHeight: ${rect.height}`);
+      } else {
+        alert('Search element not found!');
+      }
+    }
+    
+    function testContainerPosition() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        alert(`Container Position:\nLeft: ${rect.left}\nTop: ${rect.top}\nWidth: ${rect.width}\nHeight: ${rect.height}`);
+      } else {
+        alert('Container not found!');
+      }
+    }
+    
+    function testRepositioning() {
+      if (window.positionFloatingContainerRelativeToSearch) {
+        window.positionFloatingContainerRelativeToSearch();
+        alert('Repositioning function called!');
+      } else {
+        alert('Repositioning function not available!');
+      }
+    }
+    
+    function removeContainer() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        container.remove();
+        alert('Container removed! It should be restored automatically in 2 seconds.');
+      } else {
+        alert('Container not found!');
+      }
+    }
+    
+    // Debug info updater
+    function updateDebugInfo() {
+      const pageType = window.getCreatioPageType ? window.getCreatioPageType() : 'Unknown';
+      const navButton = document.querySelector('.scripts-menu-button');
+      const actionsButton = document.querySelector('.actions-button');
+      const floatingContainer = document.querySelector('.creatio-satelite-floating');
+      const searchElement = document.querySelector('crt-global-search');
+      
+      document.getElementById('page-type').textContent = pageType;
+      document.getElementById('nav-button').textContent = navButton ? 'Found' : 'Not Found';
+      document.getElementById('actions-button').textContent = actionsButton ? 'Found' : 'Not Found';
+      document.getElementById('floating-container').textContent = floatingContainer ? 'Found' : 'Not Found';
+      document.getElementById('search-element').textContent = searchElement ? 'Found' : 'Not Found';
+      
+      if (floatingContainer) {
+        const containerRect = floatingContainer.getBoundingClientRect();
+        document.getElementById('container-position').textContent = `Left: ${Math.round(containerRect.left)}, Top: ${Math.round(containerRect.top)}`;
+      } else {
+        document.getElementById('container-position').textContent = 'N/A';
+      }
+      
+      if (searchElement) {
+        const searchRect = searchElement.getBoundingClientRect();
+        document.getElementById('search-position').textContent = `Left: ${Math.round(searchRect.left)}, Top: ${Math.round(searchRect.top)}`;
+      } else {
+        document.getElementById('search-position').textContent = 'N/A';
+      }
+    }
+    
+    // Update debug info every second
+    setInterval(updateDebugInfo, 1000);
+    
+    // Initial update
+    setTimeout(updateDebugInfo, 500);
+    
+    console.log('Shell page with search element test loaded');
+  </script>
+</body>
+</html>
