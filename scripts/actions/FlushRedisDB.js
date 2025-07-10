@@ -167,59 +167,60 @@
                 }
             });
         } else {
-            // Fallback using standard fetch if Terrasoft methods are not available
-            console.warn("Terrasoft service methods not available, using fetch fallback");
-            
+            // Скрытие меню с классом 'actions-menu-container' при выполнении действия "Flush Redis".
+            const actionsMenuContainer = document.querySelector('.actions-menu-container');
+            if (actionsMenuContainer) {
+              actionsMenuContainer.style.visibility = 'hidden';
+            }
+
+            // Формирование URL с учетом '/0' и подстановка CSRF токена из куки.
             var baseUrl = window.location.protocol + '//' + window.location.host;
-            var redisFlushUrl = baseUrl + "/ServiceModel/AppInstallerService.svc/ClearRedisDb";
-            
+            var redisFlushUrl = baseUrl.endsWith('/0')
+              ? baseUrl + '/ServiceModel/AppInstallerService.svc/ClearRedisDb'
+              : baseUrl + '/0/ServiceModel/AppInstallerService.svc/ClearRedisDb';
+
+            console.log('Using fetch to flush Redis at URL: ' + redisFlushUrl);
+
+            function getCookieValue(cookieName) {
+              const cookies = document.cookie.split(';');
+              for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === cookieName) {
+                  return value;
+                }
+              }
+              return null;
+            }
+
+            const bpmCsrfToken = getCookieValue('BPMCSRF');
+            if (!bpmCsrfToken) {
+              console.error('BPMCSRF cookie not found. Request may fail.');
+            }
+
+            // Добавлено обновление страницы после успешного выполнения запроса.
             fetch(redisFlushUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({}), // Empty JSON object
-                credentials: 'include' // Include cookies for authentication
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'BPMCSRF': bpmCsrfToken || ''
+              },
+              body: JSON.stringify({}),
+              credentials: 'include'
             })
             .then(function(response) {
-                return response.json();
+              return response.json();
             })
             .then(function(data) {
-                if (data && data.success) {
-                    // Operation succeeded
-                    if (notificationElement) {
-                        notificationElement.textContent = 'Redis database successfully flushed. Reloading page...';
-                        notificationElement.style.backgroundColor = '#4CAF50';
-                        setTimeout(function() {
-                            notificationElement.remove();
-                        }, 3000);
-                    }
-                    console.log("Redis flush operation completed successfully");                    
-                } else {
-                    // Operation failed
-                    var errorMessage = (data && data.errorInfo) ? 
-                        data.errorInfo : "Unknown error occurred";
-                    
-                    if (notificationElement) {
-                        notificationElement.textContent = 'Failed to flush Redis database: ' + errorMessage;
-                        notificationElement.style.backgroundColor = '#f44336';
-                        setTimeout(function() {
-                            notificationElement.remove();
-                        }, 5000);
-                    }
-                    console.error("Redis flush operation failed:", errorMessage);
-                }
-                reloadPage();
+              if (data && data.success) {
+                console.log('FlushRedisDB successful');
+                window.location.reload(true); // Обновление страницы
+              } else {
+                const errorMessage = (data && data.errorInfo) ? data.errorInfo : 'Unknown error occurred';
+                console.error('Flush Redis operation failed:', errorMessage);
+              }
             })
             .catch(function(error) {
-                if (notificationElement) {
-                    notificationElement.textContent = 'Error executing Redis flush: ' + error.message;
-                    notificationElement.style.backgroundColor = '#f44336';
-                    setTimeout(function() {
-                        notificationElement.remove();
-                    }, 5000);
-                }
-                console.error("Redis flush operation error:", error);
+              console.error('Error executing flush Redis:', error);
             });
         }
     } catch (error) {
