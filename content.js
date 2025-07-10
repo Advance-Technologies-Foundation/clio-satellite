@@ -189,7 +189,23 @@ function getCreatioPageType() {
     return 'configuration';
   }
 
-  // Check for Shell page indicators
+  // Enhanced Shell page detection with URL patterns
+  const shellUrlPatterns = [
+    '/shell/',
+    '/clientapp/',
+    '#section',
+    '#shell',
+    'workspaceexplorer',
+    'listpage',
+    'cardpage',
+    'dashboardmodule'
+  ];
+
+  const urlMatchesShell = shellUrlPatterns.some(pattern => 
+    currentUrl.includes(pattern.toLowerCase())
+  );
+
+  // Check for Shell page indicators (DOM elements)
   const shellIndicators = [
     document.getElementById('ShellContainerWithBackground'),
     document.querySelector('mainshell'),
@@ -202,18 +218,26 @@ function getCreatioPageType() {
     document.querySelector('script[src*="creatio"]'),
     document.querySelector('script[src*="terrasoft"]'),
     document.querySelector('link[href*="creatio"]'),
-    document.querySelector('link[href*="terrasoft"]')
+    document.querySelector('link[href*="terrasoft"]'),
+    // Additional Shell-specific selectors
+    document.querySelector('crt-root'),
+    document.querySelector('[class*="shell"]'),
+    document.querySelector('[id*="shell"]'),
+    document.querySelector('crt-page'),
+    document.querySelector('crt-reusable-schema')
   ];
 
-  const MIN_INDICATORS = 2;
   const foundIndicators = shellIndicators.filter(indicator => indicator);
-
+  
+  // Relaxed detection: URL pattern OR sufficient DOM indicators
+  const MIN_INDICATORS = urlMatchesShell ? 1 : 2; // Lower threshold if URL matches
+  
   // Detailed debugging for Shell page detection
-  debugLog(`Shell page detection: found ${foundIndicators.length}/${MIN_INDICATORS} indicators`);
+  debugLog(`Shell page detection: found ${foundIndicators.length}/${MIN_INDICATORS} indicators, URL matches: ${urlMatchesShell}`);
   if (debugExtension) {
     const indicatorNames = [
       'ShellContainerWithBackground',
-      'mainshell',
+      'mainshell', 
       'crt-schema-outlet',
       'AppToolbarGlobalSearch',
       'crt-app-toolbar',
@@ -223,21 +247,30 @@ function getCreatioPageType() {
       'creatio script',
       'terrasoft script',
       'creatio link',
-      'terrasoft link'
+      'terrasoft link',
+      'crt-root',
+      'shell class',
+      'shell ID',
+      'crt-page',
+      'crt-reusable-schema'
     ];
     shellIndicators.forEach((indicator, index) => {
       if (indicator) {
         debugLog(`✓ Found: ${indicatorNames[index]}`);
       }
     });
+    
+    if (urlMatchesShell) {
+      debugLog(`✓ URL pattern matches Shell page`);
+    }
   }
 
-  if (foundIndicators.length >= MIN_INDICATORS) {
-    debugLog(`Shell page detected with ${foundIndicators.length} indicators`);
+  if (foundIndicators.length >= MIN_INDICATORS || urlMatchesShell) {
+    debugLog(`Shell page detected with ${foundIndicators.length} indicators and URL match: ${urlMatchesShell}`);
     return 'shell';
   }
 
-  debugLog(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). Page not recognized.`);
+  debugLog(`Not enough Creatio indicators found (${foundIndicators.length}/${MIN_INDICATORS}). URL match: ${urlMatchesShell}. Page not recognized.`);
   return null;
 }
 
@@ -554,7 +587,7 @@ function createScriptsMenu() {
         name: 'online-help'
       },
       'Application_Managment': {
-        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2H14V15H2V2ZM3.333 3.333V13.333H12.667V3.333H3.333Z" fill="currentColor"/></svg>`,
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2H14V15H2V2ZM3.333 3.333V13.333H12.667V3.333H3.333Z" fill="currentColor"/>`,
         name: 'application_management'
       },
       'Lookups': {
@@ -819,6 +852,11 @@ function createScriptsMenu() {
           user-select: none;
           width: auto;
           height: auto;
+          background: transparent;
+          padding: 0;
+          border: none;
+          box-shadow: none;
+          border-radius: 0;
         `;
         
         // Add drag functionality

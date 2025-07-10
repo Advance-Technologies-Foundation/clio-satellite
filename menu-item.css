@@ -142,10 +142,95 @@
 
 /* Button positioning */
 .creatio-satelite {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    position: relative;
+    display: flex !important;
+    flex-direction: row !important; /* Принудительно горизонтальное расположение */
+    gap: 8px !important;
+    align-items: center !important;
+    position: relative !important;
+}
+
+/* Floating Container Styles - ВАЖНО: НЕ переопределять позицию! */
+.creatio-satelite-floating {
+  /* Не задаем position, top, left, right - это делает JavaScript! */
+  z-index: 1000 !important;
+  display: flex !important;
+  flex-direction: row !important; /* Горизонтальное расположение кнопок */
+  gap: 8px !important;
+  cursor: move !important;
+  user-select: none !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important; /* Прозрачный фон */
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.creatio-satelite-configuration,
+.creatio-satelite-shell {
+  display: flex !important;
+  flex-direction: row !important; /* Принудительно горизонтальное расположение */
+  gap: 8px !important;
+  align-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+}
+
+/* Configuration page buttons inherit system button styling */
+.creatio-satelite-configuration .scripts-menu-button,
+.creatio-satelite-configuration .actions-button,
+.creatio-satelite-shell .scripts-menu-button,
+.creatio-satelite-shell .actions-button {
+  width: auto !important;
+  min-width: 120px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important; /* Убираем letter-spacing */
+  text-transform: none !important; /* Убираем uppercase */
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12) !important;
+  border: none !important;
+  outline: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.creatio-satelite-configuration .scripts-menu-button,
+.creatio-satelite-shell .scripts-menu-button {
+  background-color: #1976d2 !important;
+  color: #fff !important;
+}
+
+.creatio-satelite-configuration .scripts-menu-button:hover,
+.creatio-satelite-shell .scripts-menu-button:hover {
+  background-color: #1565c0 !important;
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12) !important;
+}
+
+.creatio-satelite-configuration .actions-button,
+.creatio-satelite-shell .actions-button {
+  background-color: #ff5722 !important;
+  color: #fff !important;
+}
+
+.creatio-satelite-configuration .actions-button:hover,
+.creatio-satelite-shell .actions-button:hover {
+  background-color: #f4511e !important;
+  box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12) !important;
 }
 
 /* Menu Items Container - Matching Creatio System Menu */
@@ -158,10 +243,17 @@
   max-width: 320px !important;
   backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
+  position: fixed !important;
+  z-index: 9999 !important;
+  display: none !important; /* По умолчанию скрыто */
 }
 
 .scripts-menu-container.visible, .actions-menu-container.visible {
     display: block !important;
+}
+
+.scripts-menu-container.hidden, .actions-menu-container.hidden {
+    display: none !important;
 }
 
 /* Individual Menu Items - Matching Creatio System Menu Items */
@@ -232,87 +324,6 @@
     color: rgba(0,0,0,.38) !important;
     cursor: default !important;
 }
-
-/* Configuration Page Specific Styles */
-.creatio-satelite-floating {
-  position: fixed !important;
-  top: 20px !important;
-  right: 20px !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  pointer-events: auto !important;
-}
-
-.creatio-satelite-configuration {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0;
-  background: none;
-  border: none;
-  width: auto;
-}
-
-/* Configuration page buttons inherit system button styling */
-.creatio-satelite-configuration .scripts-menu-button,
-.creatio-satelite-configuration .actions-button {
-  width: auto;
-  min-width: 120px;
-  padding: 0 16px;
-  margin: 0;
-  height: 32px;
-  min-height: 32px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: normal; /* Убираем letter-spacing */
-  text-transform: none; /* Убираем uppercase */
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);
-  border: none;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.creatio-satelite-configuration .scripts-menu-button {
-  background-color: #1976d2;
-  color: #fff;
-}
-
-.creatio-satelite-configuration .scripts-menu-button:hover {
-  background-color: #1565c0;
-  box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
-}
-
-.creatio-satelite-configuration .actions-button {
-  background-color: #ff5722;
-  color: #fff;
-}
-
-.creatio-satelite-configuration .actions-button:hover {
-  background-color: #f4511e;
-  box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12);
-}
-
-.creatio-satelite-configuration .scripts-menu-button img {
-  width: 16px;
-  height: 16px;
-  margin-right: 8px;
-}
-
-.creatio-satelite-configuration .actions-button-icon {
-  margin-right: 8px;
-  font-size: 14px;
-}
-
-/* Menu positioning is handled by JavaScript adjustMenuPosition function */
 
 .mat-flat-button,
 .crt-menu-item.mat-flat-button,
