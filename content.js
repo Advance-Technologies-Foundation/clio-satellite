@@ -96,13 +96,17 @@ function debugLog(message) {
 }
 
 function hideMenuContainer(menuContainer) {
-  menuContainer.classList.remove('visible');
-  menuContainer.classList.add('hidden');
+  if (menuContainer) {
+    menuContainer.classList.remove('visible');
+    menuContainer.classList.add('hidden');
+  }
 }
 
 function showMenuContainer(menuContainer) {
-  menuContainer.classList.remove('hidden');
-  menuContainer.classList.add('visible');
+  if (menuContainer) {
+    menuContainer.classList.remove('hidden');
+    menuContainer.classList.add('visible');
+  }
 }
 
 // Function to check if current page is a Creatio page (Shell or Configuration)
@@ -372,8 +376,16 @@ function createScriptsMenu() {
   }
 
   const pageType = getCreatioPageType();
-  if (!pageType) {
-    debugLog('Page type not recognized, skipping menu creation');
+  
+  // Block menu creation on login pages or unrecognized pages
+  if (!pageType || pageType === 'login') {
+    debugLog(`Page type is ${pageType || 'unrecognized'}, skipping menu creation`);
+    return false;
+  }
+
+  // Only allow menu creation on shell and configuration pages
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Page type ${pageType} not supported for menu creation`);
     return false;
   }
 
@@ -1091,13 +1103,19 @@ function checkCreatioPageAndCreateMenu() {
   debugLog("Checking for Creatio page");
   const pageType = getCreatioPageType();
   
+  // Remove menu from inappropriate pages first
+  if (removeMenuFromPage()) {
+    debugLog('Menu removed from inappropriate page');
+    return false;
+  }
+  
   // Block menu creation on login pages
   if (pageType === 'login') {
     debugLog('Login page detected - Navigation/Actions menu creation blocked');
     return false;
   }
   
-  if (pageType && !menuCreated) {
+  if (pageType && !menuCreated && (pageType === 'shell' || pageType === 'configuration')) {
     debugLog(`${pageType} page detected, creating scripts menu`);
     const success = createScriptsMenu();
     if (success) {
@@ -1108,7 +1126,7 @@ function checkCreatioPageAndCreateMenu() {
       return false;
     }
   } else if (pageType) {
-    debugLog(`${pageType} page detected but menu already created`);
+    debugLog(`${pageType} page detected but menu already created or page type not supported`);
   } else {
     debugLog('No Creatio page detected');
   }
@@ -1121,7 +1139,15 @@ function checkShellAndCreateMenu() {
 }
 
 // Initial check with slight delay to let page load
-setTimeout(checkCreatioPageAndCreateMenu, 1000);
+setTimeout(() => {
+  // Early check to prevent menu creation on login pages
+  const initialPageType = getCreatioPageType();
+  if (initialPageType === 'login') {
+    debugLog('LOGIN PAGE DETECTED on initial check - Skipping Navigation/Actions menu initialization');
+    return; // Exit early to prevent any menu creation on login pages
+  }
+  checkCreatioPageAndCreateMenu();
+}, 1000);
 
 // Check again when DOM content is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -1187,6 +1213,13 @@ const observer = new MutationObserver(mutations => {
     }
   }
 
+  // Always check for inappropriate pages and remove menu if needed
+  const pageType = getCreatioPageType();
+  if (pageType === 'login' || !pageType) {
+    removeMenuFromPage();
+    return;
+  }
+
   if (shouldCheck && !menuCreated) {
     debugLog('Significant DOM changes detected, checking for Creatio page');
     if (hasLeftContainer) {
@@ -1196,4 +1229,42 @@ const observer = new MutationObserver(mutations => {
   }
 });
 
+// Function to remove menu from inappropriate pages
+function removeMenuFromPage() {
+  const pageType = getCreatioPageType();
+  
+  // Remove Navigation/Actions menu if it exists on login pages or unrecognized pages
+  if (!pageType || pageType === 'login') {
+    // Only remove Navigation and Actions buttons, NOT login-related buttons
+    const navigationButtonWrapper = document.querySelector('.creatio-satelite:not(.auto-login-button):not(.settings-button)');
+    const floatingContainer = document.querySelector('.creatio-satelite-floating');
+    const menuContainer = document.querySelector('.creatio-satelite-menu-container');
+    
+    if (navigationButtonWrapper) {
+      debugLog('Removing Navigation/Actions buttons from inappropriate page');
+      navigationButtonWrapper.remove();
+    }
+    
+    if (floatingContainer) {
+      debugLog('Removing floating container from inappropriate page');
+      floatingContainer.remove();
+    }
+    
+    if (menuContainer) {
+      debugLog('Removing menu container from inappropriate page');
+      menuContainer.remove();
+    }
+    
+    // Reset flags for Navigation/Actions menu only
+    menuCreated = false;
+    actionsMenuCreated = false;
+    
+    return true;
+  }
+  
+  return false;
+}
+
+// Call removeMenuFromPage on initial load and on significant DOM changes
+setTimeout(removeMenuFromPage, 1000);
 observer.observe(document.body, { childList: true, subtree: true });
