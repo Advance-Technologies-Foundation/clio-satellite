@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Action Button Test - Clio Satellite</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .configuration-simulation {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 4px;
+      position: relative;
+      min-height: 400px;
+      margin-bottom: 20px;
+    }
+    
+    /* Configuration page elements */
+    .left-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 200px;
+      height: 200px;
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    
+    /* Correct Actions button from configuration */
+    .action-button {
+      width: 120px;
+      height: 36px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      position: absolute;
+      top: 60px;
+      left: 250px;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .action-button:hover {
+      background: #0056b3;
+    }
+    
+    .mat-button-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mat-select-arrow-wrapper {
+      display: flex;
+      align-items: center;
+    }
+    
+    .mat-select-arrow {
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid white;
+      width: 0;
+      height: 0;
+    }
+    
+    /* Simulate a wrong button (close button) */
+    .close-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 30px;
+      height: 30px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+    
+    .test-buttons {
+      margin-top: 20px;
+    }
+    
+    .test-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    
+    .test-btn:hover {
+      background: #218838;
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      border-radius: 4px;
+      color: #155724;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    
+    .ts-workspace-section {
+      display: none;
+    }
+    
+    .info-box {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .info-box h3 {
+      margin-top: 0;
+      color: #0c5460;
+    }
+    
+    .button-info {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+  <link rel="stylesheet" href="menu-item-clean.css">
+  <link rel="stylesheet" href="styles/shell.css">
+</head>
+<body>
+  <div class="test-container">
+    <h1>🎯 Configuration Action Button Test</h1>
+    
+    <div class="info-box">
+      <h3>Test Description</h3>
+      <p>This test verifies that the floating container positions correctly relative to the <strong>Actions button</strong> (not the close button).</p>
+      <p>The Actions button has the following attributes:</p>
+      <div class="button-info">
+        &lt;button mat-button="" class="mat-focus-indicator mat-menu-trigger action-button mat-button mat-button-base"&gt;
+      </div>
+      <p>Selector used: <code>button[mat-button].action-button</code></p>
+    </div>
+    
+    <div class="configuration-simulation">
+      <div class="left-container">
+        <strong>Left Container</strong>
+        <p>This simulates the configuration page left panel</p>
+      </div>
+      
+      <!-- Close button (should NOT be the target) -->
+      <button class="close-button">×</button>
+      
+      <!-- Correct Actions button (should be the target) -->
+      <button class="action-button" mat-button="" aria-haspopup="menu" aria-expanded="false">
+        <span class="mat-button-wrapper">
+          <div>Actions</div>
+          <div class="mat-select-arrow-wrapper">
+            <div class="mat-select-arrow"></div>
+          </div>
+        </span>
+        <span matripple="" class="mat-ripple mat-button-ripple"></span>
+        <span class="mat-button-focus-overlay"></span>
+      </button>
+      
+      <!-- Marker for workspace section -->
+      <ts-workspace-section style="display: block;"></ts-workspace-section>
+      
+      <div class="test-buttons">
+        <button class="test-btn" onclick="testCorrectPositioning()">Test Correct Positioning</button>
+        <button class="test-btn" onclick="debugButtonSelection()">Debug Button Selection</button>
+        <button class="test-btn" onclick="clearFloatingContainers()">Clear Containers</button>
+      </div>
+      
+      <div id="status" class="status" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script src="content.js"></script>
+  <script>
+    function testCorrectPositioning() {
+      console.log('🔧 Testing correct positioning...');
+      clearFloatingContainers();
+      
+      setTimeout(() => {
+        const result = createScriptsMenu();
+        const status = document.getElementById('status');
+        
+        if (result) {
+          const floating = document.querySelector('.creatio-satelite-floating');
+          if (floating) {
+            status.textContent = '✅ Configuration floating container created successfully';
+            status.className = 'status';
+            
+            // Check positioning after a delay
+            setTimeout(() => {
+              const actionButton = document.querySelector('button[mat-button].action-button');
+              const closeButton = document.querySelector('.close-button');
+              
+              if (actionButton) {
+                const actionRect = actionButton.getBoundingClientRect();
+                const floatingRect = floating.getBoundingClientRect();
+                
+                console.log('Action button rect:', actionRect);
+                console.log('Floating container rect:', floatingRect);
+                
+                const isPositionedCorrectly = floatingRect.left > actionRect.right + 10;
+                const isVerticallyAligned = Math.abs(floatingRect.top + floatingRect.height/2 - actionRect.top - actionRect.height/2) < 20;
+                
+                // Check if positioned relative to close button (wrong)
+                const closeRect = closeButton.getBoundingClientRect();
+                const isNearCloseButton = Math.abs(floatingRect.left - closeRect.right) < 50;
+                
+                if (isNearCloseButton) {
+                  status.textContent = '❌ ERROR: Container positioned relative to close button (wrong target)';
+                  status.className = 'status error';
+                } else if (isPositionedCorrectly && isVerticallyAligned) {
+                  status.textContent = '✅ Perfect! Container is correctly positioned relative to Actions button';
+                  status.className = 'status';
+                } else {
+                  status.textContent = `⚠️ Positioning needs adjustment. Correct X: ${isPositionedCorrectly}, Correct Y: ${isVerticallyAligned}`;
+                  status.className = 'status error';
+                }
+              } else {
+                status.textContent = '❌ Action button not found with selector button[mat-button].action-button';
+                status.className = 'status error';
+              }
+            }, 1000);
+          } else {
+            status.textContent = '❌ Configuration floating container not found';
+            status.className = 'status error';
+          }
+        } else {
+          status.textContent = '❌ Failed to create configuration menu';
+          status.className = 'status error';
+        }
+        
+        status.style.display = 'block';
+      }, 100);
+    }
+    
+    function debugButtonSelection() {
+      console.log('🔍 Debugging button selection...');
+      
+      const actionButton = document.querySelector('button[mat-button].action-button');
+      const closeButton = document.querySelector('.close-button');
+      const allButtons = document.querySelectorAll('button');
+      
+      console.log('Action button found:', actionButton);
+      console.log('Close button found:', closeButton);
+      console.log('All buttons:', allButtons);
+      
+      const status = document.getElementById('status');
+      
+      if (actionButton) {
+        const rect = actionButton.getBoundingClientRect();
+        status.textContent = `✅ Action button found at position: ${rect.left}, ${rect.top}, size: ${rect.width}x${rect.height}`;
+        status.className = 'status';
+      } else {
+        status.textContent = '❌ Action button not found with selector button[mat-button].action-button';
+        status.className = 'status error';
+      }
+      
+      status.style.display = 'block';
+    }
+    
+    function clearFloatingContainers() {
+      const containers = document.querySelectorAll('.creatio-satelite-floating');
+      containers.forEach(container => container.remove());
+      
+      const menuContainers = document.querySelectorAll('.creatio-satelite-menu-container');
+      menuContainers.forEach(container => container.remove());
+      
+      // Reset global flags
+      menuCreated = false;
+      actionsMenuCreated = false;
+      
+      // Clear status message
+      document.getElementById('status').style.display = 'none';
+      
+      console.log('🧹 Cleared all floating containers');
+    }
+    
+    // Initialize
+    window.addEventListener('load', () => {
+      console.log('🚀 Configuration action button test page loaded');
+      console.log('📍 Click "Test Correct Positioning" to verify the fix');
+    });
+  </script>
+</body>
+</html>

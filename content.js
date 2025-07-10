@@ -824,90 +824,8 @@ function createScriptsMenu() {
     if (pageType === 'configuration') {
       // For Configuration page, create a floating container for buttons
       if (targetContainer) {
-        // Получаем отступы для позиционирования
-        const filters = document.querySelector('.workspace-items-filters');
-        const leftContainer = document.querySelector('.left-container');
-        let leftOffset = 20;
-        let topOffset = 20;
-        if (filters) {
-          const filtersRect = filters.getBoundingClientRect();
-          leftOffset = filtersRect.left;
-        }
-        if (leftContainer) {
-          const leftRect = leftContainer.getBoundingClientRect();
-          topOffset = leftRect.top;
-        }
-        // Create a floating button container that doesn't affect layout
-        const floatingContainer = document.createElement('div');
-        floatingContainer.className = 'creatio-satelite-floating';
-        floatingContainer.style.cssText = `
-          position: fixed;
-          top: ${topOffset}px;
-          left: ${leftOffset}px;
-          z-index: 1000;
-          display: flex;
-          flex-direction: row;
-          gap: 8px;
-          cursor: move;
-          user-select: none;
-          width: auto;
-          height: auto;
-          background: transparent;
-          padding: 0;
-          border: none;
-          box-shadow: none;
-          border-radius: 0;
-          min-width: auto;
-          max-width: none;
-          box-sizing: border-box;
-        `;
-        
-        // Add drag functionality
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-        
-        // Add drag functionality
-        floatingContainer.addEventListener('mousedown', (e) => {
-          if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = floatingContainer.getBoundingClientRect();
-            initialX = rect.left;
-            initialY = rect.top;
-            floatingContainer.style.cursor = 'grabbing';
-            e.preventDefault();
-          }
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
-            const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
-            
-            floatingContainer.style.left = newX + 'px';
-            floatingContainer.style.top = newY + 'px';
-            floatingContainer.style.right = 'auto';
-          }
-        });
-        
-        document.addEventListener('mouseup', () => {
-          if (isDragging) {
-            isDragging = false;
-            floatingContainer.style.cursor = 'move';
-          }
-        });
-        
-        floatingContainer.appendChild(buttonWrapper);
-        document.body.appendChild(floatingContainer);
-        
-        // Add special class for configuration page styling
-        buttonWrapper.classList.add('creatio-satelite-configuration');
-        // Удаляем возможный конфликтующий стиль flex-direction
-        buttonWrapper.style.flexDirection = 'row';
-        debugLog('Buttons placed in draggable floating container for Configuration page');
+        debugLog('Creating floating container for configuration page');
+        setupConfigurationFloatingContainer(buttonWrapper);
       }
     } else if (pageType === 'shell') {
       // For Shell page, create floating container with proper positioning
@@ -932,36 +850,42 @@ function createScriptsMenu() {
   }
 }
 
-// Function to position floating container relative to crt-global-search element
+// Function to position floating container relative to crt-global-search element or action-button
 function positionFloatingContainerRelativeToSearch() {
   const floatingContainer = document.querySelector('.creatio-satelite-floating');
-  const searchElement = document.querySelector('crt-global-search');
   
-  if (!floatingContainer || !searchElement) {
+  // For shell pages, position relative to search element
+  const searchElement = document.querySelector('crt-global-search');
+  // For configuration pages, position relative to action-button with mat-button attribute
+  const actionButton = document.querySelector('button[mat-button].action-button');
+  
+  const targetElement = searchElement || actionButton;
+  
+  if (!floatingContainer || !targetElement) {
     debugLog('Cannot position floating container - missing elements');
     return false;
   }
   
-  // Get the position and dimensions of the search element
-  const searchRect = searchElement.getBoundingClientRect();
+  // Get the position and dimensions of the target element
+  const targetRect = targetElement.getBoundingClientRect();
   const containerRect = floatingContainer.getBoundingClientRect();
   
-  // Check if search element has proper dimensions (not collapsed)
-  if (searchRect.width < 50 || searchRect.height < 20) {
-    debugLog(`Search element dimensions too small: ${searchRect.width}x${searchRect.height}, skipping positioning`);
+  // Check if target element has proper dimensions (not collapsed)
+  if (targetRect.width < 50 || targetRect.height < 20) {
+    debugLog(`Target element dimensions too small: ${targetRect.width}x${targetRect.height}, skipping positioning`);
     return false;
   }
   
-  // Check if search element is visible (not hidden)
-  const computedStyle = window.getComputedStyle(searchElement);
+  // Check if target element is visible (not hidden)
+  const computedStyle = window.getComputedStyle(targetElement);
   if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
-    debugLog('Search element is not visible, skipping positioning');
+    debugLog('Target element is not visible, skipping positioning');
     return false;
   }
   
-  // Calculate position: right of search element, centered vertically
-  const leftPosition = searchRect.right + 20; // 20px gap after search element
-  const topPosition = searchRect.top + (searchRect.height - containerRect.height) / 2;
+  // Calculate position: right of target element, centered vertically
+  const leftPosition = targetRect.right + 20; // 20px gap after target element
+  const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2;
   
   // Ensure the container stays within viewport bounds
   const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
@@ -972,7 +896,8 @@ function positionFloatingContainerRelativeToSearch() {
   floatingContainer.style.top = finalTop + 'px';
   floatingContainer.style.right = 'auto';
   
-  debugLog(`Positioned floating container relative to search element: left=${finalLeft}, top=${finalTop}, searchWidth=${searchRect.width}`);
+  const elementType = searchElement ? 'search' : 'action-button';
+  debugLog(`Positioned floating container relative to ${elementType} element: left=${finalLeft}, top=${finalTop}, targetWidth=${targetRect.width}`);
   return true;
 }
 
@@ -1087,13 +1012,116 @@ function setupShellFloatingContainer(buttonWrapper) {
   return floatingContainer;
 }
 
-// Function placeButtonNextToSearch removed - buttons will remain in floating container only
-
-// Function updateMenuPosition removed - buttons will remain in floating container only
-
-// Function moveButtonToToolbar removed - buttons will remain in floating container only
-
-// Position observer removed - buttons will remain in floating container only
+// Function to setup floating container for configuration page with proper positioning
+function setupConfigurationFloatingContainer(buttonWrapper) {
+  // Create a floating button container for configuration page
+  const floatingContainer = document.createElement('div');
+  floatingContainer.className = 'creatio-satelite-floating';
+  floatingContainer.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    cursor: move;
+    user-select: none;
+    width: auto;
+    height: auto;
+    background: transparent;
+    padding: 0;
+    min-width: auto;
+    max-width: none;
+    box-sizing: border-box;
+  `;
+  
+  // Add drag functionality
+  let isDragging = false;
+  let startX, startY, initialX, initialY;
+  
+  floatingContainer.addEventListener('mousedown', (e) => {
+    if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = floatingContainer.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+      floatingContainer.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + deltaX));
+      const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + deltaY));
+      
+      floatingContainer.style.left = newX + 'px';
+      floatingContainer.style.top = newY + 'px';
+      floatingContainer.style.right = 'auto';
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      floatingContainer.style.cursor = 'move';
+    }
+  });
+  
+  floatingContainer.appendChild(buttonWrapper);
+  document.body.appendChild(floatingContainer);
+  
+  // Add special class for configuration page styling
+  buttonWrapper.classList.add('creatio-satelite-configuration');
+  buttonWrapper.style.flexDirection = 'row';
+  
+  // Position relative to action-button element after delays to ensure DOM is fully loaded
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 300);
+  
+  // Try positioning again after more delays in case action button loads later
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 800);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 1500);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 2500);
+  
+  // Re-position when window is resized
+  window.addEventListener('resize', () => {
+    if (!isDragging) {
+      positionFloatingContainerRelativeToSearch();
+    }
+  });
+  
+  // Add periodic positioning check for newly created containers
+  let positionCheckCount = 0;
+  const maxPositionChecks = 20;
+  const positionCheckInterval = setInterval(() => {
+    positionCheckCount++;
+    const positioned = positionFloatingContainerRelativeToSearch();
+    
+    // Stop checking after successful positioning or max attempts
+    if (positioned || positionCheckCount >= maxPositionChecks) {
+      clearInterval(positionCheckInterval);
+      debugLog(`Configuration position check completed after ${positionCheckCount} attempts`);
+    }
+  }, 150);
+  
+  debugLog('Configuration floating container created and positioned relative to action-button element');
+  return floatingContainer;
+}
 
 // Debug function to check current page status - can be called from console
 window.creatioSatelliteDebug = function() {

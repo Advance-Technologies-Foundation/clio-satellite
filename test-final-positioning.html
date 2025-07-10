@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Positioning Test - Clio Satellite</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .shell-simulation {
+      background: #1e1e1e;
+      color: white;
+      padding: 20px;
+      border-radius: 4px;
+      position: relative;
+      min-height: 300px;
+    }
+    
+    .configuration-simulation {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 4px;
+      position: relative;
+      min-height: 300px;
+    }
+    
+    /* Shell page elements */
+    crt-global-search {
+      display: block;
+      width: 300px;
+      height: 40px;
+      background: #333;
+      border: 1px solid #555;
+      border-radius: 4px;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      line-height: 40px;
+      text-align: center;
+      color: #ccc;
+    }
+    
+    /* Configuration page elements */
+    .left-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 200px;
+      height: 200px;
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    
+    .action-button {
+      width: 120px;
+      height: 36px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      position: absolute;
+      top: 60px;
+      left: 250px;
+    }
+    
+    .action-button:hover {
+      background: #0056b3;
+    }
+    
+    .test-buttons {
+      margin-top: 20px;
+    }
+    
+    .test-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    
+    .test-btn:hover {
+      background: #218838;
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      border-radius: 4px;
+      color: #155724;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    
+    .ts-workspace-section {
+      display: none;
+    }
+  </style>
+  <link rel="stylesheet" href="menu-item-clean.css">
+  <link rel="stylesheet" href="styles/shell.css">
+</head>
+<body>
+  <div class="test-container">
+    <h1>🚀 Final Positioning Test - Clio Satellite Extension</h1>
+    
+    <div class="test-section">
+      <h2>🖥️ Shell Page Simulation</h2>
+      <div class="shell-simulation">
+        <crt-global-search>Global Search Element</crt-global-search>
+        <div class="test-buttons">
+          <button class="test-btn" onclick="testShellPositioning()">Test Shell Positioning</button>
+          <button class="test-btn" onclick="clearFloatingContainers()">Clear Containers</button>
+        </div>
+        <div id="shell-status" class="status" style="display: none;"></div>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h2>⚙️ Configuration Page Simulation</h2>
+      <div class="configuration-simulation">
+        <div class="left-container">
+          <strong>Left Container</strong>
+          <p>This simulates the configuration page left panel</p>
+        </div>
+        <button class="action-button" mat-button="" aria-haspopup="menu" aria-expanded="false">
+          <span class="mat-button-wrapper">
+            <div>Actions</div>
+            <div class="mat-select-arrow-wrapper">
+              <div class="mat-select-arrow"></div>
+            </div>
+          </span>
+          <span matripple="" class="mat-ripple mat-button-ripple"></span>
+          <span class="mat-button-focus-overlay"></span>
+        </button>
+        <ts-workspace-section style="display: block;"></ts-workspace-section>
+        <div class="test-buttons">
+          <button class="test-btn" onclick="testConfigurationPositioning()">Test Configuration Positioning</button>
+          <button class="test-btn" onclick="clearFloatingContainers()">Clear Containers</button>
+        </div>
+        <div id="config-status" class="status" style="display: none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="content.js"></script>
+  <script>
+    // Test functions
+    function testShellPositioning() {
+      console.log('🔧 Testing shell positioning...');
+      clearFloatingContainers();
+      
+      setTimeout(() => {
+        // Simulate shell page detection
+        const result = createScriptsMenu();
+        const status = document.getElementById('shell-status');
+        
+        if (result) {
+          const floating = document.querySelector('.creatio-satelite-floating');
+          if (floating) {
+            status.textContent = '✅ Shell floating container created successfully';
+            status.className = 'status';
+            
+            // Check positioning after a delay
+            setTimeout(() => {
+              const searchElement = document.querySelector('crt-global-search');
+              if (searchElement) {
+                const searchRect = searchElement.getBoundingClientRect();
+                const floatingRect = floating.getBoundingClientRect();
+                
+                const isPositionedCorrectly = floatingRect.left > searchRect.right + 10;
+                const isVerticallyAligned = Math.abs(floatingRect.top + floatingRect.height/2 - searchRect.top - searchRect.height/2) < 10;
+                
+                if (isPositionedCorrectly && isVerticallyAligned) {
+                  status.textContent = '✅ Shell positioning is correct - container is right of search element and vertically centered';
+                } else {
+                  status.textContent = '⚠️ Shell positioning needs adjustment - check alignment';
+                  status.className = 'status error';
+                }
+              }
+            }, 1000);
+          } else {
+            status.textContent = '❌ Shell floating container not found';
+            status.className = 'status error';
+          }
+        } else {
+          status.textContent = '❌ Failed to create shell menu';
+          status.className = 'status error';
+        }
+        
+        status.style.display = 'block';
+      }, 100);
+    }
+    
+    function testConfigurationPositioning() {
+      console.log('🔧 Testing configuration positioning...');
+      clearFloatingContainers();
+      
+      setTimeout(() => {
+        // Simulate configuration page detection
+        const result = createScriptsMenu();
+        const status = document.getElementById('config-status');
+        
+        if (result) {
+          const floating = document.querySelector('.creatio-satelite-floating');
+          if (floating) {
+            status.textContent = '✅ Configuration floating container created successfully';
+            status.className = 'status';
+            
+            // Check positioning after a delay
+            setTimeout(() => {
+              const actionButton = document.querySelector('button[mat-button].action-button');
+              if (actionButton) {
+                const actionRect = actionButton.getBoundingClientRect();
+                const floatingRect = floating.getBoundingClientRect();
+                
+                const isPositionedCorrectly = floatingRect.left > actionRect.right + 10;
+                const isVerticallyAligned = Math.abs(floatingRect.top + floatingRect.height/2 - actionRect.top - actionRect.height/2) < 10;
+                
+                if (isPositionedCorrectly && isVerticallyAligned) {
+                  status.textContent = '✅ Configuration positioning is correct - container is right of action button and vertically centered';
+                } else {
+                  status.textContent = '⚠️ Configuration positioning needs adjustment - check alignment';
+                  status.className = 'status error';
+                }
+              } else {
+                status.textContent = '❌ Action button not found with correct selector';
+                status.className = 'status error';
+              }
+            }, 1000);
+          } else {
+            status.textContent = '❌ Configuration floating container not found';
+            status.className = 'status error';
+          }
+        } else {
+          status.textContent = '❌ Failed to create configuration menu';
+          status.className = 'status error';
+        }
+        
+        status.style.display = 'block';
+      }, 100);
+    }
+    
+    function clearFloatingContainers() {
+      const containers = document.querySelectorAll('.creatio-satelite-floating');
+      containers.forEach(container => container.remove());
+      
+      const menuContainers = document.querySelectorAll('.creatio-satelite-menu-container');
+      menuContainers.forEach(container => container.remove());
+      
+      // Reset global flags
+      menuCreated = false;
+      actionsMenuCreated = false;
+      
+      // Clear status messages
+      document.getElementById('shell-status').style.display = 'none';
+      document.getElementById('config-status').style.display = 'none';
+      
+      console.log('🧹 Cleared all floating containers');
+    }
+    
+    // Initialize debug mode
+    window.addEventListener('load', () => {
+      console.log('🚀 Final positioning test page loaded');
+      console.log('📍 Use the test buttons to verify positioning for both page types');
+    });
+  </script>
+</body>
+</html>
