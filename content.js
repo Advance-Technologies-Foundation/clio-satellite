@@ -445,7 +445,7 @@ function createScriptsMenu() {
   menuButton.setAttribute('mat-flat-button', '');
   menuButton.setAttribute('color', 'primary');
   menuButton.className = 'mat-focus-indicator scripts-menu-button mat-flat-button mat-button-base mat-primary';
-  menuButton.title = 'Navigation';
+  menuButton.title = 'Clio satellite';
   menuButton.setAttribute('aria-haspopup', 'menu');
   menuButton.setAttribute('aria-expanded', 'false');
   
@@ -457,16 +457,18 @@ function createScriptsMenu() {
   const menuButtonCaption = document.createElement('div');
   menuButtonCaption.className = 'compile-button-caption';
   
-  // Create navigation icon (globe with continents)
+  // Create rocket icon (VS Code style)
   const navIcon = document.createElement('span');
   navIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
-    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/>
-    <path d="M2 8h12M8 1a15 15 0 0 1 4 7 15 15 0 0 1-4 7 15 15 0 0 1-4-7 15 15 0 0 1 4-7z" stroke="currentColor" stroke-width="1.2" fill="none"/>
-    <path d="M3.5 5.5c1.5-1 3-1.5 4.5-1.5s3 .5 4.5 1.5M3.5 10.5c1.5 1 3 1.5 4.5 1.5s3-.5 4.5-1.5" stroke="currentColor" stroke-width="1" fill="none"/>
+    <path d="M8.109 1.023c.133-.133.35-.133.482 0l6.276 6.276c.133.133.133.35 0 .482l-6.276 6.276c-.133.133-.35.133-.482 0L1.833 7.781c-.133-.133-.133-.35 0-.482L8.109 1.023z" fill="currentColor"/>
+    <path d="M10.5 6.5L9 5l-1 1 1.5 1.5L10.5 6.5z" fill="white"/>
+    <path d="M13.5 3.5L12 2l-1 1 1.5 1.5L13.5 3.5z" fill="white"/>
+    <path d="M4.5 12.5L3 11l-1 1 1.5 1.5L4.5 12.5z" fill="white"/>
+    <path d="M2 13l1-1 1 1-1 1-1-1z" fill="white"/>
   </svg>`;
   
   menuButtonCaption.appendChild(navIcon);
-  menuButtonCaption.appendChild(document.createTextNode('Navigation'));
+  menuButtonCaption.appendChild(document.createTextNode('Clio satellite'));
   // Create arrow wrapper (dropdown indicator)
   const menuArrowWrapper = document.createElement('div');
   menuArrowWrapper.className = 'mat-select-arrow-wrapper';
@@ -495,7 +497,6 @@ function createScriptsMenu() {
   actionsButton.setAttribute('mat-flat-button', '');
   actionsButton.setAttribute('color', 'accent');
   actionsButton.className = 'mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent';
-  actionsButton.title = 'Actions';
   actionsButton.setAttribute('aria-haspopup', 'menu');
   actionsButton.setAttribute('aria-expanded', 'false');
   
@@ -507,15 +508,13 @@ function createScriptsMenu() {
   const actionsButtonCaption = document.createElement('div');
   actionsButtonCaption.className = 'compile-button-caption';
   
-  // Create actions icon (gear/settings with action lines)
+  // Create actions icon (lightning bolt - system actions)
   const actionsIcon = document.createElement('span');
-  actionsIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
-    <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/>
-    <path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/>
+  actionsIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6.5 1L2 7h4l-1 8L11 9H7l1.5-8z" fill="currentColor"/>
   </svg>`;
   
   actionsButtonCaption.appendChild(actionsIcon);
-  actionsButtonCaption.appendChild(document.createTextNode('Actions'));
   // Create arrow wrapper (dropdown indicator)
   const actionsArrowWrapper = document.createElement('div');
   actionsArrowWrapper.className = 'mat-select-arrow-wrapper';
