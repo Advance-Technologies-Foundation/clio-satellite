@@ -410,3 +410,12 @@
 .creatio-satelite .actions-button svg {
   color: #fff !important;
 }
+
+body .scripts-menu-container .crt-menu-item.mat-flat-button,
+body .actions-menu-container .crt-menu-item.mat-flat-button {
+  background: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
