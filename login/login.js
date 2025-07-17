@@ -90,20 +90,19 @@
     loginCaption.classList.add('creatio-satelite');
     loginCaption.classList.add('auto-login-button');
     loginCaption.textContent = 'Login with profile';
-    loginCaption.style.width = (loginButton.offsetWidth || 200) + 'px';
-    loginCaption.style.height = (loginButton.offsetHeight || 40) + 'px';
+    loginCaption.style.width = loginButton.offsetWidth + 'px';
+    loginCaption.style.height = loginButton.offsetHeight + 'px';
     loginCaption.style.padding = '8px 16px';
     loginCaption.style.backgroundColor = 'rgb(255, 87, 34)'; // Новый цвет для кнопки LOGIN WITH PROFILE
     loginCaption.style.color = 'white';
     loginCaption.style.border = 'none';
     loginCaption.style.borderRadius = '4px';
     loginCaption.style.cursor = 'pointer';
-    loginCaption.classList.add('auto-login-button');
-    loginCaption.textContent = 'Login with profile';
-    loginCaption.style.width = loginButton.offsetWidth + 'px';
-    loginCaption.style.height = loginButton.offsetHeight + 'px';
     loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
-    loginCaption.style.padding = window.getComputedStyle(loginButton).padding;
+    loginCaption.style.display = 'flex';
+    loginCaption.style.alignItems = 'center';
+    loginCaption.style.justifyContent = 'center';
+    loginCaption.style.textAlign = 'center';
 
     // Create settings button
     const settingsButton = document.createElement('button');
