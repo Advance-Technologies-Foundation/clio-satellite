@@ -43,6 +43,18 @@
     .actions-button {
         background-color: #ff5722;
         position: relative;
+        padding-right: 8px !important;
+    }
+    
+    /* More specific selector for actions button padding */
+    .mat-focus-indicator.actions-button.mat-flat-button.mat-button-base.mat-accent {
+        padding-right: 8px !important;
+    }
+    
+    /* Configuration page specific actions button padding */
+    .creatio-satelite-configuration .actions-button,
+    .creatio-satelite-floating .actions-button {
+        padding-right: 8px !important;
     }
 
     .actions-button:hover::after {

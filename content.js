@@ -448,6 +448,7 @@ function createScriptsMenu() {
   menuButton.title = 'Clio satellite';
   menuButton.setAttribute('aria-haspopup', 'menu');
   menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.style.setProperty('padding-right', '8px', 'important'); // Add padding-right: 8px !important style
   
   // Create button wrapper span
   const menuButtonWrapper = document.createElement('span');
@@ -500,7 +501,8 @@ function createScriptsMenu() {
   actionsButton.className = 'mat-focus-indicator actions-button mat-flat-button mat-button-base mat-accent';
   actionsButton.setAttribute('aria-haspopup', 'menu');
   actionsButton.setAttribute('aria-expanded', 'false');
-  
+  actionsButton.style.setProperty('padding-right', '8px', 'important'); // Add padding-right: 8px !important style
+
   // Create button wrapper span
   const actionsButtonWrapper = document.createElement('span');
   actionsButtonWrapper.className = 'mat-button-wrapper';
@@ -855,8 +857,19 @@ function createScriptsMenu() {
 function positionFloatingContainerRelativeToSearch() {
   const floatingContainer = document.querySelector('.creatio-satelite-floating');
   
-  // For shell pages, position relative to search element
-  const searchElement = document.querySelector('crt-global-search');
+  // For shell pages, try multiple selectors for search element
+  let searchElement = document.querySelector('crt-global-search');
+  if (!searchElement) {
+    // Try alternative selectors in case the search element has different structure
+    searchElement = document.querySelector('[data-item-marker="GlobalSearch"]');
+  }
+  if (!searchElement) {
+    searchElement = document.querySelector('.global-search');
+  }
+  if (!searchElement) {
+    searchElement = document.querySelector('input[placeholder*="Search"], input[placeholder*="search"]');
+  }
+  
   // For configuration pages, position relative to action-button with mat-button attribute
   const actionButton = document.querySelector('button[mat-button].action-button');
   
@@ -872,7 +885,7 @@ function positionFloatingContainerRelativeToSearch() {
   const containerRect = floatingContainer.getBoundingClientRect();
   
   // Check if target element has proper dimensions (not collapsed)
-  if (targetRect.width < 50 || targetRect.height < 20) {
+  if (targetRect.width < 20 || targetRect.height < 10) {
     debugLog(`Target element dimensions too small: ${targetRect.width}x${targetRect.height}, skipping positioning`);
     return false;
   }
@@ -881,6 +894,12 @@ function positionFloatingContainerRelativeToSearch() {
   const computedStyle = window.getComputedStyle(targetElement);
   if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
     debugLog('Target element is not visible, skipping positioning');
+    return false;
+  }
+  
+  // Check if target element is actually in the viewport
+  if (targetRect.top < 0 || targetRect.left < 0 || targetRect.bottom > window.innerHeight || targetRect.right > window.innerWidth) {
+    debugLog('Target element is outside viewport, skipping positioning');
     return false;
   }
   
@@ -973,9 +992,13 @@ function setupShellFloatingContainer(buttonWrapper) {
   // Position relative to search element after delays to ensure DOM is fully loaded
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
-  }, 300);
+  }, 100);
   
   // Try positioning again after more delays in case search element loads later
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 300);
+  
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
   }, 800);
@@ -988,6 +1011,19 @@ function setupShellFloatingContainer(buttonWrapper) {
     positionFloatingContainerRelativeToSearch();
   }, 2500);
   
+  // Additional positioning attempts for slow loading pages
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 4000);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 6000);
+  
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 8000);
+  
   // Re-position when window is resized
   window.addEventListener('resize', () => {
     if (!isDragging) {
@@ -997,7 +1033,7 @@ function setupShellFloatingContainer(buttonWrapper) {
   
   // Add periodic positioning check for newly created containers
   let positionCheckCount = 0;
-  const maxPositionChecks = 20; // Increased from 10 to 20
+  const maxPositionChecks = 40; // Increased from 20 to 40 for slower pages
   const positionCheckInterval = setInterval(() => {
     positionCheckCount++;
     const positioned = positionFloatingContainerRelativeToSearch();
@@ -1007,7 +1043,36 @@ function setupShellFloatingContainer(buttonWrapper) {
       clearInterval(positionCheckInterval);
       debugLog(`Position check completed after ${positionCheckCount} attempts`);
     }
-  }, 150); // Reduced from 200ms to 150ms for more frequent checks
+  }, 100); // Reduced from 150ms to 100ms for more frequent checks
+  
+  // Add MutationObserver to detect when search element appears
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // Check if search element was added
+        const searchElement = document.querySelector('crt-global-search');
+        if (searchElement && !floatingContainer.hasAttribute('data-positioned')) {
+          const positioned = positionFloatingContainerRelativeToSearch();
+          if (positioned) {
+            floatingContainer.setAttribute('data-positioned', 'true');
+            observer.disconnect();
+            debugLog('Search element detected by MutationObserver, positioning successful');
+          }
+        }
+      }
+    });
+  });
+  
+  // Start observing the document with the configured parameters
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Stop observing after 10 seconds to avoid memory leaks
+  setTimeout(() => {
+    observer.disconnect();
+  }, 10000);
   
   debugLog('Shell floating container created and positioned relative to search element');
   return floatingContainer;
