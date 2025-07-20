@@ -80,11 +80,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // indicate async sendResponse
     }
     else if (message.action === 'openOptionsPage') {
+        console.log('[Background] Received openOptionsPage request');
         // Attempt to open the options page
         chrome.runtime.openOptionsPage(() => {
             if (chrome.runtime.lastError) {
+                console.error('[Background] openOptionsPage error:', chrome.runtime.lastError);
                 // Fallback for browsers where openOptionsPage might not work (e.g., Edge)
+                console.log('[Background] Using fallback: creating new tab');
                 chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+            } else {
+                console.log('[Background] openOptionsPage success');
             }
         });
         sendResponse({ success: true });

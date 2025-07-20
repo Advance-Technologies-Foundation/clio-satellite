@@ -4,7 +4,37 @@ let actionsMenuCreated = false; // New flag to track Actions menu creation
 
 const debugExtension = true;
 
+// Hotkey command handler
+function handleHotkeyCommand(command) {
+  debugLog(`Hotkey command received: ${command}`);
+  
+  const pageType = getCreatioPageType();
+  if (pageType !== 'shell' && pageType !== 'configuration') {
+    debugLog(`Hotkey blocked: page type is ${pageType}`);
+    return;
+  }
+
+  switch (command) {
+    case 'toggle_navigation_menu':
+      toggleNavigationMenu();
+      break;
+    case 'toggle_actions_menu':
+      toggleActionsMenu();
+      break;
+    case 'restart_app':
+      executeQuickAction('RestartApp');
+      break;
+    case 'open_settings':
+      executeQuickAction('Settings');
+      break;
+    default:
+      debugLog(`Unknown hotkey command: ${command}`);
+  }
+}
+
 function executeQuickAction(actionName) {
+  debugLog(`executeQuickAction called with: ${actionName}`);
+  
   const pageType = getCreatioPageType();
   if (pageType !== 'shell' && pageType !== 'configuration') {
     debugLog(`Quick action blocked: page type is ${pageType}`);
@@ -12,7 +42,10 @@ function executeQuickAction(actionName) {
   }
 
   if (actionName === 'Settings') {
-    chrome.runtime.sendMessage({action: 'openOptionsPage'});
+    debugLog('Sending openOptionsPage message to background script');
+    chrome.runtime.sendMessage({action: 'openOptionsPage'}, (response) => {
+      debugLog('openOptionsPage response:', response);
+    });
     return;
   }
 
@@ -175,12 +208,12 @@ function getCreatioPageType() {
     document.querySelector('meta[content*="auth"]')
   ];
 
-  const loginDetected = loginIndicators.some(indicator => indicator);
+  // const loginDetected = loginIndicators.some(indicator => indicator);
 
-  if (loginDetected) {
-    debugLog('LOGIN PAGE DETECTED - Navigation/Actions buttons will be blocked');
-    return 'login'; // Return special type for login pages
-  }
+  // if (loginDetected) {
+  //   debugLog('LOGIN PAGE DETECTED - Navigation/Actions buttons will be blocked');
+  //   return 'login'; // Return special type for login pages
+  // }
 
   // Check for Configuration page first
   const configurationIndicator = document.querySelector('ts-workspace-section');
@@ -567,6 +600,11 @@ function createScriptsMenu() {
     'Settings': 'Open plugin settings'
   };
 
+  // Hotkey mappings for menu items
+  const hotkeyMappings = {
+    'Settings': 'Ctrl+Shift+S'
+  };
+
   const scriptFiles = [
     'Features.js',
     'Application_Managment.js',
@@ -586,7 +624,7 @@ function createScriptsMenu() {
     const isSettingsItem = scriptName === 'Settings';
     const menuIcons = {
       'Features': {
-        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path></svg>`,
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path>`,
         name: 'online-help'
       },
       'Application_Managment': {
@@ -653,6 +691,10 @@ function createScriptsMenu() {
     if (iconData.name) matIcon.setAttribute('data-mat-icon-name', iconData.name);
     matIcon.innerHTML = iconData.svg;
 
+    // caption container
+    const captionContainer = document.createElement('div');
+    captionContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%; padding-right: 8px;';
+
     // caption
     const caption = document.createElement('span');
     caption.className = 'caption';
@@ -662,9 +704,21 @@ function createScriptsMenu() {
     let displayName = ' ' + scriptName.replace(/_/g, ' ');
     caption.textContent = displayName;
 
+    // Add hotkey info if available
+    const hotkey = hotkeyMappings[scriptName];
+    if (hotkey) {
+      const hotkeySpan = document.createElement('span');
+      hotkeySpan.style.cssText = 'font-size: 11px; color: #666; margin-left: 8px; font-weight: normal;';
+      hotkeySpan.textContent = hotkey;
+      captionContainer.appendChild(caption);
+      captionContainer.appendChild(hotkeySpan);
+    } else {
+      captionContainer.appendChild(caption);
+    }
+
     // Сборка
     button.appendChild(matIcon);
-    button.appendChild(caption);
+    button.appendChild(captionContainer);
     menuItem.appendChild(button);
 
     // Add divider before Settings item
@@ -723,12 +777,19 @@ function createScriptsMenu() {
       const lastUser = data.lastLoginProfiles[origin];
       const profile = data.userProfiles.find(p => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
+      
+      // Hotkey mappings for actions
+      const actionHotkeys = {
+        'RestartApp': 'Ctrl+Shift+9',
+        'FlushRedisDB': 'Ctrl+Shift+F'
+      };
+      
       const actionDetails = {
         'RestartApp': { file: 'RestartApp.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M8 2v6l4 2\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`, name: 'refresh', desc: 'Reload the Creatio application' },
         'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database' },
         'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
         'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="#fff" stroke-width="2" /></svg>`, name: 'block', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -754,21 +815,39 @@ function createScriptsMenu() {
         iconWrap.setAttribute('data-mat-icon-type', 'svg');
         iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
         iconWrap.innerHTML = detail.icon || '';
+        
+        // Create caption container for hotkey display
+        const captionContainer = document.createElement('div');
+        captionContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%; padding-right: 8px;';
+        
         // Create caption
         const caption = document.createElement('span');
         caption.className = 'caption';
         caption.setAttribute('crttextoverflowtitle', '');
 
         // Simple display name without underlines
-		  let displayName = scriptName
-			  .replace('Autologin', ' autologin')
-			  .replace(/([a-z])([A-Z])/g, '$1 $2')  // Space between lower-to-upper transitions
-			  .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')  // Space in acronyms like RedisDB
-			  .trim();
+        let displayName = scriptName
+          .replace('Autologin', ' autologin')
+          .replace(/([a-z])([A-Z])/g, '$1 $2')  // Space between lower-to-upper transitions
+          .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')  // Space in acronyms like RedisDB
+          .trim();
         caption.textContent = displayName;
+        
+        // Add hotkey info if available
+        const hotkey = actionHotkeys[scriptName];
+        if (hotkey) {
+          const hotkeySpan = document.createElement('span');
+          hotkeySpan.style.cssText = 'font-size: 11px; color: #666; margin-left: 8px; font-weight: normal;';
+          hotkeySpan.textContent = hotkey;
+          captionContainer.appendChild(caption);
+          captionContainer.appendChild(hotkeySpan);
+        } else {
+          captionContainer.appendChild(caption);
+        }
+        
         // Assemble button
         menuButtonEl.appendChild(iconWrap);
-        menuButtonEl.appendChild(caption);
+        menuButtonEl.appendChild(captionContainer);
         menuItem.appendChild(menuButtonEl);
         menuItem.addEventListener('click', () => {
           if (scriptName==='EnableAutologin') {
@@ -1385,102 +1464,39 @@ const observer = new MutationObserver(mutations => {
   }
 });
 
-// Function to remove menu from inappropriate pages - REMOVED
-// Navigation and Actions buttons will no longer be automatically removed
-
-// Removed automatic menu removal functionality
-// Navigation and Actions buttons will no longer be automatically removed from pages
-
-// Function to monitor and restore buttons if they disappear
-function monitorButtons() {
+// Add direct keyboard event listener for hotkeys as fallback
+document.addEventListener('keydown', (event) => {
+  // Only process on Creatio pages
   const pageType = getCreatioPageType();
-
-  // Only monitor on shell and configuration pages
   if (pageType !== 'shell' && pageType !== 'configuration') {
     return;
   }
 
-  // Check if Navigation and Actions buttons exist
-  const navigationButton = document.querySelector('.scripts-menu-button');
-  const actionsButton = document.querySelector('.actions-button');
-  const floatingContainer = document.querySelector('.creatio-satelite-floating');
-
-  // If buttons are missing and menu should be created, recreate them
-  if (!navigationButton || !actionsButton || !floatingContainer) {
-    debugLog('Buttons missing, attempting to restore...');
-
-    // Reset flags to allow recreation
-    menuCreated = false;
-    actionsMenuCreated = false;
-
-    // Recreate the menu
-    const success = createScriptsMenu();
-    if (success) {
-      debugLog('Buttons successfully restored');
-    } else {
-      debugLog('Failed to restore buttons');
+  // Check for our specific key combinations
+  if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey) {
+    let command = null;
+    
+    // Use safe key combinations that don't conflict with Chrome
+    switch (event.code) {
+      case 'KeyM': // Ctrl+Shift+M - Menu navigation
+        command = 'toggle_navigation_menu';
+        break;
+      case 'KeyA': // Ctrl+Shift+A - Actions menu (working)
+        command = 'toggle_actions_menu';
+        break;
+      case 'Digit9': // Ctrl+Shift+9 - Restart app (working)
+        command = 'restart_app';
+        break;
+      case 'KeyS': // Ctrl+Shift+S - Settings
+        command = 'open_settings';
+        break;
     }
-  } else if (pageType === 'shell' && floatingContainer) {
-    // For shell page, check if the container is properly positioned relative to search
-    const searchElement = document.querySelector('crt-global-search');
-    if (searchElement) {
-      // Check if search element has proper dimensions
-      const searchRect = searchElement.getBoundingClientRect();
-      if (searchRect.width < 50 || searchRect.height < 20) {
-        debugLog('Search element dimensions too small, attempting to position container');
-        positionFloatingContainerRelativeToSearch();
-        return;
-      }
-
-      // Check if container position needs adjustment
-      const containerRect = floatingContainer.getBoundingClientRect();
-
-      // If container is too far from search element, reposition it
-      const expectedLeft = searchRect.right + 20; // 20px gap after search element
-      const currentLeft = containerRect.left;
-
-      if (Math.abs(currentLeft - expectedLeft) > 50) {
-        debugLog('Container position needs adjustment, repositioning...');
-        positionFloatingContainerRelativeToSearch();
-      }
-    } else {
-      // If search element not found, try to position the container
-      debugLog('Search element not found, attempting to position container');
-      positionFloatingContainerRelativeToSearch();
+    
+    if (command) {
+      debugLog(`Executing command from hotkey: ${command}`);
+      handleHotkeyCommand(command);
+      event.preventDefault();
+      event.stopPropagation();
     }
   }
-}
-
-// Start monitoring every 2 seconds
-setInterval(monitorButtons, 2000);
-
-// Test function for creating shell floating menu
-window.createShellFloatingMenu = function() {
-  console.log('Creating shell floating menu...');
-
-  // Remove existing menus
-  document.querySelectorAll('.creatio-satelite-floating, .creatio-satelite').forEach(el => el.remove());
-
-  // Reset flags
-  menuCreated = false;
-  actionsMenuCreated = false;
-
-  // Force page type to shell for testing
-  const originalGetCreatioPageType = getCreatioPageType;
-  window.getCreatioPageType = () => 'shell';
-
-  // Create menu
-  const result = createScriptsMenu();
-
-  // Restore original function
-  window.getCreatioPageType = originalGetCreatioPageType;
-
-  console.log('Shell floating menu creation result:', result);
-  return result;
-};
-
-// Export positioning function for testing
-window.positionFloatingContainerRelativeToSearch = positionFloatingContainerRelativeToSearch;
-
-// Export setup function for testing
-window.setupShellFloatingContainer = setupShellFloatingContainer;
+}, true); // Use capturing phase to ensure it runs first
