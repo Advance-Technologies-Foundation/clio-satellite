@@ -861,6 +861,17 @@ function createScriptsMenu() {
 function positionFloatingContainerRelativeToSearch() {
   const floatingContainer = document.querySelector('.creatio-satelite-floating');
 
+  if (!floatingContainer) {
+    debugLog('Cannot position floating container - floating container not found');
+    return false;
+  }
+
+  // Don't auto-reposition if user has manually positioned the container
+  if (floatingContainer.hasAttribute('data-user-positioned')) {
+    debugLog('Container was manually positioned by user, skipping auto-positioning');
+    return true;
+  }
+
   // For shell pages, try multiple selectors for search element
   let searchElement = document.querySelector('crt-global-search');
   if (!searchElement) {
@@ -879,10 +890,24 @@ function positionFloatingContainerRelativeToSearch() {
 
   const targetElement = searchElement || actionButton;
 
-  if (!floatingContainer || !targetElement) {
-    debugLog('Cannot position floating container - missing elements');
-    return false;
+  // If no target element found, use fallback positioning (center horizontally, 16px from top)
+  if (!targetElement) {
+    debugLog('No anchor elements found, using fallback positioning');
+    const containerRect = floatingContainer.getBoundingClientRect();
+    const centerX = (window.innerWidth - containerRect.width) / 2;
+    const fallbackTop = 16;
+
+    floatingContainer.style.left = centerX + 'px';
+    floatingContainer.style.top = fallbackTop + 'px';
+    floatingContainer.style.right = 'auto';
+    floatingContainer.setAttribute('data-fallback-position', 'true');
+
+    debugLog(`Fallback positioning applied: center horizontally (${centerX}px), 16px from top`);
+    return true;
   }
+
+  // Remove fallback attribute if positioning relative to target element
+  floatingContainer.removeAttribute('data-fallback-position');
 
   // Get the position and dimensions of the target element
   const targetRect = targetElement.getBoundingClientRect();
@@ -983,6 +1008,9 @@ function setupShellFloatingContainer(buttonWrapper) {
     if (isDragging) {
       isDragging = false;
       floatingContainer.style.cursor = 'move';
+      // Mark as manually positioned to prevent auto-repositioning
+      floatingContainer.setAttribute('data-user-positioned', 'true');
+      debugLog('Shell container manually positioned by user');
     }
   });
 
@@ -992,6 +1020,18 @@ function setupShellFloatingContainer(buttonWrapper) {
   // Add special class for shell page styling
   buttonWrapper.classList.add('creatio-satelite-shell');
   buttonWrapper.style.flexDirection = 'row';
+
+  // Add double-click to reset positioning for shell container
+  floatingContainer.addEventListener('dblclick', (e) => {
+    if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+      floatingContainer.removeAttribute('data-user-positioned');
+      floatingContainer.removeAttribute('data-fallback-position');
+      debugLog('Shell container: Reset to automatic positioning');
+      // Trigger repositioning
+      setTimeout(() => positionFloatingContainerRelativeToSearch(), 10);
+      e.preventDefault();
+    }
+  });
 
   // Position relative to search element after delays to ensure DOM is fully loaded
   setTimeout(() => {
@@ -1140,6 +1180,9 @@ function setupConfigurationFloatingContainer(buttonWrapper) {
     if (isDragging) {
       isDragging = false;
       floatingContainer.style.cursor = 'move';
+      // Mark as manually positioned to prevent auto-repositioning
+      floatingContainer.setAttribute('data-user-positioned', 'true');
+      debugLog('Configuration container manually positioned by user');
     }
   });
 
@@ -1149,6 +1192,18 @@ function setupConfigurationFloatingContainer(buttonWrapper) {
   // Add special class for configuration page styling
   buttonWrapper.classList.add('creatio-satelite-configuration');
   buttonWrapper.style.flexDirection = 'row';
+
+  // Add double-click to reset positioning for configuration container
+  floatingContainer.addEventListener('dblclick', (e) => {
+    if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
+      floatingContainer.removeAttribute('data-user-positioned');
+      floatingContainer.removeAttribute('data-fallback-position');
+      debugLog('Configuration container: Reset to automatic positioning');
+      // Trigger repositioning
+      setTimeout(() => positionFloatingContainerRelativeToSearch(), 10);
+      e.preventDefault();
+    }
+  });
 
   // Position relative to action-button element after delays to ensure DOM is fully loaded
   setTimeout(() => {

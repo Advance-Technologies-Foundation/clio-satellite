@@ -80,32 +80,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // indicate async sendResponse
     }
     else if (message.action === 'openOptionsPage') {
-        // Attempt to open the options page
-        chrome.runtime.openOptionsPage(() => {
-            if (chrome.runtime.lastError) {
-                // Fallback for browsers where openOptionsPage might not work (e.g., Edge)
-                chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
-            }
-        });
+        // Open the options page using runtime API
+        chrome.runtime.openOptionsPage();
         sendResponse({ success: true });
         return true; // Keep the message channel open for asynchronous response
     }
     else if (message.action === 'executeScript') {
-        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            const activeTabId = tabs[0].id;
-            const scriptPath = `scripts/${message.scriptPath}`;
-            // Inject extension script file directly, preserving extension APIs
-            chrome.scripting.executeScript({
-                target: { tabId: activeTabId },
-                world: 'MAIN',  // run in page context to access page globals
-                files: [scriptPath]
-              }).then(() => {
-                console.log(`Script ${scriptPath} injected successfully`);
-                sendResponse({ success: true });
-            }).catch(error => {
-                console.error(`Error injecting script ${scriptPath}:`, error);
-                sendResponse({ success: false, error: error.message });
-            });
+        // Use sender.tab.id instead of querying tabs
+        const activeTabId = sender.tab.id;
+        const scriptPath = `scripts/${message.scriptPath}`;
+        // Inject extension script file directly, preserving extension APIs
+        chrome.scripting.executeScript({
+            target: { tabId: activeTabId },
+            world: 'MAIN',  // run in page context to access page globals
+            files: [scriptPath]
+          }).then(() => {
+            console.log(`Script ${scriptPath} injected successfully`);
+            sendResponse({ success: true });
+        }).catch(error => {
+            console.error(`Error injecting script ${scriptPath}:`, error);
+            sendResponse({ success: false, error: error.message });
         });
         return true; // Keep the message channel open for asynchronous response
     }

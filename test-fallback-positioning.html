@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Fallback Positioning - Clio Satellite</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    
+    .page-header {
+      background: #333;
+      color: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .content-area {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .test-info {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .simulate-button {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    
+    .simulate-button:hover {
+      background: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>Fallback Positioning Test Page</h1>
+    <p>This page has NO anchor elements (no search bar, no action buttons)</p>
+  </div>
+
+  <div class="test-info">
+    <h3>Expected Behavior:</h3>
+    <ul>
+      <li>Plugin buttons should appear horizontally centered</li>
+      <li>Positioned 16px from the top of the page</li>
+      <li>Should be draggable</li>
+      <li>Should re-center when window is resized</li>
+    </ul>
+  </div>
+
+  <div class="content-area">
+    <h2>Test Controls</h2>
+    <p>Use these buttons to simulate different page conditions:</p>
+    
+    <button class="simulate-button" onclick="window.location.reload()">
+      Reload Page (Test Fresh Load)
+    </button>
+    
+    <button class="simulate-button" onclick="simulateResize()">
+      Simulate Window Resize
+    </button>
+    
+    <button class="simulate-button" onclick="toggleContent()">
+      Toggle Content (Test DOM Changes)
+    </button>
+    
+    <button class="simulate-button" onclick="testDoubleClick()">
+      Test Double-Click Reset
+    </button>
+    
+    <button class="simulate-button" onclick="showContainerInfo()">
+      Show Container Info
+    </button>
+  </div>
+
+  <div class="content-area" id="toggleable-content">
+    <h2>Sample Content</h2>
+    <p>This is sample page content to simulate a real application page without standard Creatio elements.</p>
+    <p>The plugin should detect that no anchor elements (search bar, action buttons) are present and use fallback positioning.</p>
+    
+    <h3>Page Features Missing:</h3>
+    <ul>
+      <li>❌ No crt-global-search element</li>
+      <li>❌ No [data-item-marker="GlobalSearch"] element</li>
+      <li>❌ No .global-search element</li>
+      <li>❌ No search input fields</li>
+      <li>❌ No button[mat-button].action-button elements</li>
+    </ul>
+    
+    <h3>Expected Plugin Behavior:</h3>
+    <ul>
+      <li>✅ Detect absence of anchor elements</li>
+      <li>✅ Apply fallback positioning (center horizontal, 16px top)</li>
+      <li>✅ Add data-fallback-position attribute</li>
+      <li>✅ Apply special CSS styles for fallback mode</li>
+      <li>✅ Remain responsive to window resizing</li>
+      <li>✅ Allow manual repositioning via drag</li>
+      <li>✅ Double-click to reset to automatic positioning</li>
+    </ul>
+    
+    <h3>Testing Instructions:</h3>
+    <ol>
+      <li><strong>Initial Load:</strong> Buttons should appear centered horizontally, 16px from top</li>
+      <li><strong>Resize Window:</strong> Buttons should re-center when window width changes</li>
+      <li><strong>Drag Test:</strong> Click and drag buttons to new position</li>
+      <li><strong>Resize After Drag:</strong> Buttons should stay in user-defined position</li>
+      <li><strong>Reset Test:</strong> Double-click buttons to reset to auto-positioning</li>
+      <li><strong>Console Check:</strong> Open DevTools to see debug messages</li>
+    </ol>
+  </div>
+
+  <script>
+    function simulateResize() {
+      // Trigger a resize event
+      window.dispatchEvent(new Event('resize'));
+      console.log('Resize event triggered');
+    }
+    
+    function toggleContent() {
+      const content = document.getElementById('toggleable-content');
+      content.style.display = content.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    function testDoubleClick() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        container.dispatchEvent(new MouseEvent('dblclick', {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+        console.log('Double-click event dispatched to container');
+      } else {
+        console.log('No floating container found');
+      }
+    }
+    
+    function showContainerInfo() {
+      const container = document.querySelector('.creatio-satelite-floating');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const style = window.getComputedStyle(container);
+        console.log('=== Container Info ===');
+        console.log('Position:', {
+          left: style.left,
+          top: style.top,
+          right: style.right
+        });
+        console.log('Dimensions:', {
+          width: rect.width,
+          height: rect.height
+        });
+        console.log('Attributes:', {
+          userPositioned: container.hasAttribute('data-user-positioned'),
+          fallbackPosition: container.hasAttribute('data-fallback-position')
+        });
+        console.log('Window size:', {
+          width: window.innerWidth,
+          height: window.innerHeight
+        });
+        console.log('Expected center X:', (window.innerWidth - rect.width) / 2);
+      } else {
+        console.log('No floating container found');
+      }
+    }
+    
+    // Add some debug info to console
+    console.log('=== Fallback Positioning Test Page ===');
+    console.log('This page intentionally lacks Creatio anchor elements');
+    console.log('Check if plugin uses fallback positioning');
+    
+    // Check for anchor elements that the plugin looks for
+    setTimeout(() => {
+      const searchElement = document.querySelector('crt-global-search') || 
+                           document.querySelector('[data-item-marker="GlobalSearch"]') ||
+                           document.querySelector('.global-search') ||
+                           document.querySelector('input[placeholder*="Search"], input[placeholder*="search"]');
+      
+      const actionButton = document.querySelector('button[mat-button].action-button');
+      
+      console.log('Search element found:', !!searchElement);
+      console.log('Action button found:', !!actionButton);
+      console.log('Should use fallback positioning:', !searchElement && !actionButton);
+    }, 1000);
+  </script>
+</body>
+</html>
