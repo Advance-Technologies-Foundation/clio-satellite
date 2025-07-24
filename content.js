@@ -303,13 +303,13 @@ function adjustMenuPosition(relatedContainer, container) {
       extensionContainer.appendChild(container);
     }
 
-    // Position menu with initial values
+    // Position menu below button with normal spacing
     container.style.position = 'fixed';
     container.style.zIndex = '9999';
-    container.style.visibility = 'hidden'; // Hide for size calculation
-    container.style.top = (btnRect.bottom + 4) + 'px';
+    container.style.visibility = 'hidden';
+    container.style.top = (btnRect.bottom + 8) + 'px'; // 8px gap below button
     container.style.left = btnRect.left + 'px';
-    container.style.minWidth = btnRect.width + 'px'; // Min width = button width
+    container.style.minWidth = btnRect.width + 'px';
 
     // Force reflow to get actual dimensions
     container.offsetHeight;
@@ -319,31 +319,30 @@ function adjustMenuPosition(relatedContainer, container) {
 
     // Adjust position if menu goes outside screen bounds
     let newLeft = btnRect.left;
-    let newTop = btnRect.bottom + 4;
+    let newTop = btnRect.bottom + 8; // 8px gap below button
 
     if (menuRect.right > window.innerWidth) {
       newLeft = btnRect.right - menuRect.width;
-      // Ensure we don't go beyond left edge
       if (newLeft < 0) {
         newLeft = 0;
       }
     }
 
     if (menuRect.bottom > window.innerHeight) {
-      newTop = btnRect.top - menuRect.height - 4;
+      newTop = btnRect.top - menuRect.height - 8; // Show above button if no space below
     }
 
     // Apply final coordinates
     container.style.top = newTop + 'px';
     container.style.left = newLeft + 'px';
-    container.style.visibility = 'visible'; // Show menu
+    container.style.visibility = 'visible';
 
     return;
   }
 
-  // Normal positioning (Shell)
+  // Normal positioning (Shell) - standard spacing below button
   const rect = relatedContainer.getBoundingClientRect();
-  container.style.top = `${rect.bottom + 2}px`;
+  container.style.top = `${rect.bottom + 8}px`; // 8px gap below button
   container.style.left = `${rect.left}px`;
 }
 
@@ -914,12 +913,12 @@ function positionFloatingContainerRelativeToSearch() {
 
   const targetElement = searchElement || actionButton;
 
-  // If no target element found, use fallback positioning (center horizontally, 16px from top)
+  // If no target element found, use fallback positioning (center horizontally, higher position)
   if (!targetElement) {
     debugLog('No anchor elements found, using fallback positioning');
     const containerRect = floatingContainer.getBoundingClientRect();
     const centerX = (window.innerWidth - containerRect.width) / 2;
-    const fallbackTop = 16;
+    const fallbackTop = 16; // Keep original fallback top position
 
     floatingContainer.style.left = centerX + 'px';
     floatingContainer.style.top = fallbackTop + 'px';
@@ -956,9 +955,9 @@ function positionFloatingContainerRelativeToSearch() {
     return false;
   }
 
-  // Calculate position: right of target element, centered vertically
+  // Calculate position: left of target element, centered vertically BUT 20px higher
   const leftPosition = targetRect.right + 20; // 20px gap after target element
-  const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2;
+  const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2 - 20; // 20px higher
 
   // Ensure the container stays within viewport bounds
   const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
@@ -1058,6 +1057,11 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     }
   });
 
+  // Position relative to search element immediately
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 10);
+
   // Position relative to search element after delays to ensure DOM is fully loaded
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
@@ -1155,7 +1159,7 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
   floatingContainer.style.cssText = `
     position: fixed;
     top: 20px;
-    left: 20px;
+    right: 20px;
     z-index: 1000;
     display: flex;
     flex-direction: row;
@@ -1230,6 +1234,11 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
       e.preventDefault();
     }
   });
+
+  // Position relative to action-button element immediately
+  setTimeout(() => {
+    positionFloatingContainerRelativeToSearch();
+  }, 10);
 
   // Position relative to action-button element after delays to ensure DOM is fully loaded
   setTimeout(() => {
