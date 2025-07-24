@@ -996,6 +996,8 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     max-width: none;
     box-sizing: border-box;
     pointer-events: auto;
+    opacity: 0;
+    transition: opacity 3s ease;
   `;
 
   // Add drag functionality
@@ -1057,21 +1059,43 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     }
   });
 
-  // Position relative to search element immediately
+  // Single positioning attempt with proper visibility control
+  let positionAttempted = false;
+  
+  const attemptPositioning = () => {
+    if (positionAttempted) return;
+    
+    const searchElement = document.querySelector('crt-global-search');
+    if (searchElement) {
+      positionAttempted = true;
+      const positioned = positionFloatingContainerRelativeToSearch();
+      if (positioned) {
+        // Show container only after positioning
+        setTimeout(() => {
+          floatingContainer.style.opacity = '1';
+        }, 50);
+        debugLog('Shell container positioned and made visible');
+      }
+    }
+  };
+
+  // Try positioning immediately
+  setTimeout(attemptPositioning, 100);
+  
+  // Fallback: show container after delay even if positioning fails
   setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 10);
+    if (!positionAttempted) {
+      floatingContainer.style.opacity = '1';
+      debugLog('Shell container shown without positioning');
+    }
+  }, 1000);
 
   // Position relative to search element after delays to ensure DOM is fully loaded
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
-  }, 100);
-
-  // Try positioning again after more delays in case search element loads later
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
   }, 300);
 
+  // Try positioning again after more delays in case search element loads later
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
   }, 800);
@@ -1083,19 +1107,6 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
   setTimeout(() => {
     positionFloatingContainerRelativeToSearch();
   }, 2500);
-
-  // Additional positioning attempts for slow loading pages
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 4000);
-
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 6000);
-
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 8000);
 
   // Re-position when window is resized
   window.addEventListener('resize', () => {
@@ -1147,7 +1158,7 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     observer.disconnect();
   }, 10000);
 
-  debugLog('Shell floating container created and positioned relative to search element');
+  debugLog('Shell floating container created (hidden until positioned)');
   return floatingContainer;
 }
 
@@ -1174,6 +1185,8 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
     max-width: none;
     box-sizing: border-box;
     pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   `;
 
   // Add drag functionality
@@ -1235,28 +1248,23 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
     }
   });
 
-  // Position relative to action-button element immediately
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 10);
+  // Single positioning attempt with delay
+  let positionAttempted = false;
+  
+  const attemptPositioning = () => {
+    if (positionAttempted) return;
+    
+    positionAttempted = true;
+    const positioned = positionFloatingContainerRelativeToSearch();
+    // Show container regardless of positioning result
+    setTimeout(() => {
+      floatingContainer.style.opacity = '1';
+    }, 50);
+    debugLog('Configuration container shown');
+  };
 
-  // Position relative to action-button element after delays to ensure DOM is fully loaded
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 300);
-
-  // Try positioning again after more delays in case action button loads later
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 800);
-
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 1500);
-
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 2500);
+  // Try positioning after 200ms delay
+  setTimeout(attemptPositioning, 200);
 
   // Re-position when window is resized
   window.addEventListener('resize', () => {
@@ -1279,7 +1287,7 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
     }
   }, 150);
 
-  debugLog('Configuration floating container created and positioned relative to action-button element');
+  debugLog('Configuration floating container created (hidden until positioned)');
   return floatingContainer;
 }
 
