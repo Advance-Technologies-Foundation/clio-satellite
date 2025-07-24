@@ -282,7 +282,7 @@ function isShellPage() {
 }
 
 function adjustMenuPosition(relatedContainer, container) {
-  // Сбросить все смещения
+  // Reset positioning styles
   container.style.top = '';
   container.style.left = '';
   container.style.right = '';
@@ -291,38 +291,39 @@ function adjustMenuPosition(relatedContainer, container) {
   container.style.position = 'fixed';
   container.style.zIndex = '9999';
 
-  // Если кнопка внутри floatingContainer (конфигурация), позиционируем относительно экрана
+  // Check if button is inside floating container (configuration/shell pages)
   const floating = relatedContainer.closest('.creatio-satelite-floating');
   if (floating) {
-    // Получаем позицию кнопки относительно экрана
+    // Get button position relative to screen
     const btnRect = relatedContainer.getBoundingClientRect();
 
-    // Меню добавляем в body, а не в floating контейнер (сначала для получения размеров)
-    if (container.parentNode !== document.body) {
-      document.body.appendChild(container);
+    // Ensure menu is appended to extension container, not body
+    const extensionContainer = document.querySelector('.creatio-satelite-extension-container');
+    if (extensionContainer && container.parentNode !== extensionContainer) {
+      extensionContainer.appendChild(container);
     }
 
-    // Позиционируем меню с начальными значениями
+    // Position menu with initial values
     container.style.position = 'fixed';
     container.style.zIndex = '9999';
-    container.style.visibility = 'hidden'; // скрываем для расчета размеров
+    container.style.visibility = 'hidden'; // Hide for size calculation
     container.style.top = (btnRect.bottom + 4) + 'px';
     container.style.left = btnRect.left + 'px';
-    container.style.minWidth = btnRect.width + 'px'; // Минимальная ширина меню = ширине кнопки
+    container.style.minWidth = btnRect.width + 'px'; // Min width = button width
 
-    // Принудительно запускаем reflow для получения актуальных размеров
+    // Force reflow to get actual dimensions
     container.offsetHeight;
 
-    // Получаем размеры меню после применения стилей
+    // Get menu dimensions after applying styles
     const menuRect = container.getBoundingClientRect();
 
-    // Корректируем позицию если меню выходит за границы экрана
+    // Adjust position if menu goes outside screen bounds
     let newLeft = btnRect.left;
     let newTop = btnRect.bottom + 4;
 
     if (menuRect.right > window.innerWidth) {
       newLeft = btnRect.right - menuRect.width;
-      // Убеждаемся, что не выходим за левую границу
+      // Ensure we don't go beyond left edge
       if (newLeft < 0) {
         newLeft = 0;
       }
@@ -332,15 +333,15 @@ function adjustMenuPosition(relatedContainer, container) {
       newTop = btnRect.top - menuRect.height - 4;
     }
 
-    // Применяем финальные координаты
+    // Apply final coordinates
     container.style.top = newTop + 'px';
     container.style.left = newLeft + 'px';
-    container.style.visibility = 'visible'; // показываем меню
+    container.style.visibility = 'visible'; // Show menu
 
     return;
   }
 
-  // Обычное позиционирование (Shell)
+  // Normal positioning (Shell)
   const rect = relatedContainer.getBoundingClientRect();
   container.style.top = `${rect.bottom + 2}px`;
   container.style.left = `${rect.left}px`;
@@ -403,7 +404,7 @@ function createScriptsMenu() {
   debugLog('Creating scripts menu - start');
 
   // Prevent duplicate menu creation
-  if (menuCreated || document.querySelector('.scripts-menu-button')) {
+  if (menuCreated || document.querySelector('.creatio-satelite-extension-container .scripts-menu-button')) {
     debugLog('Menu already exists, skipping creation');
     return false;
   }
@@ -424,21 +425,27 @@ function createScriptsMenu() {
 
   debugLog(`Creating menu for page type: ${pageType}`);
 
-  let targetContainer = null;
+  // Create isolated extension container to prevent style conflicts
+  const extensionContainer = document.createElement('div');
+  extensionContainer.className = 'creatio-satelite-extension-container';
+  extensionContainer.style.cssText = `
+    position: fixed !important;
+    z-index: 999999 !important;
+    pointer-events: none !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+  `;
 
-  if (pageType === 'configuration') {
-    // For Configuration page, find the left-container
-    targetContainer = document.querySelector('.left-container');
-    if (!targetContainer) {
-      debugLog('Configuration page detected but .left-container not found, retrying later...');
-      return false;
-    }
-    debugLog('Configuration page: targeting .left-container');
-  }
-
-  // Create button wrapper with CSS class
+  // Create button wrapper with CSS class - all extension elements go here
   const buttonWrapper = document.createElement('div');
   buttonWrapper.className = 'creatio-satelite';
+  buttonWrapper.style.cssText = `
+    pointer-events: auto !important;
+    position: absolute !important;
+  `;
 
   // Create menu button with exact structure as Configuration buttons
   const menuButton = document.createElement('button');
@@ -586,7 +593,7 @@ function createScriptsMenu() {
     const isSettingsItem = scriptName === 'Settings';
     const menuIcons = {
       'Features': {
-        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path></svg>`,
+        svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path>`,
         name: 'online-help'
       },
       'Application_Managment': {
@@ -728,7 +735,7 @@ function createScriptsMenu() {
         'FlushRedisDB': { file: 'FlushRedisDB.js', icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"3\" y=\"3\" width=\"10\" height=\"10\" rx=\"2\" fill=\"currentColor\"/><path d=\"M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2" /></svg>`, name: 'delete', desc: 'Clear Redis database' },
         'EnableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"8\" cy=\"8\" r=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M5 8l2 2 4-4\" stroke=\"#fff\" stroke-width=\"2\"/></svg>`, name: 'check', desc: 'Enable autologin for this site' },
         'DisableAutologin': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="#fff" stroke-width="2" /></svg>`, name: 'block', desc: 'Disable autologin for this site' },
-        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
+        'Settings': { file: null, icon: `<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`, name: 'settings', desc: 'Open plugin settings' }
       };
       const actionsList = ['RestartApp', 'FlushRedisDB'];
       if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
@@ -791,26 +798,41 @@ function createScriptsMenu() {
   // Make refreshActionsMenu available globally for menu functions
   window.refreshActionsMenu = refreshActionsMenu;
 
-  actionsButton.addEventListener('click', (target) => {
+  actionsButton.addEventListener('click', (event) => {
+    event.stopPropagation();
     hideMenuContainer(menuContainer);
     refreshActionsMenu();
     showMenuContainer(actionsMenuContainer);
-    // Корректное позиционирование для всех страниц
     adjustMenuPosition(actionsButton, actionsMenuContainer);
   });
 
-  menuButton.addEventListener('click', (target) => {
+  menuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
     showMenuContainer(menuContainer);
     hideMenuContainer(actionsMenuContainer);
-    // Корректное позиционирование для всех страниц
     adjustMenuPosition(menuButton, menuContainer);
   });
 
+  // Updated click handler for closing menus
   document.addEventListener('click', (event) => {
-    if (!menuButton.contains(event.target) && !menuContainer.contains(event.target)) {
+    const extensionContainer = document.querySelector('.creatio-satelite-extension-container');
+    if (!extensionContainer) return;
+
+    const menuButton = extensionContainer.querySelector('.scripts-menu-button');
+    const actionsButton = extensionContainer.querySelector('.actions-button');
+    const menuContainer = extensionContainer.querySelector('.scripts-menu-container');
+    const actionsMenuContainer = extensionContainer.querySelector('.actions-menu-container');
+
+    // Check if click is outside extension elements
+    if (menuButton && menuContainer && 
+        !menuButton.contains(event.target) && 
+        !menuContainer.contains(event.target)) {
       hideMenuContainer(menuContainer);
     }
-    if (!actionsButton.contains(event.target) && !actionsMenuContainer.contains(event.target)) {
+    
+    if (actionsButton && actionsMenuContainer && 
+        !actionsButton.contains(event.target) && 
+        !actionsMenuContainer.contains(event.target)) {
       hideMenuContainer(actionsMenuContainer);
     }
   });
@@ -830,21 +852,23 @@ function createScriptsMenu() {
   try {
     if (pageType === 'configuration') {
       // For Configuration page, create a floating container for buttons
-      if (targetContainer) {
-        debugLog('Creating floating container for configuration page');
-        setupConfigurationFloatingContainer(buttonWrapper);
-      }
+      debugLog('Creating floating container for configuration page');
+      setupConfigurationFloatingContainer(buttonWrapper, extensionContainer);
     } else if (pageType === 'shell') {
       // For Shell page, create floating container with proper positioning
       debugLog('Creating floating container for shell page');
-      setupShellFloatingContainer(buttonWrapper);
+      setupShellFloatingContainer(buttonWrapper, extensionContainer);
     }
 
     const rootMenuContainer = document.createElement('div');
     rootMenuContainer.classList.add('creatio-satelite-menu-container');
     rootMenuContainer.appendChild(menuContainer);
     rootMenuContainer.appendChild(actionsMenuContainer);
-    document.body.appendChild(rootMenuContainer);
+    extensionContainer.appendChild(rootMenuContainer);
+    
+    // Add extension container to body
+    document.body.appendChild(extensionContainer);
+    
     debugLog('Scripts menu created successfully');
     menuCreated = true;
     actionsMenuCreated = true;
@@ -951,7 +975,7 @@ function positionFloatingContainerRelativeToSearch() {
 }
 
 // Function to setup floating container for shell page with proper positioning
-function setupShellFloatingContainer(buttonWrapper) {
+function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
   // Create a floating button container for shell page
   const floatingContainer = document.createElement('div');
   floatingContainer.className = 'creatio-satelite-floating';
@@ -972,6 +996,7 @@ function setupShellFloatingContainer(buttonWrapper) {
     min-width: auto;
     max-width: none;
     box-sizing: border-box;
+    pointer-events: auto;
   `;
 
   // Add drag functionality
@@ -1015,7 +1040,7 @@ function setupShellFloatingContainer(buttonWrapper) {
   });
 
   floatingContainer.appendChild(buttonWrapper);
-  document.body.appendChild(floatingContainer);
+  extensionContainer.appendChild(floatingContainer);
 
   // Add special class for shell page styling
   buttonWrapper.classList.add('creatio-satelite-shell');
@@ -1123,7 +1148,7 @@ function setupShellFloatingContainer(buttonWrapper) {
 }
 
 // Function to setup floating container for configuration page with proper positioning
-function setupConfigurationFloatingContainer(buttonWrapper) {
+function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) {
   // Create a floating button container for configuration page
   const floatingContainer = document.createElement('div');
   floatingContainer.className = 'creatio-satelite-floating';
@@ -1144,6 +1169,7 @@ function setupConfigurationFloatingContainer(buttonWrapper) {
     min-width: auto;
     max-width: none;
     box-sizing: border-box;
+    pointer-events: auto;
   `;
 
   // Add drag functionality
@@ -1187,7 +1213,7 @@ function setupConfigurationFloatingContainer(buttonWrapper) {
   });
 
   floatingContainer.appendChild(buttonWrapper);
-  document.body.appendChild(floatingContainer);
+  extensionContainer.appendChild(floatingContainer);
 
   // Add special class for configuration page styling
   buttonWrapper.classList.add('creatio-satelite-configuration');
@@ -1455,14 +1481,19 @@ function monitorButtons() {
     return;
   }
 
-  // Check if Navigation and Actions buttons exist
-  const navigationButton = document.querySelector('.scripts-menu-button');
-  const actionsButton = document.querySelector('.actions-button');
-  const floatingContainer = document.querySelector('.creatio-satelite-floating');
+  // Check if Navigation and Actions buttons exist within extension container
+  const extensionContainer = document.querySelector('.creatio-satelite-extension-container');
+  const navigationButton = extensionContainer ? extensionContainer.querySelector('.scripts-menu-button') : null;
+  const actionsButton = extensionContainer ? extensionContainer.querySelector('.actions-button') : null;
+  const floatingContainer = extensionContainer ? extensionContainer.querySelector('.creatio-satelite-floating') : null;
 
-  // If buttons are missing and menu should be created, recreate them
-  if (!navigationButton || !actionsButton || !floatingContainer) {
-    debugLog('Buttons missing, attempting to restore...');
+  // If extension container or buttons are missing, recreate them
+  if (!extensionContainer || !navigationButton || !actionsButton || !floatingContainer) {
+    debugLog('Extension container or buttons missing, attempting to restore...');
+
+    // Remove any existing partial containers
+    const existingContainers = document.querySelectorAll('.creatio-satelite-extension-container');
+    existingContainers.forEach(container => container.remove());
 
     // Reset flags to allow recreation
     menuCreated = false;
@@ -1471,9 +1502,9 @@ function monitorButtons() {
     // Recreate the menu
     const success = createScriptsMenu();
     if (success) {
-      debugLog('Buttons successfully restored');
+      debugLog('Extension container and buttons successfully restored');
     } else {
-      debugLog('Failed to restore buttons');
+      debugLog('Failed to restore extension container and buttons');
     }
   } else if (pageType === 'shell' && floatingContainer) {
     // For shell page, check if the container is properly positioned relative to search
