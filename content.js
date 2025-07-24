@@ -975,6 +975,8 @@ function positionFloatingContainerRelativeToSearch() {
 
 // Function to setup floating container for shell page with proper positioning
 function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
+  const pageType = 'shell';
+  
   // Create a floating button container for shell page
   const floatingContainer = document.createElement('div');
   floatingContainer.className = 'creatio-satelite-floating';
@@ -1036,7 +1038,12 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
       floatingContainer.style.cursor = 'move';
       // Mark as manually positioned to prevent auto-repositioning
       floatingContainer.setAttribute('data-user-positioned', 'true');
-      debugLog('Shell container manually positioned by user');
+      
+      // Save the new position
+      const rect = floatingContainer.getBoundingClientRect();
+      saveMenuPosition(rect.left, rect.top, pageType);
+      
+      debugLog('Shell container manually positioned by user and position saved');
     }
   });
 
@@ -1052,73 +1059,99 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       floatingContainer.removeAttribute('data-user-positioned');
       floatingContainer.removeAttribute('data-fallback-position');
+      
+      // Clear saved position
+      const positionKey = `menuPosition_${pageType}_${window.location.origin}`;
+      chrome.storage.local.remove([positionKey], () => {
+        debugLog('Shell container: Saved position cleared');
+      });
+      
       debugLog('Shell container: Reset to automatic positioning');
       // Trigger repositioning
-      setTimeout(() => positionFloatingContainerRelativeToSearch(), 10);
+      setTimeout(() => {
+        positionFloatingContainerRelativeToSearch();
+      }, 10);
       e.preventDefault();
     }
   });
 
-  // Single positioning attempt with proper visibility control
-  let positionAttempted = false;
-  
-  const attemptPositioning = () => {
-    if (positionAttempted) return;
-    
-    const searchElement = document.querySelector('crt-global-search');
-    if (searchElement) {
-      positionAttempted = true;
-      const positioned = positionFloatingContainerRelativeToSearch();
+  // Try to load saved position first
+  loadMenuPosition(pageType, (savedX, savedY) => {
+    if (savedX !== null && savedY !== null) {
+      // Apply saved position
+      const positioned = applySavedPosition(floatingContainer, savedX, savedY);
       if (positioned) {
-        // Show container only after positioning
+        // Show container after applying saved position
         setTimeout(() => {
           floatingContainer.style.opacity = '1';
         }, 50);
-        debugLog('Shell container positioned and made visible');
+        debugLog('Shell container positioned using saved coordinates and made visible');
+        return;
       }
     }
-  };
+    
+    // If no saved position or failed to apply, use automatic positioning
+    let positionAttempted = false;
+    
+    const attemptPositioning = () => {
+      if (positionAttempted) return;
+      
+      positionAttempted = true;
+      const positioned = positionFloatingContainerRelativeToSearch();
+      // Show container regardless of positioning result
+      setTimeout(() => {
+        floatingContainer.style.opacity = '1';
+      }, 50);
+      debugLog('Shell container shown');
+    };
 
-  // Try positioning immediately
-  setTimeout(attemptPositioning, 100);
-  
-  // Fallback: show container after delay even if positioning fails
-  setTimeout(() => {
-    if (!positionAttempted) {
-      floatingContainer.style.opacity = '1';
-      debugLog('Shell container shown without positioning');
-    }
-  }, 1000);
+    // Try positioning immediately
+    setTimeout(attemptPositioning, 100);
+    
+    // Fallback: show container after delay even if positioning fails
+    setTimeout(() => {
+      if (!positionAttempted) {
+        floatingContainer.style.opacity = '1';
+        debugLog('Shell container shown without positioning');
+      }
+    }, 1000);
 
-  // Position relative to search element after delays to ensure DOM is fully loaded
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 300);
+    // Position relative to search element after delays to ensure DOM is fully loaded
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 300);
 
-  // Try positioning again after more delays in case search element loads later
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 800);
+    // Try positioning again after more delays in case search element loads later
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 800);
 
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 1500);
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 1500);
 
-  setTimeout(() => {
-    positionFloatingContainerRelativeToSearch();
-  }, 2500);
+    setTimeout(() => {
+      positionFloatingContainerRelativeToSearch();
+    }, 2500);
+  });
 
-  // Re-position when window is resized
+  // Re-position when window is resized (only if not manually positioned)
   window.addEventListener('resize', () => {
-    if (!isDragging) {
+    if (!isDragging && !floatingContainer.hasAttribute('data-user-positioned')) {
       positionFloatingContainerRelativeToSearch();
     }
   });
 
-  // Add periodic positioning check for newly created containers
+  // Add periodic positioning check for newly created containers (only if not manually positioned)
   let positionCheckCount = 0;
   const maxPositionChecks = 40; // Increased from 20 to 40 for slower pages
   const positionCheckInterval = setInterval(() => {
+    // Skip if manually positioned
+    if (floatingContainer.hasAttribute('data-user-positioned')) {
+      clearInterval(positionCheckInterval);
+      return;
+    }
+    
     positionCheckCount++;
     const positioned = positionFloatingContainerRelativeToSearch();
 
@@ -1129,8 +1162,14 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
     }
   }, 100); // Reduced from 150ms to 100ms for more frequent checks
 
-  // Add MutationObserver to detect when search element appears
+  // Add MutationObserver to detect when search element appears (only if not manually positioned)
   const observer = new MutationObserver((mutations) => {
+    // Skip if manually positioned
+    if (floatingContainer.hasAttribute('data-user-positioned')) {
+      observer.disconnect();
+      return;
+    }
+    
     mutations.forEach((mutation) => {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         // Check if search element was added
@@ -1164,6 +1203,8 @@ function setupShellFloatingContainer(buttonWrapper, extensionContainer) {
 
 // Function to setup floating container for configuration page with proper positioning
 function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) {
+  const pageType = 'configuration';
+  
   // Create a floating button container for configuration page
   const floatingContainer = document.createElement('div');
   floatingContainer.className = 'creatio-satelite-floating';
@@ -1225,7 +1266,12 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
       floatingContainer.style.cursor = 'move';
       // Mark as manually positioned to prevent auto-repositioning
       floatingContainer.setAttribute('data-user-positioned', 'true');
-      debugLog('Configuration container manually positioned by user');
+      
+      // Save the new position
+      const rect = floatingContainer.getBoundingClientRect();
+      saveMenuPosition(rect.left, rect.top, pageType);
+      
+      debugLog('Configuration container manually positioned by user and position saved');
     }
   });
 
@@ -1241,6 +1287,13 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       floatingContainer.removeAttribute('data-user-positioned');
       floatingContainer.removeAttribute('data-fallback-position');
+      
+      // Clear saved position
+      const positionKey = `menuPosition_${pageType}_${window.location.origin}`;
+      chrome.storage.local.remove([positionKey], () => {
+        debugLog('Configuration container: Saved position cleared');
+      });
+      
       debugLog('Configuration container: Reset to automatic positioning');
       // Trigger repositioning
       setTimeout(() => positionFloatingContainerRelativeToSearch(), 10);
@@ -1248,35 +1301,57 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
     }
   });
 
-  // Single positioning attempt with delay
-  let positionAttempted = false;
-  
-  const attemptPositioning = () => {
-    if (positionAttempted) return;
+  // Try to load saved position first
+  loadMenuPosition(pageType, (savedX, savedY) => {
+    if (savedX !== null && savedY !== null) {
+      // Apply saved position
+      const positioned = applySavedPosition(floatingContainer, savedX, savedY);
+      if (positioned) {
+        // Show container after applying saved position
+        setTimeout(() => {
+          floatingContainer.style.opacity = '1';
+        }, 50);
+        debugLog('Configuration container positioned using saved coordinates and made visible');
+        return;
+      }
+    }
     
-    positionAttempted = true;
-    const positioned = positionFloatingContainerRelativeToSearch();
-    // Show container regardless of positioning result
-    setTimeout(() => {
-      floatingContainer.style.opacity = '1';
-    }, 50);
-    debugLog('Configuration container shown');
-  };
+    // If no saved position or failed to apply, use automatic positioning
+    let positionAttempted = false;
+    
+    const attemptPositioning = () => {
+      if (positionAttempted) return;
+      
+      positionAttempted = true;
+      const positioned = positionFloatingContainerRelativeToSearch();
+      // Show container regardless of positioning result
+      setTimeout(() => {
+        floatingContainer.style.opacity = '1';
+      }, 50);
+      debugLog('Configuration container shown');
+    };
 
-  // Try positioning after 200ms delay
-  setTimeout(attemptPositioning, 200);
+    // Try positioning after 200ms delay
+    setTimeout(attemptPositioning, 200);
+  });
 
-  // Re-position when window is resized
+  // Re-position when window is resized (only if not manually positioned)
   window.addEventListener('resize', () => {
-    if (!isDragging) {
+    if (!isDragging && !floatingContainer.hasAttribute('data-user-positioned')) {
       positionFloatingContainerRelativeToSearch();
     }
   });
 
-  // Add periodic positioning check for newly created containers
+  // Add periodic positioning check for newly created containers (only if not manually positioned)
   let positionCheckCount = 0;
   const maxPositionChecks = 20;
   const positionCheckInterval = setInterval(() => {
+    // Skip if manually positioned
+    if (floatingContainer.hasAttribute('data-user-positioned')) {
+      clearInterval(positionCheckInterval);
+      return;
+    }
+    
     positionCheckCount++;
     const positioned = positionFloatingContainerRelativeToSearch();
 
@@ -1289,6 +1364,58 @@ function setupConfigurationFloatingContainer(buttonWrapper, extensionContainer) 
 
   debugLog('Configuration floating container created (hidden until positioned)');
   return floatingContainer;
+}
+
+// Function to save menu position to storage
+function saveMenuPosition(x, y, pageType) {
+  const positionKey = `menuPosition_${pageType}_${window.location.origin}`;
+  const position = { x: x, y: y, timestamp: Date.now() };
+  
+  chrome.storage.local.set({ [positionKey]: position }, () => {
+    debugLog(`Menu position saved for ${pageType}: x=${x}, y=${y}`);
+  });
+}
+
+// Function to load menu position from storage
+function loadMenuPosition(pageType, callback) {
+  const positionKey = `menuPosition_${pageType}_${window.location.origin}`;
+  
+  chrome.storage.local.get([positionKey], (result) => {
+    const position = result[positionKey];
+    if (position) {
+      // Check if position is not too old (older than 30 days)
+      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+      if (Date.now() - position.timestamp < thirtyDaysInMs) {
+        debugLog(`Menu position loaded for ${pageType}: x=${position.x}, y=${position.y}`);
+        callback(position.x, position.y);
+        return;
+      } else {
+        debugLog(`Saved position for ${pageType} is too old, ignoring`);
+        // Clean up old position
+        chrome.storage.local.remove([positionKey]);
+      }
+    }
+    callback(null, null);
+  });
+}
+
+// Function to apply saved position to floating container
+function applySavedPosition(floatingContainer, x, y) {
+  // Ensure position is within current viewport bounds
+  const containerRect = floatingContainer.getBoundingClientRect();
+  const maxX = window.innerWidth - containerRect.width - 10;
+  const maxY = window.innerHeight - containerRect.height - 10;
+  
+  const finalX = Math.max(10, Math.min(maxX, x));
+  const finalY = Math.max(10, Math.min(maxY, y));
+  
+  floatingContainer.style.left = finalX + 'px';
+  floatingContainer.style.top = finalY + 'px';
+  floatingContainer.style.right = 'auto';
+  floatingContainer.setAttribute('data-user-positioned', 'true');
+  
+  debugLog(`Applied saved position: x=${finalX}, y=${finalY}`);
+  return true;
 }
 
 // Debug function to check current page status - can be called from console
@@ -1539,7 +1666,7 @@ function monitorButtons() {
       const containerRect = floatingContainer.getBoundingClientRect();
 
       // If container is too far from search element, reposition it
-      const expectedLeft = searchRect.right + 20; // 20px gap after search element
+      const expectedLeft = searchRect.right +  20; // 20px gap after search element
       const currentLeft = containerRect.left;
 
       if (Math.abs(currentLeft - expectedLeft) > 50) {
@@ -1586,4 +1713,5 @@ window.createShellFloatingMenu = function() {
 window.positionFloatingContainerRelativeToSearch = positionFloatingContainerRelativeToSearch;
 
 // Export setup function for testing
+
 window.setupShellFloatingContainer = setupShellFloatingContainer;
