@@ -30,6 +30,8 @@ h1, h2 {
 
 #user-list li span {
   font-weight: bold;
+  word-break: break-all;
+  max-width: 70%;
 }
 
 #add-user-form div {
@@ -43,14 +45,16 @@ h1, h2 {
 }
 
 #add-user-form input[type="text"],
-#add-user-form input[type="password"] {
+#add-user-form input[type="password"],
+#add-user-form input[type="url"] {
   width: 310px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-#add-user-form input[type="text"]::placeholder {
+#add-user-form input[type="text"]::placeholder,
+#add-user-form input[type="url"]::placeholder {
   color: #999;
   font-style: italic;
 }
@@ -162,14 +166,16 @@ button:hover {
 }
 
 #profile-form input[type="text"],
-#profile-form input[type="password"] {
+#profile-form input[type="password"],
+#profile-form input[type="url"] {
   width: 310px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-#profile-form input[type="text"]::placeholder {
+#profile-form input[type="text"]::placeholder,
+#profile-form input[type="url"]::placeholder {
   color: #999;
   font-style: italic;
 }
