@@ -17,7 +17,21 @@ mkdir -p "$BUILD_DIR"
 # Remove old zip if exists
 rm -f "$ZIP_NAME"
 
-# Create zip, excluding docs, tests, html, backups, and build output
-zip -r "$ZIP_NAME" . -x "*.md" "*.html" "test-*" "*.backup" "docs/*" "examples/*" "markup-examples/*" "$BUILD_DIR/*" 
 
-echo "Build complete: $ZIP_NAME"
+# Create zip, excluding unnecessary files but including required ones
+zip -r "$ZIP_NAME" . \
+  -x "*.md" \
+  -x "*/.DS_Store" \
+  -x "*.html" \
+  -x "test-*" \
+  -x "*.backup" \
+  -x "docs/*" \
+  -x "examples/*" \
+  -x "markup-examples/*" \
+  -x "$BUILD_DIR/*" \
+  -x ".git/*" \
+  -x ".github/*" \
+  && zip -uj "$ZIP_NAME" \
+  options.html \
+  docs/hotkeys.html \
+  docs/dynamic-hotkeys.jsecho "Build complete: $ZIP_NAME"
