@@ -17,6 +17,7 @@ const modalTitle = document.getElementById('modal-title');
 const profileUsernameInput = document.getElementById('profile-username');
 const profilePasswordInput = document.getElementById('profile-password');
 const profileAliasInput = document.getElementById('profile-alias');
+const profileUrlInput = document.getElementById('profile-url');
 const profileAutologinCheckbox = document.getElementById('profile-autologin');
 const saveProfileBtn = document.getElementById('save-profile-btn');
 const closeModalBtn = document.querySelector('.close');
@@ -61,7 +62,13 @@ function loadProfiles() {
       const displayName = profile.alias && profile.alias.trim() !== '' 
         ? `${profile.alias} (${profile.username})` 
         : profile.username;
-      profileInfo.textContent = displayName;
+      
+      // Add URL info if available
+      const urlInfo = profile.url && profile.url.trim() !== '' 
+        ? ` - ${profile.url}` 
+        : ' - Default (all URLs)';
+      
+      profileInfo.textContent = displayName + urlInfo;
       
       // Create buttons container
       const buttonsContainer = document.createElement('div');
@@ -121,6 +128,7 @@ function openEditModal(profile, index) {
   profileUsernameInput.value = profile.username;
   profilePasswordInput.value = profile.password;
   profileAliasInput.value = profile.alias || '';
+  profileUrlInput.value = profile.url || '';
   profileAutologinCheckbox.checked = profile.autologin || false;
   profileModal.style.display = 'block';
 }
@@ -141,7 +149,13 @@ function handleProfileSubmit(event) {
   const username = profileUsernameInput.value.trim();
   const password = profilePasswordInput.value;
   const alias = profileAliasInput.value.trim();
+  let url = profileUrlInput.value.trim();
   const autologin = profileAutologinCheckbox.checked;
+  
+  // Normalize URL (remove trailing slash)
+  if (url) {
+    url = url.replace(/\/$/, '');
+  }
 
   // Basic validation
   if (!username || !password) {
@@ -160,7 +174,7 @@ function handleProfileSubmit(event) {
       
       // Update the profile at the specified index
       if (profiles[currentEditIndex]) {
-        profiles[currentEditIndex] = { username, password, alias };
+        profiles[currentEditIndex] = { username, password, alias, url };
         profiles[currentEditIndex].autologin = autologin;
 
         // Save updated profiles to storage
@@ -174,7 +188,7 @@ function handleProfileSubmit(event) {
     });
   } else {
     // Add new profile
-    const newProfile = { username, password, alias, autologin };
+    const newProfile = { username, password, alias, url, autologin };
 
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
       const profiles = data.userProfiles;
@@ -298,13 +312,17 @@ function initializeDefaultProfilesIfNeeded() {
           profile.alias = '';
           needsUpdate = true;
         }
+        if (!profile.hasOwnProperty('url')) {
+          profile.url = '';
+          needsUpdate = true;
+        }
         return profile;
       });
       
       if (needsUpdate) {
         chrome.storage.sync.set({ userProfiles: profiles }, () => {
           loadProfiles();
-          console.log('Profiles updated with alias field.');
+          console.log('Profiles updated with alias and url fields.');
         });
       }
     }
