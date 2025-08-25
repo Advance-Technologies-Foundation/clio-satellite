@@ -65,7 +65,7 @@ function createScriptsMenu() {
     // Script descriptions in English
     const scriptDescriptions = {
       'Features': 'Open system features management page',
-      'Application_Managment': 'Application manmagment (App Hub)',
+  'Application_Management': 'Application management (App Hub)',
       'Lookups': 'Open system lookups',
       'Process_library': 'Open process library',
       'Process_log': 'View process log',
@@ -76,7 +76,7 @@ function createScriptsMenu() {
     // Create menu items for each script
     const scriptFiles = [
       'Features.js', 
-      'Application_Managment.js', 
+  'Application_Management.js', 
       'Lookups.js', 
       'Process_library.js', 
       'Process_log.js', 
