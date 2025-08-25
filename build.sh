@@ -32,6 +32,5 @@ zip -r "$ZIP_NAME" . \
   -x ".git/*" \
   -x ".github/*" \
   && zip -uj "$ZIP_NAME" \
-  options.html \
-  docs/hotkeys.html \
-  docs/dynamic-hotkeys.jsecho "Build complete: $ZIP_NAME"
+  options.html
+echo "Build complete: $ZIP_NAME"
