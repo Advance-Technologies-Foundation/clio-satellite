@@ -45,12 +45,32 @@
     // Get current profiles and add the new one
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
       const profiles = data.userProfiles;
+      const currentUrl = window.location.origin;
 
       if (profiles.length === 0) {
         // If no profiles are found, add a default option
         addOption(profileSelect, '', 'Setup user in options');
       }
-      profiles.forEach(profile => {
+      
+      // Filter profiles by URL: show profiles with matching URL or empty URL (default)
+      const availableProfiles = profiles.filter(profile => {
+        if (!profile.url || profile.url.trim() === '') {
+          return true; // Default profiles (no URL) show everywhere
+        }
+        
+        // Normalize URLs for comparison (remove trailing slash)
+        const normalizedProfileUrl = profile.url.replace(/\/$/, '');
+        const normalizedCurrentUrl = currentUrl.replace(/\/$/, '');
+        
+        return normalizedProfileUrl === normalizedCurrentUrl;
+      });
+      
+      // Add default option if no profiles available for this URL
+      if (availableProfiles.length === 0) {
+        addOption(profileSelect, '', 'No profiles for this URL');
+      }
+      
+      availableProfiles.forEach(profile => {
         const option = document.createElement('option');
         option.value = profile.username;
 
@@ -63,6 +83,7 @@
         option.dataset.username = profile.username;
         option.dataset.password = profile.password;
         option.dataset.alias = profile.alias || '';
+        option.dataset.url = profile.url || '';
         option.dataset.autologin = profile.autologin ? 'true' : 'false';
         profileSelect.appendChild(option);
       });
