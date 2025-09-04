@@ -2,7 +2,7 @@
 let menuCreated = false;
 let actionsMenuCreated = false; // New flag to track Actions menu creation
 
-const debugExtension = true;
+const debugExtension = false;
 
 function executeQuickAction(actionName) {
   const pageType = getCreatioPageType();

@@ -135,22 +135,29 @@
 
     <script>
         let debugLog = [];
-        
+        let debugMode = false; // Add a flag to control debug mode
+
         function logDebug(message) {
+            if (!debugMode) return; // Skip logging if debug mode is off
             debugLog.push(new Date().toLocaleTimeString() + ': ' + message);
             updateDebugDisplay();
         }
-        
+
         function updateDebugDisplay() {
             const debugContent = document.getElementById('debug-content');
             debugContent.innerHTML = debugLog.join('<br>');
         }
-        
+
         function clearDebug() {
             debugLog = [];
             updateDebugDisplay();
         }
-        
+
+        function toggleDebugMode() {
+            debugMode = !debugMode; // Toggle debug mode
+            logDebug('Debug mode ' + (debugMode ? 'enabled' : 'disabled'));
+        }
+
         function checkExtension() {
             logDebug('🔍 Checking extension activation...');
             
