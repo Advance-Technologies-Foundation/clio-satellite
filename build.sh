@@ -32,5 +32,9 @@ zip -r "$ZIP_NAME" . \
   -x ".git/*" \
   -x ".github/*" \
   && zip -uj "$ZIP_NAME" \
+<<<<<<< Updated upstream
   options.html
 echo "Build complete: $ZIP_NAME"
+=======
+  options.htmlecho "Build complete: $ZIP_NAME"
+>>>>>>> Stashed changes
