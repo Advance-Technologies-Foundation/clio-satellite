@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clio satellite",
-  "version": "1.7",
+  "version": "1.8",
   "description": "Expanding Creatio capabilities for professionals",
   "permissions": ["scripting", "activeTab", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "scripts/*", "icon48.png", "icon128.png"],
+      "resources": ["styles.css", "scripts/*", "icon48.png", "icon128.png", "docs/hotkeys.html", "docs/dynamic-hotkeys.js"],
       "matches": ["<all_urls>"]
     }
   ],
