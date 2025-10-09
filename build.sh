@@ -14,14 +14,20 @@ ZIP_NAME="$BUILD_DIR/$NAME-$VERSION.zip"
 
 mkdir -p "$BUILD_DIR"
 
-# Remove old zip if exists
-rm -f "$ZIP_NAME"
+
+# Remove old zip if exists and log
+if [ -f "$ZIP_NAME" ]; then
+  rm "$ZIP_NAME"
+  echo "Old archive $ZIP_NAME removed."
+fi
+
 
 
 # Create zip, excluding unnecessary files but including required ones
 zip -r "$ZIP_NAME" . \
   -x "*.md" \
   -x "*/.DS_Store" \
+  -x ".DS_Store" \
   -x "*.html" \
   -x "test-*" \
   -x "*.backup" \
@@ -30,11 +36,7 @@ zip -r "$ZIP_NAME" . \
   -x "markup-examples/*" \
   -x "$BUILD_DIR/*" \
   -x ".git/*" \
-  -x ".github/*" \
-  && zip -uj "$ZIP_NAME" \
-<<<<<<< Updated upstream
+  -x ".venv/*" \
+  && zip -uj "$ZIP_NAME" 
   options.html
-echo "Build complete: $ZIP_NAME"
-=======
-  options.htmlecho "Build complete: $ZIP_NAME"
->>>>>>> Stashed changes
+  echo "Build complete: $ZIP_NAME"
