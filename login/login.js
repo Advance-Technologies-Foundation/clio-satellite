@@ -57,12 +57,11 @@
         if (!profile.url || profile.url.trim() === '') {
           return true; // Default profiles (no URL) show everywhere
         }
-        
         // Normalize URLs for comparison (remove trailing slash)
         const normalizedProfileUrl = profile.url.replace(/\/$/, '');
-        const normalizedCurrentUrl = currentUrl.replace(/\/$/, '');
-        
-        return normalizedProfileUrl === normalizedCurrentUrl;
+        const normalizedHref = window.location.href.replace(/\/$/, '');
+        // Show profile if its url is a prefix of current href
+        return normalizedHref.startsWith(normalizedProfileUrl);
       });
       
       // Add default option if no profiles available for this URL
