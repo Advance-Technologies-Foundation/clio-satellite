@@ -31,12 +31,17 @@ zip -r "$ZIP_NAME" . \
   -x "*.html" \
   -x "test-*" \
   -x "*.backup" \
+  -x "*.sh" \
+  -x ".gitignore" \
+  -x ".github/*" \
   -x "docs/*" \
   -x "examples/*" \
   -x "markup-examples/*" \
   -x "$BUILD_DIR/*" \
   -x ".git/*" \
-  -x ".venv/*" \
-  && zip -uj "$ZIP_NAME" 
-  options.html
-  echo "Build complete: $ZIP_NAME"
+  -x ".venv/*"
+
+# Add required HTML file
+zip -uj "$ZIP_NAME" options.html
+
+echo "Build complete: $ZIP_NAME"
