@@ -28,8 +28,9 @@ const test = base.extend({
   context: [async ({}, use) => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-clio-'));
     const context = await chromium.launchPersistentContext(tmpDir, {
-      headless: false,
+      headless: false, // extensions require headless:false; --headless=new arg handles actual headless
       args: [
+        '--headless=new',
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
         '--no-sandbox',

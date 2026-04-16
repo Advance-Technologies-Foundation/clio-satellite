@@ -6,8 +6,7 @@ export default defineConfig({
   timeout: 60000,
   workers: 1, // sequential — one real browser, one real site
   use: {
-    headless: false, // always visible so you can watch the flow
-    slowMo: 400,
+    headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },

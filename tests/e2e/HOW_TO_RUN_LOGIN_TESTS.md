@@ -53,11 +53,8 @@ BASE_URL=https://dev2.krylov.cloud npm run test:login -- --grep "Smoke"
 
 ## What you will see
 
-A Chrome browser window opens automatically. Each test:
-1. Opens a fresh browser profile (no cookies, no stored sessions)
-2. Navigates to the login page
-3. Performs the test actions (with 400ms slow-motion so you can follow)
-4. Closes when done
+Tests run headless (no visible window). Chrome's `--headless=new` mode is used
+because standard headless does not support extensions.
 
 Failed tests save a screenshot and video to `test-results/`.
 
