@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update manifest.json version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" manifest.json
+
+      - name: Build zip
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="clio-satellite-$VERSION.zip"
+
+          zip -r "$ZIP_NAME" . \
+            -x "*.md" \
+            -x "*/.DS_Store" \
+            -x ".DS_Store" \
+            -x "*.html" \
+            -x "test-*" \
+            -x "*.backup" \
+            -x "*.sh" \
+            -x ".gitignore" \
+            -x ".github/*" \
+            -x "docs/*" \
+            -x "build/*" \
+            -x ".git/*" \
+            -x ".venv/*"
+
+          zip -uj "$ZIP_NAME" options.html
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.zip_name }}
