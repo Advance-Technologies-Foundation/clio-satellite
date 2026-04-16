@@ -108,6 +108,46 @@ Google reviewers read the release notes to verify the extension behaves as descr
 
 ---
 
+## Testing
+
+### Unit tests (run on every commit via CI)
+```bash
+npm test
+```
+
+### Mock E2E tests (Playwright, headless, no real site needed)
+```bash
+npm run test:e2e
+```
+
+### Real-site login tests (Playwright, headless Chrome with real extension)
+
+Requires a live Creatio instance. Pass the URL as `BASE_URL`:
+
+```bash
+BASE_URL=https://dev2.krylov.cloud npm run test:login
+```
+
+Optional env vars: `TEST_USER` (default: `Supervisor`), `TEST_PASS` (default: `Supervisor`).
+
+One-time setup if Playwright browsers are not installed:
+```bash
+npm run build && npx playwright install chromium
+```
+
+What the login tests cover (`tests/e2e/login.spec.js`):
+- Login page loads and shows the credentials form
+- Extension injects profile selector into the login form
+- Empty storage shows "Setup user in options" in the dropdown
+- Saved profile appears in the dropdown
+- "Login with profile" fills credentials and redirects to `/Shell/`
+- Satellite menu (Clio buttons) is visible in the shell after login
+
+Tests run headless via `--headless=new` (Chrome's new headless mode supports extensions).
+Failed tests save screenshots and video to `test-results/`.
+
+---
+
 ## Things to avoid
 - Do not change `host_permissions` without updating the justification above
 - Do not add new permissions without documenting why in this file
