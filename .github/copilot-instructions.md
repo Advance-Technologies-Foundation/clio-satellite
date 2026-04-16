@@ -9,3 +9,44 @@
 - Provide concise responses; avoid unnecessary details.
 - Don`t create and don`t use any test files or pages
 - Don`t create md files with changes description
+
+---
+
+## Release Process
+
+### 1. Bump version in manifest.json
+Use semantic versioning: `MAJOR.MINOR` (e.g. `1.9` → `2.0` for new features, `1.9` → `1.10` for fixes).
+
+### 2. Create a GitHub Release
+- Tag format: `v{version}` — e.g. `v2.0`
+- GitHub Actions triggers automatically: updates manifest version, builds ZIP, uploads to Chrome Web Store.
+
+### 3. Release description rules (Chrome Web Store verification)
+Google reviewers read the release notes. Vague descriptions cause rejection.
+
+**Be specific:**
+- Bad: `Bug fixes and improvements`
+- Good: `Fixed profile deletion removing the wrong entry when multiple profiles are saved`
+
+**Describe new UI elements, behaviour changes, and permission changes explicitly.**
+**Do not mention** refactors, comment changes, or dev tooling.
+
+**Structure:**
+```
+## What's new in vX.X
+### New features
+- [specific description]
+### Bug fixes
+- [what was wrong and what is correct now]
+### Changes
+- [user-visible behaviour or UI changes]
+```
+
+## Current permissions justification
+- `storage` — syncing user profiles across devices
+- `scripting` — injecting navigation and admin scripts into Creatio pages
+- `activeTab` — detecting page type to inject correct UI
+- `contextMenus` — right-click shortcut to open options page
+- `host_permissions: <all_urls>` — Creatio can be self-hosted on any domain
+
+Do not add permissions without documenting the justification here.
