@@ -51,3 +51,46 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.zip_name }}
+
+      - name: Get Chrome Web Store access token
+        id: cwstoken
+        run: |
+          RESPONSE=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d client_id=${{ secrets.CWS_CLIENT_ID }} \
+            -d client_secret=${{ secrets.CWS_CLIENT_SECRET }} \
+            -d refresh_token=${{ secrets.CWS_REFRESH_TOKEN }} \
+            -d grant_type=refresh_token)
+          ACCESS_TOKEN=$(echo "$RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "Failed to get access token: $RESPONSE"
+            exit 1
+          fi
+          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Upload to Chrome Web Store
+        run: |
+          RESPONSE=$(curl -s -X PUT \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${{ secrets.CWS_EXTENSION_ID }}" \
+            -H "Authorization: Bearer ${{ steps.cwstoken.outputs.access_token }}" \
+            -H "x-goog-api-version: 2" \
+            -T "${{ env.zip_name }}")
+          STATUS=$(echo "$RESPONSE" | grep -o '"uploadState":"[^"]*"' | cut -d'"' -f4)
+          echo "Upload state: $STATUS"
+          if [ "$STATUS" != "SUCCESS" ]; then
+            echo "Upload failed: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Publish to Chrome Web Store
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/${{ secrets.CWS_EXTENSION_ID }}/publish" \
+            -H "Authorization: Bearer ${{ steps.cwstoken.outputs.access_token }}" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0")
+          STATUS=$(echo "$RESPONSE" | grep -o '"status":\["[^"]*"\]' | head -1)
+          echo "Publish status: $STATUS"
+          if echo "$RESPONSE" | grep -q '"error"'; then
+            echo "Publish failed: $RESPONSE"
+            exit 1
+          fi
