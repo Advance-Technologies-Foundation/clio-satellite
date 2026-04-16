@@ -1,2 +1,8 @@
 # Ignore build output
 build/
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/

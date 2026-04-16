@@ -5,8 +5,28 @@ on:
     types: [published]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Checkout
@@ -24,6 +44,15 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" manifest.json
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies and build
+        run: npm ci && npm run build
+
       - name: Build zip
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -34,13 +63,19 @@ jobs:
             -x "*/.DS_Store" \
             -x ".DS_Store" \
             -x "*.html" \
-            -x "test-*" \
             -x "*.backup" \
             -x "*.sh" \
             -x ".gitignore" \
             -x ".github/*" \
+            -x "src/*" \
+            -x "tests/*" \
+            -x "dev/*" \
             -x "docs/*" \
             -x "build/*" \
+            -x "node_modules/*" \
+            -x "vitest.config.js" \
+            -x "package.json" \
+            -x "package-lock.json" \
             -x ".git/*" \
             -x ".venv/*"
 

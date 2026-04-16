@@ -53,14 +53,21 @@
       }
       
       // Filter profiles by URL: show profiles with matching URL or empty URL (default)
+      const normalizeUrl = (url) => {
+        try {
+          const { hostname, pathname, port } = new URL(url);
+          return `${hostname}${port ? ':' + port : ''}${pathname}`.replace(/\/$/, '').toLowerCase();
+        } catch {
+          return url.replace(/\/$/, '').toLowerCase();
+        }
+      };
       const availableProfiles = profiles.filter(profile => {
         if (!profile.url || profile.url.trim() === '') {
           return true; // Default profiles (no URL) show everywhere
         }
-        // Normalize URLs for comparison (remove trailing slash)
-        const normalizedProfileUrl = profile.url.replace(/\/$/, '');
-        const normalizedHref = window.location.href.replace(/\/$/, '');
-        // Show profile if its url is a prefix of current href
+        // Normalize by stripping protocol — http:// and https:// both match
+        const normalizedProfileUrl = normalizeUrl(profile.url);
+        const normalizedHref = normalizeUrl(window.location.href);
         return normalizedHref.startsWith(normalizedProfileUrl);
       });
       
