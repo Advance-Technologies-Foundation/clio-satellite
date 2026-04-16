@@ -94,6 +94,29 @@ test.describe('Shell page', () => {
     await waitForMenu(page);
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(1);
   });
+
+  test('opening actions menu closes the scripts menu', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await page.locator('.scripts-menu-button').click();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+
+    await page.locator('.actions-button').click();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+  });
+
+  test('actions menu contains RestartApp and FlushRedisDB items', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await page.locator('.actions-button').click();
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+
+    await expect(page.locator('[data-item-marker="RestartApp"]')).toBeVisible();
+    await expect(page.locator('[data-item-marker="FlushRedisDB"]')).toBeVisible();
+  });
 });
 
 // ─── Login page ──────────────────────────────────────────────────────────────
@@ -121,6 +144,31 @@ test.describe('Configuration page', () => {
 test.describe('Unknown page', () => {
   test('menu does not appear on unrecognized page', async ({ page }) => {
     await load(page, '/other/');
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(0);
+  });
+});
+
+// ─── Excluded domains ─────────────────────────────────────────────────────────
+
+// Shell-like HTML used to verify the exclusion is domain-based, not content-based.
+// A page with these elements would normally trigger shell detection.
+const SHELL_LIKE_HTML = `<!DOCTYPE html><html><body>
+  <crt-app-toolbar style="display:block;position:fixed;top:0;left:0;height:48px;width:100%;"></crt-app-toolbar>
+  <crt-global-search style="display:block;position:fixed;top:4px;left:200px;width:300px;height:40px;"></crt-global-search>
+</body></html>`;
+
+test.describe('Excluded domains', () => {
+  test('menu does not appear on academy.creatio.com even with shell-like content', async ({ page }) => {
+    // Intercept the real domain so window.location.hostname === 'academy.creatio.com'
+    await page.route('https://academy.creatio.com/**', route =>
+      route.fulfill({ contentType: 'text/html', body: SHELL_LIKE_HTML })
+    );
+
+    await setupChromeMock(page);
+    await page.goto('https://academy.creatio.com/courses', { waitUntil: 'domcontentloaded' });
+    await injectContentScript(page);
+
     await page.waitForTimeout(1500);
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(0);
   });

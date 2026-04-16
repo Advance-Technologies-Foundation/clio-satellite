@@ -9,11 +9,12 @@ export const CONTENT_JS = readFileSync(
   'utf8'
 );
 
-// Sets up window.chrome mock before page scripts run
-export async function setupChromeMock(page) {
-  await page.addInitScript(() => {
+// Sets up window.chrome mock before page scripts run.
+// syncData pre-populates chrome.storage.sync (e.g. { userProfiles: [...] }).
+export async function setupChromeMock(page, { syncData = {} } = {}) {
+  await page.addInitScript((initialSync) => {
     const local = {};
-    const sync = {};
+    const sync = Object.assign({}, initialSync);
     window.chrome = {
       storage: {
         local: {
@@ -41,7 +42,7 @@ export async function setupChromeMock(page) {
       },
       runtime: { sendMessage: () => {}, lastError: undefined },
     };
-  });
+  }, syncData);
 }
 
 export async function injectContentScript(page) {

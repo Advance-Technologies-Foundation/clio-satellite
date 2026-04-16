@@ -97,7 +97,8 @@
     "atlassian.net",
     "upsource.creatio.com",
     "work.creatio.com",
-    "community.creatio.com"
+    "community.creatio.com",
+    "academy.creatio.com"
   ];
   var SHELL_URL_PATTERNS = [
     "/shell/",

@@ -1,80 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="system">
 <head>
-  <title>Clio Satelite Options</title>
-  <link rel="stylesheet" type="text/css" href="styles/options.css">
+  <meta charset="utf-8">
+  <title>Clio Satellite — Profiles</title>
+  <link rel="stylesheet" href="styles/options.css">
 </head>
 <body>
-  <div class="options-header">
-    <h1>User Profiles</h1>
-    <button id="close-btn">Close</button>
-  </div>
-  
-  <div id="user-list-container">
-    <h2>Users</h2>
-    <button id="add-profile-btn" class="add-profile-button">Add Profile</button>
-    <ul id="user-list"></ul>
-    <button id="set-to-defaults" class="default-button">Delete all profiles</button>
+  <div class="page">
+
+    <header class="top-bar">
+      <h1 class="top-bar__title">User Profiles</h1>
+      <div class="top-bar__actions">
+
+        <div class="theme-switcher" id="theme-toggle" role="group" aria-label="Theme">
+          <button class="theme-switcher__btn" data-theme-value="light" title="Light">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="theme-switcher__btn" data-theme-value="system" title="System">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="2" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 14h6M8 11v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="theme-switcher__btn" data-theme-value="dark" title="Dark">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a.5.5 0 0 0-.6-.57A7 7 0 1 0 14.07 10.1a.5.5 0 0 0-.57-.6z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+
+        <button id="close-btn" class="btn btn--text">Close</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="card">
+        <div class="card__toolbar">
+          <button id="add-profile-btn" class="btn btn--outlined">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add Profile
+          </button>
+        </div>
+
+        <ul id="user-list" class="profile-list"></ul>
+
+        <div class="card__footer">
+          <button id="set-to-defaults" class="btn btn--text-danger">Delete all profiles</button>
+        </div>
+      </div>
+    </main>
+
   </div>
 
-  <!-- Profile Modal (for both Add and Edit) -->
-  <div id="profile-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modal-title">Add Profile</h2>
-        <span class="close">&times;</span>
+  <!-- Profile modal -->
+  <div id="profile-modal" class="modal" style="display:none">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="dialog__header">
+        <h2 class="dialog__title" id="modal-title">Add Profile</h2>
+        <button type="button" class="icon-btn close" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2l14 14M16 2L2 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <form id="profile-form">
-        <div>
-          <label for="profile-username">Username:</label>
-          <div class="field-wrapper">
-            <input type="text" id="profile-username" required>
-            <button type="button" class="copy-btn" data-copy-target="profile-username" title="Copy username"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/></svg></button>
+
+      <form id="profile-form" class="dialog__body">
+        <div class="field">
+          <label class="field__label" for="profile-username">Username</label>
+          <div class="field__row">
+            <input class="field__input" type="text" id="profile-username" required autocomplete="off">
+            <button type="button" class="icon-btn copy-btn" data-copy-target="profile-username" title="Copy username">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
           </div>
         </div>
-        <div>
-          <label for="profile-password">Password:</label>
-          <div class="field-wrapper password-wrapper">
-            <input type="password" id="profile-password" required>
-            <button type="button" id="toggle-password" class="toggle-password-btn" title="Show/hide password"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
-            <button type="button" class="copy-btn" data-copy-target="profile-password" title="Copy password"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/></svg></button>
+
+        <div class="field">
+          <label class="field__label" for="profile-password">Password</label>
+          <div class="field__row">
+            <input class="field__input" type="password" id="profile-password" required autocomplete="off">
+            <button type="button" class="icon-btn" id="toggle-password" title="Show/hide password">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button type="button" class="icon-btn copy-btn" data-copy-target="profile-password" title="Copy password">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
           </div>
         </div>
-        <div>
-          <label for="profile-alias">Alias (optional):</label>
-          <input type="text" id="profile-alias" placeholder="Display name for profile">
+
+        <div class="field">
+          <label class="field__label" for="profile-alias">
+            Alias <span class="field__hint">optional</span>
+          </label>
+          <input class="field__input" type="text" id="profile-alias" placeholder="Display name">
         </div>
-        <div>
-          <label for="profile-url">URL (optional):</label>
-          <input type="url" id="profile-url" placeholder="https://example.com - leave empty for default profile">
+
+        <div class="field">
+          <label class="field__label" for="profile-url">
+            URL <span class="field__hint">optional</span>
+          </label>
+          <input class="field__input" type="url" id="profile-url" placeholder="https://example.com">
         </div>
-        <div>
-          <label>
+
+        <div class="field field--inline">
+          <label class="checkbox">
             <input type="checkbox" id="profile-autologin">
-            Autologin
+            <span class="checkbox__label">Autologin</span>
           </label>
         </div>
-        <div class="modal-buttons">
-          <button type="submit" id="save-profile-btn">Add Profile</button>
-          <button type="button" id="cancel-profile">Cancel</button>
-        </div>
       </form>
+
+      <div class="dialog__actions">
+        <button type="button" id="cancel-profile" class="btn btn--text">Cancel</button>
+        <button type="submit" form="profile-form" id="save-profile-btn" class="btn btn--primary">Add Profile</button>
+      </div>
     </div>
   </div>
 
-  <!-- Confirmation Modal for delete -->
-  <div id="confirm-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Confirm Deletion</h2>
-        <button class="close confirm-close">&times;</button>
+  <!-- Confirm modal -->
+  <div id="confirm-modal" class="modal" style="display:none">
+    <div class="dialog dialog--sm" role="dialog" aria-modal="true">
+      <div class="dialog__header">
+        <h2 class="dialog__title">Confirm deletion</h2>
+        <button type="button" class="icon-btn confirm-close close" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2l14 14M16 2L2 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete this profile?</p>
+      <div class="dialog__body modal-body">
+        <p class="dialog__text">Are you sure you want to delete this profile?</p>
       </div>
-      <div class="modal-buttons">
-        <button id="confirm-delete-btn">Delete</button>
-        <button id="cancel-delete-btn">Cancel</button>
+      <div class="dialog__actions">
+        <button type="button" id="cancel-delete-btn" class="btn btn--text">Cancel</button>
+        <button type="button" id="confirm-delete-btn" class="btn btn--danger">Delete</button>
       </div>
     </div>
   </div>

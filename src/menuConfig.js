@@ -105,6 +105,7 @@ export const EXCLUDED_DOMAINS = [
   'upsource.creatio.com',
   'work.creatio.com',
   'community.creatio.com',
+  'academy.creatio.com',
 ];
 
 export const SHELL_URL_PATTERNS = [
