@@ -15,7 +15,6 @@
     "SysSettings.js",
     "Users.js",
     "Configuration.js",
-    "TIDE.js",
     "Settings"
   ];
   var MENU_ICONS = {
@@ -50,10 +49,6 @@
     "Configuration": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>`,
       name: "configuration"
-    },
-    "TIDE": {
-      svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/><path d="M5 5h6v6H5V5Z" fill="#fff"/></svg>`,
-      name: "tide"
     },
     "Settings": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/></svg>`,
@@ -128,12 +123,12 @@
     }
     const loginIndicators = [
       currentPath.includes("/login"),
-      currentPath.includes("/auth"),
+      currentPath.includes("/auth/"),
+      currentPath === "/auth",
       currentPath.includes("/signin"),
       currentPath.includes("/authentication"),
       currentUrl.includes("login"),
-      currentUrl.includes("auth"),
-      currentUrl.includes("signin"),
+      currentUrl.includes("/signin"),
       document.querySelector("#loginEdit-el"),
       document.querySelector("#passwordEdit-el"),
       document.querySelector(".login-button-login"),
@@ -143,17 +138,10 @@
       document.querySelector('form[action*="login"]'),
       document.querySelector('[class*="login"]'),
       document.querySelector('[id*="login"]'),
-      document.querySelector('[class*="auth"]'),
-      document.querySelector('[id*="auth"]'),
-      document.body && document.body.textContent.toLowerCase().includes("sign in"),
-      document.body && document.body.textContent.toLowerCase().includes("log in"),
-      document.body && document.body.textContent.toLowerCase().includes("authentication"),
       document.title.toLowerCase().includes("login"),
-      document.title.toLowerCase().includes("auth"),
       document.title.toLowerCase().includes("sign in"),
       document.querySelector('meta[name*="login"]'),
-      document.querySelector('meta[content*="login"]'),
-      document.querySelector('meta[content*="auth"]')
+      document.querySelector('meta[content*="login"]')
     ];
     if (loginIndicators.some(Boolean)) {
       debugLog("LOGIN PAGE DETECTED - Navigation/Actions buttons will be blocked");
@@ -223,13 +211,15 @@
   var state = {
     menuCreated: false,
     actionsMenuCreated: false,
-    menuCreating: false
+    menuCreating: false,
     // true while DOM is being built — guards monitorButtons from interfering
+    clickHandlerAttached: false
   };
   function resetState() {
     state.menuCreated = false;
     state.actionsMenuCreated = false;
     state.menuCreating = false;
+    state.clickHandlerAttached = false;
   }
 
   // src/menuVisibility.js
@@ -385,7 +375,10 @@
   }
 
   // src/floatingContainer.js
+  var resizeAbortController = null;
   function setupFloatingContainer(pageType, buttonWrapper, extensionContainer) {
+    resizeAbortController?.abort();
+    resizeAbortController = new AbortController();
     const isShell = pageType === "shell";
     const floatingContainer = document.createElement("div");
     floatingContainer.className = "creatio-satelite-floating";
@@ -496,7 +489,7 @@
       if (!isDragging && !floatingContainer.hasAttribute("data-user-positioned")) {
         positionFloatingContainerRelativeToSearch(floatingContainer);
       }
-    });
+    }, { signal: resizeAbortController.signal });
     let positionCheckCount = 0;
     const maxPositionChecks = isShell ? 40 : 20;
     const positionCheckInterval = setInterval(() => {
@@ -635,6 +628,7 @@
         console.error("[Clio Satellite] Failed to load profiles:", chrome.runtime.lastError.message);
         return;
       }
+      if (!actionsMenuContainer.isConnected) return;
       const origin = window.location.origin;
       const lastUser = data.lastLoginProfiles[origin];
       const profile = data.userProfiles.find((p) => p.username === lastUser);
@@ -766,16 +760,19 @@
       hideMenuContainer(actionsMenuContainer);
       adjustMenuPosition(menuButton, menuContainer);
     });
-    document.addEventListener("click", (event) => {
-      const ec = document.querySelector(".creatio-satelite-extension-container");
-      if (!ec) return;
-      const mb = ec.querySelector(".scripts-menu-button");
-      const ab = ec.querySelector(".actions-button");
-      const mc = ec.querySelector(".scripts-menu-container");
-      const amc = ec.querySelector(".actions-menu-container");
-      if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-      if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
-    }, true);
+    if (!state.clickHandlerAttached) {
+      state.clickHandlerAttached = true;
+      document.addEventListener("click", (event) => {
+        const ec = document.querySelector(".creatio-satelite-extension-container");
+        if (!ec) return;
+        const mb = ec.querySelector(".scripts-menu-button");
+        const ab = ec.querySelector(".actions-button");
+        const mc = ec.querySelector(".scripts-menu-container");
+        const amc = ec.querySelector(".actions-menu-container");
+        if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
+        if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+      }, true);
+    }
     try {
       setupFloatingContainer(pageType, buttonWrapper, extensionContainer);
       const rootMenuContainer = document.createElement("div");
