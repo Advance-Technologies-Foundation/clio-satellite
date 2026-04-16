@@ -27,11 +27,18 @@
       <form id="profile-form">
         <div>
           <label for="profile-username">Username:</label>
-          <input type="text" id="profile-username" required>
+          <div class="field-wrapper">
+            <input type="text" id="profile-username" required>
+            <button type="button" class="copy-btn" data-copy-target="profile-username" title="Copy username"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/></svg></button>
+          </div>
         </div>
         <div>
           <label for="profile-password">Password:</label>
-          <input type="password" id="profile-password" required>
+          <div class="field-wrapper password-wrapper">
+            <input type="password" id="profile-password" required>
+            <button type="button" id="toggle-password" class="toggle-password-btn" title="Show/hide password"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            <button type="button" class="copy-btn" data-copy-target="profile-password" title="Copy password"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" fill="white" stroke="currentColor" stroke-width="1.5"/></svg></button>
+          </div>
         </div>
         <div>
           <label for="profile-alias">Alias (optional):</label>

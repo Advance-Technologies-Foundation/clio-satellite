@@ -21,9 +21,8 @@
         notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
         document.body.appendChild(notification);
         
-        // Изменено, чтобы сделать текст элемента notification моргающим.
         notification.style.animation = 'restartAnimation 1.5s infinite';
-        
+
         // Remove the notification after a few seconds
         setTimeout(function() {
             notification.remove();
@@ -54,7 +53,6 @@
             notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
             document.body.appendChild(notification);
             
-            // Изменено, чтобы сделать текст элемента notification моргающим.
             notification.style.animation = 'restartAnimation 1.5s infinite';
             
             // Store the notification element for later removal

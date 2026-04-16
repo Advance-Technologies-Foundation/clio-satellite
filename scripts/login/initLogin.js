@@ -1,21 +1,20 @@
-// Инициализация страницы логина
-// Импортируйте общие функции при необходимости
+// Login page initialization
 
 import { $ } from '../common/domUtils.js';
 
-// Основная функция инициализации
+// Main initialization function
 export function initLoginPage() {
-  // Пример: найти форму логина и добавить обработчик
+  // Example: find the login form and attach a submit handler
   const form = $('#login-form');
   if (form) {
     form.addEventListener('submit', e => {
       e.preventDefault();
-      // ... логика авторизации ...
+      // ... authentication logic ...
     });
   }
 }
 
-// Вызов инициализации при загрузке страницы
+// Run initialization when the page is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initLoginPage);
 } else {

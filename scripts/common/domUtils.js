@@ -1,8 +1,8 @@
-// Общие функции для работы с DOM
-// Используйте эти функции для поиска и создания элементов
+// Common DOM utilities
+// Use these functions to find and create elements
 
 /**
- * Находит элемент по селектору
+ * Find an element by selector
  * @param {string} selector
  * @returns {Element|null}
  */
@@ -11,7 +11,7 @@ export function $(selector) {
 }
 
 /**
- * Создаёт элемент с классами и атрибутами
+ * Create an element with classes and attributes
  * @param {string} tag
  * @param {Object} options
  * @returns {Element}

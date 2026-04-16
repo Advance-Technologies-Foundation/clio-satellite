@@ -398,7 +398,7 @@ function createEnhancedTooltip(text, targetElement) {
   return tooltip;
 }
 
-// Функция для создания меню скриптов напрямую из content script
+// Creates the scripts menu directly from the content script
 function createScriptsMenu() {
   debugLog('Creating scripts menu - start');
 
@@ -479,7 +479,7 @@ function createScriptsMenu() {
   // Create arrow wrapper (dropdown indicator)
   const menuArrowWrapper = document.createElement('div');
   menuArrowWrapper.className = 'mat-select-arrow-wrapper';
-  menuArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Уменьшен отступ справа в два раза
+  menuArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Right padding halved to align with native buttons
   const menuArrow = document.createElement('div');
   menuArrow.className = 'mat-select-arrow';
   menuArrowWrapper.appendChild(menuArrow);
@@ -527,7 +527,7 @@ function createScriptsMenu() {
   // Create arrow wrapper (dropdown indicator)
   const actionsArrowWrapper = document.createElement('div');
   actionsArrowWrapper.className = 'mat-select-arrow-wrapper';
-  actionsArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Уменьшен отступ справа в два раза
+  actionsArrowWrapper.style.cssText = 'margin-left: 4px; padding-right: 2px;'; // Right padding halved to align with native buttons
   const actionsArrow = document.createElement('div');
   actionsArrow.className = 'mat-select-arrow';
   actionsArrowWrapper.appendChild(actionsArrow);
@@ -548,8 +548,7 @@ function createScriptsMenu() {
   actionsFocusOverlay.className = 'mat-button-focus-overlay';
   actionsButton.appendChild(actionsFocusOverlay);
 
-  // Add enhanced tooltip to Actions button
-  // Удалён тултип с кнопки Actions по требованию
+  // Tooltip removed from Actions button per request
 
   buttonWrapper.appendChild(menuButton);
   buttonWrapper.appendChild(actionsButton);
@@ -634,7 +633,7 @@ function createScriptsMenu() {
     };
     const iconData = menuIcons[scriptName] || {svg: '', name: ''};
 
-    // Создаём контейнер пункта меню как в Actions
+    // Menu item container matching the Actions menu structure
     const menuItem = document.createElement('div');
     menuItem.className = 'crt-menu-item-container mat-menu-item';
     menuItem.setAttribute('mat-menu-item', '');
@@ -642,7 +641,7 @@ function createScriptsMenu() {
     menuItem.setAttribute('role', 'menuitem');
     menuItem.setAttribute('tabindex', '0');
 
-    // Кнопка
+    // Button
     const button = document.createElement('button');
     button.setAttribute('mat-flat-button', '');
     button.className = 'crt-menu-item mat-flat-button';
@@ -650,7 +649,7 @@ function createScriptsMenu() {
     button.setAttribute('aria-haspopup', 'false');
     button.setAttribute('aria-expanded', 'false');
 
-    // mat-icon с SVG
+    // mat-icon with SVG
     const matIcon = document.createElement('mat-icon');
     matIcon.setAttribute('role', 'img');
     matIcon.className = 'mat-icon notranslate mat-icon-no-color ng-star-inserted';
@@ -668,7 +667,7 @@ function createScriptsMenu() {
     let displayName = ' ' + scriptName.replace(/_/g, ' ');
     caption.textContent = displayName;
 
-    // Сборка
+    // Assemble
     button.appendChild(matIcon);
     button.appendChild(caption);
     menuItem.appendChild(button);
@@ -696,7 +695,7 @@ function createScriptsMenu() {
       menuContainer.appendChild(dividerContainer);
     }
 
-    // Клик
+    // Click handler
     menuItem.addEventListener('click', () => {
       if (scriptName === 'Settings') {
         chrome.runtime.sendMessage({action: 'openOptionsPage'});

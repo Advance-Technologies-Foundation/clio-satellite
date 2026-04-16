@@ -22,6 +22,7 @@ const profileAutologinCheckbox = document.getElementById('profile-autologin');
 const saveProfileBtn = document.getElementById('save-profile-btn');
 const closeModalBtn = document.querySelector('.close');
 const cancelProfileBtn = document.getElementById('cancel-profile');
+const togglePasswordBtn = document.getElementById('toggle-password');
 
 // Track index for deletion confirmation
 let currentDeleteIndexToDelete = -1;
@@ -139,6 +140,8 @@ function closeProfileModal() {
   currentEditIndex = -1;
   isEditMode = false;
   profileForm.reset();
+  profilePasswordInput.type = 'password';
+  togglePasswordBtn.style.opacity = '1';
 }
 
 // Function to handle profile form submission (both add and edit)
@@ -215,6 +218,9 @@ function openConfirmModal(index) {
 function closeConfirmModal() {
   confirmModal.style.display = 'none';
   currentDeleteIndexToDelete = -1;
+  isBulkDelete = false;
+  const modalMessage = confirmModal.querySelector('.modal-body p');
+  modalMessage.textContent = 'Are you sure you want to delete this profile?';
 }
 
 // Function to delete a profile
@@ -236,9 +242,10 @@ confirmDeleteBtn.addEventListener('click', () => {
     });
   } else {
     // Delete single profile
+    const indexToDelete = currentDeleteIndexToDelete;
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
       const profiles = data.userProfiles;
-      profiles.splice(currentDeleteIndexToDelete, 1);
+      profiles.splice(indexToDelete, 1);
       chrome.storage.sync.set({ userProfiles: profiles }, () => {
         confirmModal.style.display = 'none';
         loadProfiles();
@@ -262,15 +269,34 @@ confirmCloseBtn.addEventListener('click', () => {
   currentDeleteIndexToDelete = -1;
 });
 
+togglePasswordBtn.addEventListener('click', () => {
+  const isPassword = profilePasswordInput.type === 'password';
+  profilePasswordInput.type = isPassword ? 'text' : 'password';
+  togglePasswordBtn.style.opacity = isPassword ? '0.5' : '1';
+});
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.dataset.copyTarget;
+    const value = document.getElementById(targetId).value;
+    if (!value) return;
+    navigator.clipboard.writeText(value).then(() => {
+      btn.classList.add('copied');
+      const original = btn.innerHTML;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+});
+
 // Add event listeners
 addProfileBtn.addEventListener('click', openAddModal);
 profileForm.addEventListener('submit', handleProfileSubmit);
 closeModalBtn.addEventListener('click', closeProfileModal);
 cancelProfileBtn.addEventListener('click', closeProfileModal);
-confirmDeleteBtn.addEventListener('click', () => {
-  deleteProfile(currentDeleteIndexToDelete);
-  closeConfirmModal();
-});
 cancelDeleteBtn.addEventListener('click', closeConfirmModal);
 confirmCloseBtn.addEventListener('click', closeConfirmModal);
 

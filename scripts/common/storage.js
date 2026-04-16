@@ -1,8 +1,8 @@
-// Общие функции для работы с хранилищем
-// Для работы с chrome.storage и localStorage
+// Common storage utilities
+// Wrappers for chrome.storage and localStorage
 
 /**
- * Получить значение из localStorage
+ * Get a value from localStorage
  * @param {string} key
  * @returns {string|null}
  */
@@ -11,7 +11,7 @@ export function getLocal(key) {
 }
 
 /**
- * Сохранить значение в localStorage
+ * Save a value to localStorage
  * @param {string} key
  * @param {string} value
  */
@@ -20,7 +20,7 @@ export function setLocal(key, value) {
 }
 
 /**
- * Получить значение из chrome.storage.local
+ * Get a value from chrome.storage.local
  * @param {string} key
  * @returns {Promise<any>}
  */
@@ -31,7 +31,7 @@ export function getChromeStorage(key) {
 }
 
 /**
- * Сохранить значение в chrome.storage.local
+ * Save a value to chrome.storage.local
  * @param {string} key
  * @param {any} value
  * @returns {Promise<void>}

@@ -113,7 +113,7 @@
     loginCaption.style.width = loginButton.offsetWidth + 'px';
     loginCaption.style.height = loginButton.offsetHeight + 'px';
     loginCaption.style.padding = '8px 16px';
-    loginCaption.style.backgroundColor = 'rgb(255, 87, 34)'; // Новый цвет для кнопки LOGIN WITH PROFILE
+    loginCaption.style.backgroundColor = 'rgb(255, 87, 34)'; // Orange color for "LOGIN WITH PROFILE" button
     loginCaption.style.color = 'white';
     loginCaption.style.border = 'none';
     loginCaption.style.borderRadius = '4px';

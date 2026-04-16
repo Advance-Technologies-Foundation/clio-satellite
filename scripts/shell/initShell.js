@@ -1,13 +1,12 @@
-// Инициализация страницы шелла
-// Импортируйте общие функции при необходимости
+// Shell page initialization
 
 import { $ } from '../common/domUtils.js';
 
 export function initShellPage() {
-  // Пример: инициализация панели команд
+  // Example: initialize the command panel
   const panel = $('#shell-panel');
   if (panel) {
-    // ... логика инициализации панели ...
+    // ... panel initialization logic ...
   }
 }
 

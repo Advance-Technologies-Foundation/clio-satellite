@@ -1,8 +1,8 @@
-// Общие функции для работы с API
-// Используйте fetchApi для запросов к серверу
+// Common API utilities
+// Use fetchApi for server requests
 
 /**
- * Выполняет fetch-запрос
+ * Performs a fetch request
  * @param {string} url
  * @param {Object} options
  * @returns {Promise<any>}

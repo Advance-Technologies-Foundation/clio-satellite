@@ -167,13 +167,13 @@
                 }
             });
         } else {
-            // Скрытие меню с классом 'actions-menu-container' при выполнении действия "Flush Redis".
+            // Hide the actions menu while the Flush Redis operation runs.
             const actionsMenuContainer = document.querySelector('.actions-menu-container');
             if (actionsMenuContainer) {
               actionsMenuContainer.style.visibility = 'hidden';
             }
 
-            // Формирование URL с учетом '/0' и подстановка CSRF токена из куки.
+            // Build the URL accounting for the '/0' path segment and inject the CSRF token from cookies.
             var baseUrl = window.location.protocol + '//' + window.location.host;
             var redisFlushUrl = baseUrl.endsWith('/0')
               ? baseUrl + '/ServiceModel/AppInstallerService.svc/ClearRedisDb'
@@ -197,7 +197,7 @@
               console.error('BPMCSRF cookie not found. Request may fail.');
             }
 
-            // Добавлено обновление страницы после успешного выполнения запроса.
+            // Reload the page after a successful flush.
             fetch(redisFlushUrl, {
               method: 'POST',
               headers: {
@@ -213,7 +213,7 @@
             .then(function(data) {
               if (data && data.success) {
                 console.log('FlushRedisDB successful');
-                window.location.reload(true); // Обновление страницы
+                window.location.reload(true);
               } else {
                 const errorMessage = (data && data.errorInfo) ? data.errorInfo : 'Unknown error occurred';
                 console.error('Flush Redis operation failed:', errorMessage);
