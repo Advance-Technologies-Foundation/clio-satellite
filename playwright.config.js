@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testMatch: '**/extension.spec.js',
   timeout: 15000,
   use: {
     headless: true,
