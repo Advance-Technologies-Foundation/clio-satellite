@@ -6,7 +6,11 @@ import {
   applySavedPosition,
 } from './positionManager.js';
 
+let resizeAbortController = null;
+
 export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer) {
+  resizeAbortController?.abort();
+  resizeAbortController = new AbortController();
   const isShell = pageType === 'shell';
 
   const floatingContainer = document.createElement('div');
@@ -125,7 +129,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     if (!isDragging && !floatingContainer.hasAttribute('data-user-positioned')) {
       positionFloatingContainerRelativeToSearch(floatingContainer);
     }
-  });
+  }, { signal: resizeAbortController.signal });
 
   let positionCheckCount = 0;
   const maxPositionChecks = isShell ? 40 : 20;

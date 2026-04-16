@@ -131,6 +131,7 @@ function buildActionsMenu(actionsMenuContainer) {
       console.error('[Clio Satellite] Failed to load profiles:', chrome.runtime.lastError.message);
       return;
     }
+    if (!actionsMenuContainer.isConnected) return;
     const origin = window.location.origin;
     const lastUser = data.lastLoginProfiles[origin];
     const profile = data.userProfiles.find(p => p.username === lastUser);
@@ -298,17 +299,20 @@ export function createScriptsMenu() {
   });
 
   // Single capture-phase handler closes any open menu when clicking outside it.
-  // Capture runs before button click handlers, so menus close cleanly on outside clicks.
-  document.addEventListener('click', (event) => {
-    const ec = document.querySelector('.creatio-satelite-extension-container');
-    if (!ec) return;
-    const mb = ec.querySelector('.scripts-menu-button');
-    const ab = ec.querySelector('.actions-button');
-    const mc = ec.querySelector('.scripts-menu-container');
-    const amc = ec.querySelector('.actions-menu-container');
-    if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-    if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
-  }, true);
+  // Attached once per page — re-attaching on menu recreation would stack duplicate handlers.
+  if (!state.clickHandlerAttached) {
+    state.clickHandlerAttached = true;
+    document.addEventListener('click', (event) => {
+      const ec = document.querySelector('.creatio-satelite-extension-container');
+      if (!ec) return;
+      const mb = ec.querySelector('.scripts-menu-button');
+      const ab = ec.querySelector('.actions-button');
+      const mc = ec.querySelector('.scripts-menu-container');
+      const amc = ec.querySelector('.actions-menu-container');
+      if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
+      if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+    }, true);
+  }
 
   try {
     setupFloatingContainer(pageType, buttonWrapper, extensionContainer);

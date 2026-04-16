@@ -15,12 +15,12 @@ export function getCreatioPageType() {
 
   const loginIndicators = [
     currentPath.includes('/login'),
-    currentPath.includes('/auth'),
+    currentPath.includes('/auth/'),
+    currentPath === '/auth',
     currentPath.includes('/signin'),
     currentPath.includes('/authentication'),
     currentUrl.includes('login'),
-    currentUrl.includes('auth'),
-    currentUrl.includes('signin'),
+    currentUrl.includes('/signin'),
     document.querySelector('#loginEdit-el'),
     document.querySelector('#passwordEdit-el'),
     document.querySelector('.login-button-login'),
@@ -30,17 +30,10 @@ export function getCreatioPageType() {
     document.querySelector('form[action*="login"]'),
     document.querySelector('[class*="login"]'),
     document.querySelector('[id*="login"]'),
-    document.querySelector('[class*="auth"]'),
-    document.querySelector('[id*="auth"]'),
-    document.body && document.body.textContent.toLowerCase().includes('sign in'),
-    document.body && document.body.textContent.toLowerCase().includes('log in'),
-    document.body && document.body.textContent.toLowerCase().includes('authentication'),
     document.title.toLowerCase().includes('login'),
-    document.title.toLowerCase().includes('auth'),
     document.title.toLowerCase().includes('sign in'),
     document.querySelector('meta[name*="login"]'),
     document.querySelector('meta[content*="login"]'),
-    document.querySelector('meta[content*="auth"]'),
   ];
 
   if (loginIndicators.some(Boolean)) {
