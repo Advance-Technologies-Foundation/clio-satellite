@@ -37,6 +37,7 @@
     </header>
 
     <main class="main">
+      <div class="cards">
       <div class="card">
         <div class="card__toolbar">
           <button id="add-profile-btn" class="btn btn--outlined">
@@ -51,6 +52,15 @@
           <button id="set-to-defaults" class="btn btn--text-danger">Delete all profiles</button>
         </div>
       </div>
+
+      <div class="card" id="history-card" style="display:none">
+        <div class="card__toolbar">
+          <span class="card__section-title">Login History</span>
+        </div>
+        <ul id="history-list" class="history-list"></ul>
+      </div>
+
+      </div><!-- /.cards -->
     </main>
 
   </div>

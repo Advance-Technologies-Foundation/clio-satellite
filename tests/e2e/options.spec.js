@@ -114,28 +114,28 @@ test.describe('Options page', () => {
     await expect(pwInput).toHaveAttribute('type', 'password');
   });
 
-  test('profile shows site link when it was last used on a site', async ({ page }) => {
+  test('history card is hidden when no login history exists', async ({ page }) => {
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
+    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('#history-card')).toBeHidden();
+  });
+
+  test('history card shows site and profile name after login', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
         lastLoginProfiles: { 'https://myapp.example.com': TEST_PROFILE.username },
       },
     });
-    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    const link = page.locator('.profile-item__site-link');
-    await expect(link).toBeVisible();
+    await expect(page.locator('#history-card')).toBeVisible({ timeout: 3000 });
+    const link = page.locator('.history-item__site');
     await expect(link).toContainText('myapp.example.com');
     await expect(link).toHaveAttribute('href', 'https://myapp.example.com');
     await expect(link).toHaveAttribute('target', '_blank');
+    await expect(page.locator('.history-item__profile')).toContainText('Test Admin');
   });
 
-  test('profile shows no history when it has no last login', async ({ page }) => {
-    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
-    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    await expect(page.locator('.profile-item__site-link')).toHaveCount(0);
-  });
-
-  test('profile shows links for multiple sites', async ({ page }) => {
+  test('history card shows one row per site', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
@@ -145,8 +145,18 @@ test.describe('Options page', () => {
         },
       },
     });
+    await expect(page.locator('#history-list li')).toHaveCount(2, { timeout: 3000 });
+  });
+
+  test('profile list items have no inline history', async ({ page }) => {
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: { 'https://myapp.example.com': TEST_PROFILE.username },
+      },
+    });
     await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    await expect(page.locator('.profile-item__site-link')).toHaveCount(2);
+    await expect(page.locator('#user-list .history-item__site')).toHaveCount(0);
   });
 
   test('"Delete all profiles" shows confirmation modal with bulk message', async ({ page }) => {

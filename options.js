@@ -44,14 +44,7 @@ const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" x
 function loadProfiles() {
   userList.innerHTML = '';
 
-  chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (data) => {
-    const usedOn = {};
-    Object.entries(data.lastLoginProfiles).forEach(([origin, username]) => {
-      if (!usedOn[username]) usedOn[username] = [];
-      try { usedOn[username].push({ hostname: new URL(origin).hostname, origin }); }
-      catch { usedOn[username].push({ hostname: origin, origin }); }
-    });
-
+  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
     data.userProfiles.forEach((profile, index) => {
       const displayName = profile.alias && profile.alias.trim()
         ? `${profile.alias} (${profile.username})`
@@ -78,36 +71,6 @@ function loadProfiles() {
       info.appendChild(nameEl);
       info.appendChild(metaEl);
 
-      const sites = usedOn[profile.username];
-      if (sites && sites.length > 0) {
-        const usedOnEl = document.createElement('div');
-        usedOnEl.className = 'profile-item__used-on';
-
-        const icon = document.createElement('span');
-        icon.className = 'profile-item__used-on-icon';
-        icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        usedOnEl.appendChild(icon);
-
-        sites.forEach(({ hostname, origin }, i) => {
-          if (i > 0) {
-            const sep = document.createElement('span');
-            sep.className = 'profile-item__site-sep';
-            sep.textContent = '·';
-            usedOnEl.appendChild(sep);
-          }
-          const link = document.createElement('a');
-          link.className = 'profile-item__site-link';
-          link.href = origin;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = hostname;
-          link.title = origin;
-          usedOnEl.appendChild(link);
-        });
-
-        info.appendChild(usedOnEl);
-      }
-
       const actions = document.createElement('div');
       actions.className = 'profile-item__actions';
 
@@ -129,6 +92,52 @@ function loadProfiles() {
       li.appendChild(info);
       li.appendChild(actions);
       userList.appendChild(li);
+    });
+  });
+}
+
+// ── Login history ────────────────────────────────────────────────────────────
+
+function loadHistory() {
+  const historyCard = document.getElementById('history-card');
+  const historyList = document.getElementById('history-list');
+  historyList.innerHTML = '';
+
+  chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, (data) => {
+    const entries = Object.entries(data.lastLoginProfiles);
+    if (entries.length === 0) {
+      historyCard.style.display = 'none';
+      return;
+    }
+    historyCard.style.display = '';
+
+    entries.forEach(([origin, username]) => {
+      const profile = data.userProfiles.find(p => p.username === username);
+      const displayName = profile
+        ? (profile.alias && profile.alias.trim() ? `${profile.alias} (${profile.username})` : profile.username)
+        : username;
+
+      let hostname = origin;
+      try { hostname = new URL(origin).hostname; } catch {}
+
+      const li = document.createElement('li');
+      li.className = 'history-item';
+
+      const link = document.createElement('a');
+      link.className = 'history-item__site';
+      link.href = origin;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = origin;
+      link.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${hostname}`;
+
+      const profileEl = document.createElement('span');
+      profileEl.className = 'history-item__profile';
+      profileEl.textContent = displayName;
+
+      li.appendChild(link);
+      li.appendChild(profileEl);
+      historyList.appendChild(li);
     });
   });
 }
@@ -332,5 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
 
   loadProfiles();
+  loadHistory();
   initializeDefaultProfilesIfNeeded();
 });
