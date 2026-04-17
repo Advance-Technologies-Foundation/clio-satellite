@@ -1,6 +1,7 @@
 /* ── Page-level width override (environments is wider than options) ── */
 .env-page .cards,
-.env-page .card {
+.env-page .card,
+.env-page .about-row {
   max-width: 70vw;
 }
 

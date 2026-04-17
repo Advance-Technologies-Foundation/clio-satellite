@@ -583,6 +583,67 @@ html[data-theme="dark"] .btn--text-danger:hover { background: rgba(242,139,130,.
   color: var(--c-text);
 }
 
+/* ── About blocks ───────────────────────────────────────── */
+.about-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.about-card {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.about-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.about-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--c-text);
+}
+
+.about-text {
+  font-size: 12px;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-primary);
+  text-decoration: none;
+  margin-top: 6px;
+}
+
+.about-link:hover { text-decoration: underline; }
+
+@media (max-width: 520px) {
+  .about-row { flex-direction: column; }
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 520px) {
   .top-bar { padding: 0 16px; height: 52px; }
