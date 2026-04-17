@@ -120,7 +120,7 @@ test.describe('Options page', () => {
     await expect(page.locator('#history-card')).toBeHidden();
   });
 
-  test('history card shows site and profile name after login', async ({ page }) => {
+  test('history card is collapsed by default', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
@@ -128,6 +128,19 @@ test.describe('Options page', () => {
       },
     });
     await expect(page.locator('#history-card')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.history-details')).not.toHaveAttribute('open');
+    await expect(page.locator('#history-list')).toBeHidden();
+  });
+
+  test('history card expands on summary click and shows site + profile', async ({ page }) => {
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: { 'https://myapp.example.com': TEST_PROFILE.username },
+      },
+    });
+    await page.locator('.history-summary').click();
+    await expect(page.locator('#history-list')).toBeVisible();
     const link = page.locator('.history-item__site');
     await expect(link).toContainText('myapp.example.com');
     await expect(link).toHaveAttribute('href', 'https://myapp.example.com');
@@ -145,6 +158,7 @@ test.describe('Options page', () => {
         },
       },
     });
+    await page.locator('.history-summary').click();
     await expect(page.locator('#history-list li')).toHaveCount(2, { timeout: 3000 });
   });
 

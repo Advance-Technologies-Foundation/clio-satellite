@@ -257,6 +257,29 @@ html[data-theme="system"] .theme-switcher__btn[data-theme-value="system"] {
   letter-spacing: .04em;
 }
 
+.history-details { display: block; }
+
+.history-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.history-summary::-webkit-details-marker { display: none; }
+
+.history-summary:hover { background: var(--c-hover); }
+
+.history-chevron {
+  color: var(--c-text-2);
+  flex-shrink: 0;
+  transition: transform .2s ease;
+}
+
+.history-details[open] .history-chevron { transform: rotate(180deg); }
+
 .history-list { list-style: none; }
 
 .history-item {
