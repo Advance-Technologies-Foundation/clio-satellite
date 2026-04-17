@@ -92,7 +92,8 @@
         const map = result.lastLoginProfiles;
         // Instead of full href, use origin for storage key
         const key = window.location.origin;
-        const lastUser = map[key];
+        const entry = map[key];
+        const lastUser = typeof entry === 'string' ? entry : entry?.username;
         if (lastUser) {
           profileSelect.value = lastUser;
 
@@ -176,7 +177,7 @@
         const map = result.lastLoginProfiles;
         // Instead of full href, use origin for storage key
         const key = window.location.origin;
-        map[key] = selectedUser;
+        map[key] = { username: selectedUser, timestamp: Date.now() };
         chrome.storage.sync.set({ lastLoginProfiles: map });
       });
     });

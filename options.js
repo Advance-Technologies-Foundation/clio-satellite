@@ -111,34 +111,51 @@ function loadHistory() {
     }
     historyCard.style.display = '';
 
-    entries.forEach(([origin, username]) => {
-      const profile = data.userProfiles.find(p => p.username === username);
-      const displayName = profile
-        ? (profile.alias && profile.alias.trim() ? `${profile.alias} (${profile.username})` : profile.username)
-        : username;
-
-      let hostname = origin;
-      try { hostname = new URL(origin).hostname; } catch {}
-
-      const li = document.createElement('li');
-      li.className = 'history-item';
-
-      const link = document.createElement('a');
-      link.className = 'history-item__site';
-      link.href = origin;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.title = origin;
-      link.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${hostname}`;
-
-      const profileEl = document.createElement('span');
-      profileEl.className = 'history-item__profile';
-      profileEl.textContent = displayName;
-
-      li.appendChild(link);
-      li.appendChild(profileEl);
-      historyList.appendChild(li);
+    const fmt = new Intl.DateTimeFormat(undefined, {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     });
+
+    entries
+      .map(([origin, raw]) => {
+        const username  = typeof raw === 'string' ? raw : raw?.username;
+        const timestamp = typeof raw === 'object' ? (raw?.timestamp ?? 0) : 0;
+        return { origin, username, timestamp };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .forEach(({ origin, username, timestamp }) => {
+        const profile = data.userProfiles.find(p => p.username === username);
+        const displayName = profile
+          ? (profile.alias && profile.alias.trim() ? `${profile.alias} (${profile.username})` : profile.username)
+          : username;
+
+        let hostname = origin;
+        try { hostname = new URL(origin).hostname; } catch {}
+
+        const li = document.createElement('li');
+        li.className = 'history-item';
+
+        const link = document.createElement('a');
+        link.className = 'history-item__site';
+        link.href = origin;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = origin;
+        link.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${hostname}`;
+
+        const profileEl = document.createElement('span');
+        profileEl.className = 'history-item__profile';
+        profileEl.textContent = displayName;
+
+        const dateEl = document.createElement('span');
+        dateEl.className = 'history-item__date';
+        dateEl.textContent = timestamp ? fmt.format(new Date(timestamp)) : '—';
+
+        li.appendChild(link);
+        li.appendChild(profileEl);
+        li.appendChild(dateEl);
+        historyList.appendChild(li);
+      });
   });
 }
 

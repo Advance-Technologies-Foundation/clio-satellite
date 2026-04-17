@@ -133,7 +133,8 @@ function buildActionsMenu(actionsMenuContainer) {
     }
     if (!actionsMenuContainer.isConnected) return;
     const origin = window.location.origin;
-    const lastUser = data.lastLoginProfiles[origin];
+    const rawEntry = data.lastLoginProfiles[origin];
+    const lastUser = typeof rawEntry === 'string' ? rawEntry : rawEntry?.username;
     const profile = data.userProfiles.find(p => p.username === lastUser);
     const autologinEnabled = profile ? profile.autologin : false;
 

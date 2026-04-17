@@ -61,7 +61,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Get storage and disable autologin
         chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (data) => {
             const lastMap = data.lastLoginProfiles;
-            const usernameToDisable = lastMap[urlKey];
+            const rawEntry = lastMap[urlKey];
+            const usernameToDisable = typeof rawEntry === 'string' ? rawEntry : rawEntry?.username;
             // Clear last login mapping
             delete lastMap[urlKey];
             // Update profiles

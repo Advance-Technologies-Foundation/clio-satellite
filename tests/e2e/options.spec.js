@@ -132,7 +132,23 @@ test.describe('Options page', () => {
     await expect(page.locator('#history-list')).toBeHidden();
   });
 
-  test('history card expands on summary click and shows site + profile', async ({ page }) => {
+  test('history card expands on summary click and shows site, profile and date', async ({ page }) => {
+    const ts = new Date('2026-04-17T10:30:00').getTime();
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: { 'https://myapp.example.com': { username: TEST_PROFILE.username, timestamp: ts } },
+      },
+    });
+    await page.locator('.history-summary').click();
+    await expect(page.locator('#history-list')).toBeVisible();
+    await expect(page.locator('.history-item__site')).toContainText('myapp.example.com');
+    await expect(page.locator('.history-item__site')).toHaveAttribute('href', 'https://myapp.example.com');
+    await expect(page.locator('.history-item__profile')).toContainText('Test Admin');
+    await expect(page.locator('.history-item__date')).not.toContainText('—');
+  });
+
+  test('history shows — for legacy entries without timestamp', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
@@ -140,12 +156,25 @@ test.describe('Options page', () => {
       },
     });
     await page.locator('.history-summary').click();
-    await expect(page.locator('#history-list')).toBeVisible();
-    const link = page.locator('.history-item__site');
-    await expect(link).toContainText('myapp.example.com');
-    await expect(link).toHaveAttribute('href', 'https://myapp.example.com');
-    await expect(link).toHaveAttribute('target', '_blank');
-    await expect(page.locator('.history-item__profile')).toContainText('Test Admin');
+    await expect(page.locator('.history-item__date')).toContainText('—');
+  });
+
+  test('history entries are sorted newest first', async ({ page }) => {
+    const t1 = new Date('2026-01-01').getTime();
+    const t2 = new Date('2026-04-17').getTime();
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: {
+          'https://old.example.com': { username: TEST_PROFILE.username, timestamp: t1 },
+          'https://new.example.com': { username: TEST_PROFILE.username, timestamp: t2 },
+        },
+      },
+    });
+    await page.locator('.history-summary').click();
+    const items = page.locator('.history-item__site');
+    await expect(items.first()).toContainText('new.example.com');
+    await expect(items.last()).toContainText('old.example.com');
   });
 
   test('history card shows one row per site', async ({ page }) => {
@@ -153,8 +182,8 @@ test.describe('Options page', () => {
       syncData: {
         userProfiles: [TEST_PROFILE],
         lastLoginProfiles: {
-          'https://site1.example.com': TEST_PROFILE.username,
-          'https://site2.example.com': TEST_PROFILE.username,
+          'https://site1.example.com': { username: TEST_PROFILE.username, timestamp: Date.now() },
+          'https://site2.example.com': { username: TEST_PROFILE.username, timestamp: Date.now() },
         },
       },
     });
