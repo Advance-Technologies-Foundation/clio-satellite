@@ -5,6 +5,13 @@
 
 // Function to wait for login form elements and add login profile selector
 (function waitForLoginElements() {
+  const EXCLUDED_DOMAINS = [
+    "gitlab.com", "github.com", "bitbucket.org", "google.com",
+    "mail.google.com", "youtube.com", "atlassian.net",
+    "upsource.creatio.com", "work.creatio.com",
+    "community.creatio.com", "academy.creatio.com"
+  ];
+  if (EXCLUDED_DOMAINS.some(d => window.location.hostname.includes(d))) return;
 
   function addOption(parent, value, text) {
     const option = document.createElement('option');
@@ -13,21 +20,7 @@
     parent.appendChild(option);
   }
 
-  // Find login form elements - universal selectors
-  const usernameField = document.querySelector('#loginEdit-el') || 
-                       document.querySelector('input[name*="username"]') ||
-                       document.querySelector('input[name*="login"]') ||
-                       document.querySelector('input[name*="email"]') ||
-                       document.querySelector('input[name*="user"]') ||
-                       document.querySelector('input[type="text"]') ||
-                       document.querySelector('input[type="email"]');
-                       
-  const passwordField = document.querySelector('#passwordEdit-el') ||
-                       document.querySelector('input[type="password"]');
-                       
-  const loginButton = document.querySelector('.login-button-login') ||
-                     document.querySelector('button[type="submit"]') ||
-                     document.querySelector('input[type="submit"]');
+  const { usernameField, passwordField, loginButton } = getLoginElements();
 
   if (usernameField && passwordField && loginButton) {
     // Create login profiles container

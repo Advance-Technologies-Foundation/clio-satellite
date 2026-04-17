@@ -7,7 +7,6 @@ Chrome Extension (Manifest V3) for Creatio CRM. Enhances login, navigation, and 
 - JavaScript ES6+ with single quotes and 2-space indentation
 - No external libraries — vanilla JavaScript only
 - Plain CSS, no preprocessors
-- No test files or pages
 - Target latest stable Chrome
 
 ---
@@ -94,6 +93,33 @@ Google reviewers read the release notes to verify the extension behaves as descr
 - `activeTab` — used to detect current page type and inject the appropriate UI
 - `contextMenus` — used to add a right-click shortcut to open the options page
 - `host_permissions: <all_urls>` — required because Creatio can be hosted on any domain (self-hosted instances)
+
+---
+
+---
+
+## Testing
+
+### Coverage requirement
+**Every code change must be accompanied by tests.** This is mandatory, not optional:
+- Bug fix → add a unit test that fails before the fix and passes after
+- New feature → add unit tests for logic + at least one E2E test for the user-visible behaviour
+- Refactor → verify existing tests still pass; add tests for any behaviour that was previously untested
+
+Run both suites before marking a task complete:
+```bash
+npm test && npm run test:e2e
+```
+
+### Unit tests
+```bash
+npm test
+```
+
+### Mock E2E tests (Playwright, headless, no real site needed)
+```bash
+npm run test:e2e
+```
 
 ---
 

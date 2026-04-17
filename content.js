@@ -214,13 +214,14 @@
     actionsMenuCreated: false,
     menuCreating: false,
     // true while DOM is being built — guards monitorButtons from interfering
-    clickHandlerAttached: false
+    clickAbortController: null
   };
   function resetState() {
     state.menuCreated = false;
     state.actionsMenuCreated = false;
     state.menuCreating = false;
-    state.clickHandlerAttached = false;
+    state.clickAbortController?.abort();
+    state.clickAbortController = null;
   }
 
   // src/menuVisibility.js
@@ -750,6 +751,10 @@
     hideMenuContainer(actionsMenuContainer);
     actionsButton.addEventListener("click", (event) => {
       event.stopPropagation();
+      if (actionsMenuContainer.classList.contains("visible")) {
+        hideMenuContainer(actionsMenuContainer);
+        return;
+      }
       hideMenuContainer(menuContainer);
       buildActionsMenu(actionsMenuContainer);
       showMenuContainer(actionsMenuContainer);
@@ -757,23 +762,26 @@
     });
     menuButton.addEventListener("click", (event) => {
       event.stopPropagation();
-      showMenuContainer(menuContainer);
+      if (menuContainer.classList.contains("visible")) {
+        hideMenuContainer(menuContainer);
+        return;
+      }
       hideMenuContainer(actionsMenuContainer);
+      showMenuContainer(menuContainer);
       adjustMenuPosition(menuButton, menuContainer);
     });
-    if (!state.clickHandlerAttached) {
-      state.clickHandlerAttached = true;
-      document.addEventListener("click", (event) => {
-        const ec = document.querySelector(".creatio-satelite-extension-container");
-        if (!ec) return;
-        const mb = ec.querySelector(".scripts-menu-button");
-        const ab = ec.querySelector(".actions-button");
-        const mc = ec.querySelector(".scripts-menu-container");
-        const amc = ec.querySelector(".actions-menu-container");
-        if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-        if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
-      }, true);
-    }
+    state.clickAbortController?.abort();
+    state.clickAbortController = new AbortController();
+    document.addEventListener("click", (event) => {
+      const ec = document.querySelector(".creatio-satelite-extension-container");
+      if (!ec) return;
+      const mb = ec.querySelector(".scripts-menu-button");
+      const ab = ec.querySelector(".actions-button");
+      const mc = ec.querySelector(".scripts-menu-container");
+      const amc = ec.querySelector(".actions-menu-container");
+      if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
+      if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+    }, { capture: true, signal: state.clickAbortController.signal });
     try {
       setupFloatingContainer(pageType, buttonWrapper, extensionContainer);
       const rootMenuContainer = document.createElement("div");

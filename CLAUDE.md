@@ -110,6 +110,17 @@ Google reviewers read the release notes to verify the extension behaves as descr
 
 ## Testing
 
+### Coverage requirement
+**Every code change must be accompanied by tests.** This is mandatory, not optional:
+- Bug fix → add a unit test that fails before the fix and passes after
+- New feature → add unit tests for logic + at least one E2E test for the user-visible behaviour
+- Refactor → verify existing tests still pass; add tests for any behaviour that was previously untested
+
+Run both suites before marking a task complete:
+```bash
+npm test && npm run test:e2e
+```
+
 ### Unit tests (run on every commit via CI)
 ```bash
 npm test

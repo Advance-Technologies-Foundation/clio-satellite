@@ -95,6 +95,28 @@ test.describe('Shell page', () => {
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(1);
   });
 
+  test('clicking scripts button again closes the menu (toggle)', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await page.locator('.scripts-menu-button').click();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+
+    await page.locator('.scripts-menu-button').click();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
+  });
+
+  test('clicking actions button again closes the menu (toggle)', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await page.locator('.actions-button').click();
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+
+    await page.locator('.actions-button').click();
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/hidden/);
+  });
+
   test('opening actions menu closes the scripts menu', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

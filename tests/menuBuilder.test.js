@@ -65,6 +65,62 @@ describe('createScriptsMenu', () => {
     expect(result).toBe(false);
   });
 
+  it('clicking nav button twice toggles menu closed', () => {
+    createScriptsMenu();
+    const btn = document.querySelector('.scripts-menu-button');
+    const menu = document.querySelector('.scripts-menu-container');
+
+    btn.click();
+    expect(menu.classList.contains('visible')).toBe(true);
+
+    btn.click();
+    expect(menu.classList.contains('visible')).toBe(false);
+    expect(menu.classList.contains('hidden')).toBe(true);
+  });
+
+  it('clicking actions button twice toggles menu closed', () => {
+    createScriptsMenu();
+    const btn = document.querySelector('.actions-button');
+    const menu = document.querySelector('.actions-menu-container');
+
+    btn.click();
+    expect(menu.classList.contains('visible')).toBe(true);
+
+    btn.click();
+    expect(menu.classList.contains('visible')).toBe(false);
+    expect(menu.classList.contains('hidden')).toBe(true);
+  });
+
+  it('opening nav menu closes actions menu', () => {
+    createScriptsMenu();
+    const navBtn = document.querySelector('.scripts-menu-button');
+    const actBtn = document.querySelector('.actions-button');
+    const navMenu = document.querySelector('.scripts-menu-container');
+    const actMenu = document.querySelector('.actions-menu-container');
+
+    actBtn.click();
+    expect(actMenu.classList.contains('visible')).toBe(true);
+
+    navBtn.click();
+    expect(navMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.classList.contains('hidden')).toBe(true);
+  });
+
+  it('opening actions menu closes nav menu', () => {
+    createScriptsMenu();
+    const navBtn = document.querySelector('.scripts-menu-button');
+    const actBtn = document.querySelector('.actions-button');
+    const navMenu = document.querySelector('.scripts-menu-container');
+    const actMenu = document.querySelector('.actions-menu-container');
+
+    navBtn.click();
+    expect(navMenu.classList.contains('visible')).toBe(true);
+
+    actBtn.click();
+    expect(actMenu.classList.contains('visible')).toBe(true);
+    expect(navMenu.classList.contains('hidden')).toBe(true);
+  });
+
   it('resets state if DOM creation throws', () => {
     // Make appendChild throw
     const original = document.body.appendChild.bind(document.body);

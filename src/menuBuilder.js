@@ -285,6 +285,10 @@ export function createScriptsMenu() {
 
   actionsButton.addEventListener('click', (event) => {
     event.stopPropagation();
+    if (actionsMenuContainer.classList.contains('visible')) {
+      hideMenuContainer(actionsMenuContainer);
+      return;
+    }
     hideMenuContainer(menuContainer);
     buildActionsMenu(actionsMenuContainer);
     showMenuContainer(actionsMenuContainer);
@@ -293,26 +297,27 @@ export function createScriptsMenu() {
 
   menuButton.addEventListener('click', (event) => {
     event.stopPropagation();
-    showMenuContainer(menuContainer);
+    if (menuContainer.classList.contains('visible')) {
+      hideMenuContainer(menuContainer);
+      return;
+    }
     hideMenuContainer(actionsMenuContainer);
+    showMenuContainer(menuContainer);
     adjustMenuPosition(menuButton, menuContainer);
   });
 
-  // Single capture-phase handler closes any open menu when clicking outside it.
-  // Attached once per page — re-attaching on menu recreation would stack duplicate handlers.
-  if (!state.clickHandlerAttached) {
-    state.clickHandlerAttached = true;
-    document.addEventListener('click', (event) => {
-      const ec = document.querySelector('.creatio-satelite-extension-container');
-      if (!ec) return;
-      const mb = ec.querySelector('.scripts-menu-button');
-      const ab = ec.querySelector('.actions-button');
-      const mc = ec.querySelector('.scripts-menu-container');
-      const amc = ec.querySelector('.actions-menu-container');
-      if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-      if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
-    }, true);
-  }
+  state.clickAbortController?.abort();
+  state.clickAbortController = new AbortController();
+  document.addEventListener('click', (event) => {
+    const ec = document.querySelector('.creatio-satelite-extension-container');
+    if (!ec) return;
+    const mb = ec.querySelector('.scripts-menu-button');
+    const ab = ec.querySelector('.actions-button');
+    const mc = ec.querySelector('.scripts-menu-container');
+    const amc = ec.querySelector('.actions-menu-container');
+    if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
+    if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+  }, { capture: true, signal: state.clickAbortController.signal });
 
   try {
     setupFloatingContainer(pageType, buttonWrapper, extensionContainer);

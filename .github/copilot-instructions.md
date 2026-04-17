@@ -7,7 +7,6 @@
 - When providing code examples, include comments explaining each step.
 - Follow the structure: background scripts, content scripts, popup UI, and options page.
 - Provide concise responses; avoid unnecessary details.
-- Don`t create and don`t use any test files or pages
 - Don`t create md files with changes description
 
 ---
@@ -50,3 +49,26 @@ Google reviewers read the release notes. Vague descriptions cause rejection.
 - `host_permissions: <all_urls>` — Creatio can be self-hosted on any domain
 
 Do not add permissions without documenting the justification here.
+
+## Testing
+
+### Coverage requirement
+**Every code change must be accompanied by tests.** This is mandatory, not optional:
+- Bug fix → add a unit test that fails before the fix and passes after
+- New feature → add unit tests for logic + at least one E2E test for the user-visible behaviour
+- Refactor → verify existing tests still pass; add tests for any behaviour that was previously untested
+
+Run both suites before marking a task complete:
+```bash
+npm test && npm run test:e2e
+```
+
+### Unit tests
+```bash
+npm test
+```
+
+### Mock E2E tests (Playwright, headless, no real site needed)
+```bash
+npm run test:e2e
+```
