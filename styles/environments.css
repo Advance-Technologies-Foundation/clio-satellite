@@ -1,3 +1,9 @@
+/* ── Page-level width override (environments is wider than options) ── */
+.env-page .cards,
+.env-page .card {
+  max-width: 70vw;
+}
+
 /* ── Environment grid ─────────────────────────────────── */
 .env-grid {
   display: grid;
