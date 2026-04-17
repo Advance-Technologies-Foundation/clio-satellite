@@ -44,7 +44,14 @@ const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" x
 function loadProfiles() {
   userList.innerHTML = '';
 
-  chrome.storage.sync.get({ userProfiles: [] }, (data) => {
+  chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (data) => {
+    const usedOn = {};
+    Object.entries(data.lastLoginProfiles).forEach(([origin, username]) => {
+      if (!usedOn[username]) usedOn[username] = [];
+      try { usedOn[username].push(new URL(origin).hostname); }
+      catch { usedOn[username].push(origin); }
+    });
+
     data.userProfiles.forEach((profile, index) => {
       const displayName = profile.alias && profile.alias.trim()
         ? `${profile.alias} (${profile.username})`
@@ -70,6 +77,20 @@ function loadProfiles() {
 
       info.appendChild(nameEl);
       info.appendChild(metaEl);
+
+      const sites = usedOn[profile.username];
+      if (sites && sites.length > 0) {
+        const usedOnEl = document.createElement('div');
+        usedOnEl.className = 'profile-item__used-on';
+        sites.forEach(hostname => {
+          const chip = document.createElement('span');
+          chip.className = 'profile-item__site-chip';
+          chip.textContent = hostname;
+          chip.title = hostname;
+          usedOnEl.appendChild(chip);
+        });
+        info.appendChild(usedOnEl);
+      }
 
       const actions = document.createElement('div');
       actions.className = 'profile-item__actions';

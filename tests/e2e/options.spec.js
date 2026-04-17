@@ -114,6 +114,38 @@ test.describe('Options page', () => {
     await expect(pwInput).toHaveAttribute('type', 'password');
   });
 
+  test('profile shows site chip when it was last used on a site', async ({ page }) => {
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: { 'https://myapp.example.com': TEST_PROFILE.username },
+      },
+    });
+    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('.profile-item__site-chip')).toBeVisible();
+    await expect(page.locator('.profile-item__site-chip')).toContainText('myapp.example.com');
+  });
+
+  test('profile shows no chip when it has no last login history', async ({ page }) => {
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
+    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('.profile-item__site-chip')).toHaveCount(0);
+  });
+
+  test('profile shows chips for multiple sites', async ({ page }) => {
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: {
+          'https://site1.example.com': TEST_PROFILE.username,
+          'https://site2.example.com': TEST_PROFILE.username,
+        },
+      },
+    });
+    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('.profile-item__site-chip')).toHaveCount(2);
+  });
+
   test('"Delete all profiles" shows confirmation modal with bulk message', async ({ page }) => {
     await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
     await page.locator('#set-to-defaults').click();

@@ -238,6 +238,29 @@ html[data-theme="system"] .theme-switcher__btn[data-theme-value="system"] {
   margin-top: 2px;
 }
 
+.profile-item__used-on {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.profile-item__site-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-primary);
+  background: var(--c-hover);
+  border: 1px solid var(--c-focus-ring);
+  border-radius: var(--radius-full);
+  padding: 0 7px;
+  line-height: 18px;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .profile-item__actions {
   display: flex;
   gap: 4px;
