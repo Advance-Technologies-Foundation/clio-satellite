@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clio satellite",
-  "version": "2.0",
+  "version": "2.1",
   "description": "Expanding Creatio capabilities for professionals",
   "permissions": ["scripting", "activeTab", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
