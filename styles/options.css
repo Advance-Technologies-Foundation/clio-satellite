@@ -597,6 +597,7 @@ html[data-theme="dark"] .btn--text-danger:hover { background: rgba(242,139,130,.
   align-items: flex-start;
   gap: 14px;
   padding: 18px 20px;
+  align-self: stretch;
 }
 
 .about-logo {
