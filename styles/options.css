@@ -641,6 +641,15 @@ html[data-theme="dark"] .btn--text-danger:hover { background: rgba(242,139,130,.
 
 .about-link:hover { text-decoration: underline; }
 
+.about-row--stacked {
+  flex-direction: column;
+}
+
+.about-row--stacked .about-card {
+  align-self: auto;
+  max-width: 100%;
+}
+
 @media (max-width: 520px) {
   .about-row { flex-direction: column; }
 }
