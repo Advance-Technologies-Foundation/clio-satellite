@@ -4,10 +4,10 @@ const GOOGLE_PALETTE = [
   '#009688', '#FF5722', '#795548', '#607D8B',
 ];
 
-function hashColor(hostname) {
+function hashColor(host) {
   let hash = 0;
-  for (let i = 0; i < hostname.length; i++) {
-    hash = hostname.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < host.length; i++) {
+    hash = host.charCodeAt(i) + ((hash << 5) - hash);
   }
   return GOOGLE_PALETTE[Math.abs(hash) % GOOGLE_PALETTE.length];
 }
@@ -23,6 +23,7 @@ function getTextColor(hex) {
 
 const SVG_STAR_EMPTY = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.27l-3.52 1.07.67-3.92L2.3 5.64l3.94-.57L8 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
 const SVG_STAR_FULL  = `<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 1.5l1.76 3.57 3.94.57-2.85 2.78.67 3.92L8 10.27l-3.52 1.07.67-3.92L2.3 5.64l3.94-.57L8 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
+const SVG_TRASH      = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M6 4V2h4v2M5 4v9a1 1 0 001 1h4a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const fmt = new Intl.DateTimeFormat(undefined, {
   day: 'numeric', month: 'short', year: 'numeric',
@@ -32,18 +33,18 @@ function createTile(origin, raw, isFav, userProfiles) {
   const username  = typeof raw === 'string' ? raw : raw?.username;
   const timestamp = typeof raw === 'object' ? (raw?.timestamp ?? 0) : 0;
 
-  let hostname = origin;
-  try { hostname = new URL(origin).hostname; } catch {}
+  let host = origin;
+  try { host = new URL(origin).host; } catch {}
 
   const profile = userProfiles.find(p => p.username === username);
   const displayName = profile
     ? (profile.alias?.trim() ? profile.alias : profile.username)
     : (username || '');
 
-  const color    = hashColor(hostname);
+  const color     = hashColor(host);
   const textColor = getTextColor(color);
-  const dateStr  = timestamp ? fmt.format(new Date(timestamp)) : '';
-  const meta     = [displayName, dateStr].filter(Boolean).join(' · ');
+  const dateStr   = timestamp ? fmt.format(new Date(timestamp)) : '';
+  const meta      = [displayName, dateStr].filter(Boolean).join(' · ');
 
   const tile = document.createElement('div');
   tile.className = 'env-tile';
@@ -63,6 +64,17 @@ function createTile(origin, raw, isFav, userProfiles) {
     toggleFavorite(origin);
   });
 
+  const delBtn = document.createElement('button');
+  delBtn.className = 'env-tile__del-btn';
+  delBtn.title = 'Remove environment';
+  delBtn.innerHTML = SVG_TRASH;
+  delBtn.style.color = textColor;
+  delBtn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    deleteEnvironment(origin);
+  });
+
   const link = document.createElement('a');
   link.className = 'env-tile__link';
   link.href = origin;
@@ -71,7 +83,7 @@ function createTile(origin, raw, isFav, userProfiles) {
 
   const hostnameEl = document.createElement('div');
   hostnameEl.className = 'env-tile__hostname';
-  hostnameEl.textContent = hostname;
+  hostnameEl.textContent = host;
 
   const metaEl = document.createElement('div');
   metaEl.className = 'env-tile__meta';
@@ -80,6 +92,7 @@ function createTile(origin, raw, isFav, userProfiles) {
   link.appendChild(hostnameEl);
   link.appendChild(metaEl);
   tile.appendChild(favBtn);
+  tile.appendChild(delBtn);
   tile.appendChild(link);
 
   return tile;
@@ -143,6 +156,15 @@ function toggleFavorite(origin) {
     const idx  = favs.indexOf(origin);
     if (idx === -1) favs.push(origin); else favs.splice(idx, 1);
     chrome.storage.sync.set({ favoriteEnvironments: favs }, loadEnvironments);
+  });
+}
+
+function deleteEnvironment(origin) {
+  chrome.storage.sync.get({ lastLoginProfiles: {}, favoriteEnvironments: [] }, data => {
+    const profiles = data.lastLoginProfiles;
+    delete profiles[origin];
+    const favs = data.favoriteEnvironments.filter(f => f !== origin);
+    chrome.storage.sync.set({ lastLoginProfiles: profiles, favoriteEnvironments: favs }, loadEnvironments);
   });
 }
 

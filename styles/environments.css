@@ -21,10 +21,10 @@
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
 
-.env-tile__fav-btn {
+.env-tile__fav-btn,
+.env-tile__del-btn {
   all: unset;
   position: absolute;
-  top: 8px;
   right: 8px;
   cursor: pointer;
   opacity: .65;
@@ -33,7 +33,11 @@
   z-index: 1;
 }
 
-.env-tile__fav-btn:hover   { opacity: 1; transform: scale(1.2); }
+.env-tile__fav-btn { top: 8px; }
+.env-tile__del-btn { bottom: 8px; }
+
+.env-tile__fav-btn:hover,
+.env-tile__del-btn:hover   { opacity: 1; transform: scale(1.2); }
 .env-tile__fav-btn--active { opacity: 1; }
 
 .env-tile__link {
@@ -41,7 +45,7 @@
   flex-direction: column;
   justify-content: center;
   flex: 1;
-  padding: 14px 36px 14px 16px;
+  padding: 14px 36px;
   text-decoration: none;
   color: inherit;
   gap: 6px;

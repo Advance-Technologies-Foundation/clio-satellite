@@ -150,4 +150,59 @@ test.describe('Environments page', () => {
     });
     await expect(page.locator('#all-section-title')).toContainText('All environments');
   });
+
+  test('tile shows port when origin has non-standard port', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: { 'https://myapp.example.com:8080': { username: 'Supervisor', timestamp: T_NEW } },
+      },
+    });
+    await expect(page.locator('.env-tile__hostname')).toContainText('myapp.example.com:8080');
+  });
+
+  test('same hostname on different ports gets different colors', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: {
+          'https://myapp.example.com':      { username: 'Supervisor', timestamp: T_NEW },
+          'https://myapp.example.com:8080': { username: 'Supervisor', timestamp: T_OLD },
+        },
+      },
+    });
+    const tiles = page.locator('#environments-grid .env-tile');
+    const c1 = await tiles.nth(0).evaluate(el => el.style.background);
+    const c2 = await tiles.nth(1).evaluate(el => el.style.background);
+    expect(c1).not.toBe(c2);
+  });
+
+  test('delete button removes tile from grid', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: {
+          'https://site1.example.com': { username: 'Supervisor', timestamp: T_NEW },
+          'https://site2.example.com': { username: 'Supervisor', timestamp: T_OLD },
+        },
+      },
+    });
+    await expect(page.locator('#environments-grid .env-tile')).toHaveCount(2);
+    await page.locator('#environments-grid .env-tile__del-btn').first().click();
+    await expect(page.locator('#environments-grid .env-tile')).toHaveCount(1);
+  });
+
+  test('deleting a favorite removes it from favorites section', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: { 'https://site.example.com': { username: 'Supervisor', timestamp: T_NEW } },
+        favoriteEnvironments: ['https://site.example.com'],
+      },
+    });
+    await expect(page.locator('#favorites-section')).toBeVisible();
+    await page.locator('#favorites-grid .env-tile__del-btn').click();
+    await expect(page.locator('#favorites-section')).toBeHidden();
+    await expect(page.locator('#environments-grid .env-tile')).toHaveCount(0);
+  });
 });
