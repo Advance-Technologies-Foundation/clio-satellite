@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Clio satellite",
   "version": "2.1",
-  "description": "Expanding Creatio capabilities for professionals",
+  "description": "Enhances Creatio CRM with profile-based quick login, admin shortcuts, and environment management for self-hosted instances.",
   "permissions": ["scripting", "activeTab", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "options_page": "options.html",
@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "scripts/*", "icon48.png", "icon128.png"],
+      "resources": ["scripts/*", "icon48.png", "icon128.png"],
       "matches": ["<all_urls>"]
     }
   ],
