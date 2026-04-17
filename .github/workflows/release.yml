@@ -85,7 +85,7 @@ jobs:
             -x ".git/*" \
             -x ".venv/*"
 
-          zip -uj "$ZIP_NAME" options.html
+          zip -uj "$ZIP_NAME" options.html environments.html
           echo "zip_name=$ZIP_NAME" >> $GITHUB_ENV
 
       - name: Upload zip to release
