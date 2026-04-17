@@ -72,3 +72,7 @@ npm test
 ```bash
 npm run test:e2e
 ```
+
+## Language
+- All documentation, comments, commit messages, and release notes must be written in **English only**
+- Do not use any other language in any project file or git history

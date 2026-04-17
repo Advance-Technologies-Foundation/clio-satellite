@@ -159,6 +159,10 @@ Failed tests save screenshots and video to `test-results/`.
 
 ---
 
+## Language
+- All documentation, comments, commit messages, and release notes must be written in **English only**
+- Do not use any other language in any project file or git history
+
 ## Things to avoid
 - Do not change `host_permissions` without updating the justification above
 - Do not add new permissions without documenting why in this file
