@@ -36,8 +36,8 @@
           </button>
         </div>
 
-        <a href="options.html" class="btn btn--text">Profiles</a>
-        <button id="close-btn" class="btn btn--text">Close</button>
+        <a href="options.html" class="btn btn--text top-bar__nav-link">Profiles</a>
+        <button id="close-btn" class="btn btn--text">Close tab</button>
       </div>
     </header>
 
@@ -46,7 +46,7 @@
 
         <div class="card" id="favorites-section" style="display:none">
           <div class="card__toolbar">
-            <span class="card__section-title">Favourites</span>
+            <span class="card__section-title">Favorites</span>
           </div>
           <div class="env-bulk-bar" id="favorites-bulk-bar" style="display:none">
             <span class="env-bulk-count" id="favorites-bulk-count">0 selected</span>
@@ -55,7 +55,7 @@
               <button type="button" id="fav-delete-selected-btn" class="btn btn--danger btn--sm">Delete selected</button>
             </div>
           </div>
-          <div class="env-grid" id="favorites-grid"></div>
+          <div class="env-grid" id="favorites-grid" aria-live="polite" aria-label="Favorite environments"></div>
         </div>
 
         <div class="card">
@@ -68,7 +68,10 @@
                   <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </span>
-              <input type="text" id="env-search" class="search-input" placeholder="Search by URL, name, alias or port…" autocomplete="off" spellcheck="false">
+              <input type="text" id="env-search" class="search-input" placeholder="Search by URL, name, alias or port…" autocomplete="off" spellcheck="false" autofocus>
+              <button type="button" class="search-clear" id="env-search-clear" aria-label="Clear search" style="display:none">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
             </div>
           </div>
           <div class="env-bulk-bar" id="env-bulk-bar" style="display:none">
@@ -78,9 +81,20 @@
               <button type="button" id="delete-selected-btn" class="btn btn--danger btn--sm">Delete selected</button>
             </div>
           </div>
-          <div class="env-grid" id="environments-grid"></div>
-          <div class="card__footer" id="env-card-footer" style="display:none">
-            <button type="button" id="delete-non-fav-btn" class="btn btn--text-danger">Delete all environments</button>
+          <div class="env-grid" id="environments-grid" aria-live="polite" aria-label="All environments"></div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="card card--danger" id="env-card-footer" style="display:none">
+          <div class="card__toolbar">
+            <span class="card__section-title" style="color: var(--c-danger)">Danger Zone</span>
+          </div>
+          <div class="danger-action">
+            <div class="danger-action__info">
+              <div class="danger-action__title">Delete all environments</div>
+              <div class="danger-action__desc">Removes all non-favorited environments. Favorites are preserved. This action cannot be undone.</div>
+            </div>
+            <button type="button" id="delete-non-fav-btn" class="btn btn--danger btn--sm">Delete all</button>
           </div>
         </div>
 
@@ -116,7 +130,7 @@
   </div>
 
   <!-- Confirm modal -->
-  <div id="confirm-modal" class="modal" style="display:none">
+  <div id="confirm-modal" class="modal" style="display:none" role="presentation">
     <div class="dialog dialog--sm" role="dialog" aria-modal="true">
       <div class="dialog__header">
         <h2 class="dialog__title" id="confirm-modal-title">Delete environment</h2>
@@ -125,7 +139,7 @@
         </button>
       </div>
       <div class="dialog__body modal-body">
-        <p class="dialog__text" id="confirm-modal-text">Delete this environment?</p>
+        <p class="dialog__text" id="confirm-modal-text">Delete this environment? This action cannot be undone.</p>
       </div>
       <div class="dialog__actions">
         <button type="button" id="cancel-delete-btn" class="btn btn--text">Cancel</button>

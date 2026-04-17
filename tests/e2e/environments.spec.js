@@ -447,7 +447,7 @@ test.describe('Environments page', () => {
     });
     await page.locator('#delete-non-fav-btn').click();
     await expect(page.locator('#confirm-modal')).toBeVisible();
-    await expect(page.locator('#confirm-modal-text')).toContainText('favourites will be preserved');
+    await expect(page.locator('#confirm-modal-text')).toContainText('favorites will be preserved');
   });
 
   test('confirming "delete all except favourites" removes only non-fav environments', async ({ page }) => {

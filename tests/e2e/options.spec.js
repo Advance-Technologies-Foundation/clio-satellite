@@ -204,7 +204,7 @@ test.describe('Options page', () => {
 
   test('"Delete all profiles" shows confirmation modal with bulk message', async ({ page }) => {
     await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
-    await page.locator('#set-to-defaults').click();
+    await page.locator('#delete-all-profiles-btn').click();
     await expect(page.locator('#confirm-modal')).toBeVisible();
     await expect(page.locator('#confirm-modal .modal-body p')).toContainText('all profiles');
   });

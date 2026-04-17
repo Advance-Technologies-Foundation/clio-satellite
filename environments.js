@@ -30,6 +30,34 @@ const fmt = new Intl.DateTimeFormat(undefined, {
   day: 'numeric', month: 'short', year: 'numeric',
 });
 
+// ── Focus trap ─────────────────────────────────────────────
+
+function trapFocus(container, onEscape) {
+  const selector = 'button:not([disabled]), input:not([disabled]), a[href], select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  function handleKeydown(e) {
+    if (e.key === 'Escape') { onEscape?.(); return; }
+    if (e.key !== 'Tab') return;
+
+    const els = [...container.querySelectorAll(selector)];
+    if (els.length === 0) return;
+
+    const first = els[0];
+    const last  = els[els.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      last.focus(); e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      first.focus(); e.preventDefault();
+    }
+  }
+
+  container.addEventListener('keydown', handleKeydown);
+  return () => container.removeEventListener('keydown', handleKeydown);
+}
+
+let removeTrapConfirm = null;
+
 // ── Selection state ────────────────────────────────────────
 const selectedOrigins = new Set();
 
@@ -109,7 +137,7 @@ function createTile(origin, raw, isFav, userProfiles) {
 
   const favBtn = document.createElement('button');
   favBtn.className = 'env-tile__fav-btn' + (isFav ? ' env-tile__fav-btn--active' : '');
-  favBtn.title = isFav ? 'Remove from favourites' : 'Add to favourites';
+  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
   favBtn.innerHTML = isFav ? SVG_STAR_FULL : SVG_STAR_EMPTY;
   favBtn.style.color = textColor;
   favBtn.setAttribute('data-origin', origin);
@@ -150,6 +178,7 @@ function createTile(origin, raw, isFav, userProfiles) {
   const hostnameEl = document.createElement('div');
   hostnameEl.className = 'env-tile__hostname';
   hostnameEl.textContent = host;
+  hostnameEl.title = host;
 
   const metaEl = document.createElement('div');
   metaEl.className = 'env-tile__meta';
@@ -215,7 +244,7 @@ function renderEnvironments(data) {
     );
   }
 
-  // Show footer (and "Delete all environments") only when there are non-fav environments
+  // Show footer only when there are non-fav environments
   document.getElementById('env-card-footer').style.display =
     mainEntries.length > 0 ? '' : 'none';
 
@@ -235,30 +264,36 @@ function loadEnvironments() {
 // ── Search / filter ────────────────────────────────────────
 function filterTiles(query) {
   const q = query.trim().toLowerCase();
-  let visible = 0;
 
-  const grid = document.getElementById('environments-grid');
-  grid.querySelectorAll('.env-tile').forEach(tile => {
-    const matches = !q || tile.dataset.searchText.includes(q);
-    tile.style.display = matches ? '' : 'none';
-    if (matches) visible++;
-  });
+  // Filter both grids
+  ['environments-grid', 'favorites-grid'].forEach(gridId => {
+    const grid = document.getElementById(gridId);
+    let visible = 0;
 
-  // Manage empty-state text for search vs. real empty
-  let emptyEl = grid.querySelector('.env-empty');
-  const hasTiles = grid.querySelectorAll('.env-tile').length > 0;
+    grid.querySelectorAll('.env-tile').forEach(tile => {
+      const matches = !q || tile.dataset.searchText.includes(q);
+      tile.style.display = matches ? '' : 'none';
+      if (matches) visible++;
+    });
 
-  if (hasTiles && visible === 0) {
-    if (!emptyEl) {
-      emptyEl = document.createElement('p');
-      emptyEl.className = 'env-empty env-empty--search';
-      grid.appendChild(emptyEl);
+    // Manage search empty state for the main grid only
+    if (gridId === 'environments-grid') {
+      let emptyEl = grid.querySelector('.env-empty');
+      const hasTiles = grid.querySelectorAll('.env-tile').length > 0;
+
+      if (hasTiles && visible === 0) {
+        if (!emptyEl) {
+          emptyEl = document.createElement('p');
+          emptyEl.className = 'env-empty env-empty--search';
+          grid.appendChild(emptyEl);
+        }
+        emptyEl.textContent = `No environments match "${q}".`;
+        emptyEl.style.display = '';
+      } else if (emptyEl && emptyEl.classList.contains('env-empty--search')) {
+        emptyEl.style.display = 'none';
+      }
     }
-    emptyEl.textContent = 'No environments match your search.';
-    emptyEl.style.display = '';
-  } else if (emptyEl && emptyEl.classList.contains('env-empty--search')) {
-    emptyEl.style.display = 'none';
-  }
+  });
 }
 
 // ── Favorites ──────────────────────────────────────────────
@@ -284,20 +319,25 @@ function openConfirmModal(mode, origin) {
 
   if (mode === 'single') {
     titleEl.textContent = 'Delete environment';
-    textEl.textContent  = 'Delete this environment?';
+    textEl.textContent  = 'Delete this environment? This action cannot be undone.';
   } else if (mode === 'selected') {
     const n = selectedOrigins.size;
     titleEl.textContent = 'Delete environments';
-    textEl.textContent  = `Delete ${n} selected environment${n === 1 ? '' : 's'}?`;
+    textEl.textContent  = `Delete ${n} selected environment${n === 1 ? '' : 's'}? This action cannot be undone.`;
   } else if (mode === 'non-favorites') {
     titleEl.textContent = 'Delete all environments';
-    textEl.textContent  = 'All environments will be removed. Environments marked as favourites will be preserved.';
+    textEl.textContent  = 'All environments will be removed. Environments marked as favorites will be preserved. This action cannot be undone.';
   }
 
-  document.getElementById('confirm-modal').style.display = 'block';
+  const modal = document.getElementById('confirm-modal');
+  modal.style.display = 'block';
+  document.getElementById('confirm-delete-btn').focus();
+  removeTrapConfirm = trapFocus(modal.querySelector('.dialog'), closeConfirmModal);
 }
 
 function closeConfirmModal() {
+  removeTrapConfirm?.();
+  removeTrapConfirm = null;
   pendingDeleteMode   = null;
   pendingDeleteOrigin = null;
   document.getElementById('confirm-modal').style.display = 'none';
@@ -460,8 +500,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeConfirmModal();
   });
 
-  document.getElementById('env-search').addEventListener('input', e => {
+  const searchInput = document.getElementById('env-search');
+  const searchClear = document.getElementById('env-search-clear');
+
+  searchInput.addEventListener('input', e => {
     filterTiles(e.target.value);
+    searchClear.style.display = e.target.value ? '' : 'none';
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    filterTiles('');
+    searchInput.focus();
   });
 
   // Both bulk bars share the same actions (operate on all selected tiles)

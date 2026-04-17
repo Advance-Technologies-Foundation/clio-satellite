@@ -7,7 +7,7 @@ const defaultProfiles = [
 // DOM refs
 const userList                = document.getElementById('user-list');
 const addProfileBtn           = document.getElementById('add-profile-btn');
-const setToDefaultsBtn        = document.getElementById('set-to-defaults');
+const deleteAllProfilesBtn    = document.getElementById('delete-all-profiles-btn');
 
 const profileModal            = document.getElementById('profile-modal');
 const profileForm             = document.getElementById('profile-form');
@@ -34,10 +34,41 @@ let isBulkDelete = false;
 let currentEditIndex = -1;
 let isEditMode = false;
 
-// ── SVGs for list item buttons ───────────────────────────────────────────────
+// ── SVGs ─────────────────────────────────────────────────────────────────────
 
 const SVG_PENCIL = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 2.5a2.12 2.12 0 0 1 3 3L5 15H2v-3L11.5 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4h10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SVG_TRASH  = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4h10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SVG_COPY   = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="1" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="4" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>`;
+const SVG_CHECK  = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+// ── Focus trap ────────────────────────────────────────────────────────────────
+
+function trapFocus(container, onEscape) {
+  const selector = 'button:not([disabled]), input:not([disabled]), a[href], select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  function handleKeydown(e) {
+    if (e.key === 'Escape') { onEscape?.(); return; }
+    if (e.key !== 'Tab') return;
+
+    const els = [...container.querySelectorAll(selector)];
+    if (els.length === 0) return;
+
+    const first = els[0];
+    const last  = els[els.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      last.focus(); e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      first.focus(); e.preventDefault();
+    }
+  }
+
+  container.addEventListener('keydown', handleKeydown);
+  return () => container.removeEventListener('keydown', handleKeydown);
+}
+
+let removeTrapProfile = null;
+let removeTrapConfirm = null;
 
 // ── Profile search ────────────────────────────────────────────────────────────
 
@@ -54,6 +85,17 @@ function filterProfiles(query) {
   const emptyEl = document.getElementById('profile-search-empty');
   const hasItems = userList.querySelectorAll('.profile-item').length > 0;
   emptyEl.style.display = hasItems && visible === 0 ? '' : 'none';
+}
+
+// ── Copy helper ───────────────────────────────────────────────────────────────
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const original = btn.innerHTML;
+    btn.innerHTML = SVG_CHECK;
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1500);
+  });
 }
 
 // ── Profile list ─────────────────────────────────────────────────────────────
@@ -93,6 +135,12 @@ function loadProfiles() {
       const actions = document.createElement('div');
       actions.className = 'profile-item__actions';
 
+      const copyUsernameBtn = document.createElement('button');
+      copyUsernameBtn.className = 'icon-btn copy-btn';
+      copyUsernameBtn.title = 'Copy username';
+      copyUsernameBtn.innerHTML = SVG_COPY;
+      copyUsernameBtn.addEventListener('click', () => copyToClipboard(profile.username, copyUsernameBtn));
+
       const editButton = document.createElement('button');
       editButton.className = 'icon-btn edit-button';
       editButton.title = 'Edit';
@@ -105,6 +153,7 @@ function loadProfiles() {
       deleteButton.innerHTML = SVG_TRASH;
       deleteButton.addEventListener('click', () => openConfirmModal(index));
 
+      actions.appendChild(copyUsernameBtn);
       actions.appendChild(editButton);
       actions.appendChild(deleteButton);
 
@@ -191,6 +240,8 @@ function openAddModal() {
   saveProfileBtn.textContent = 'Add Profile';
   profileForm.reset();
   profileModal.style.display = 'block';
+  profileUsernameInput.focus();
+  removeTrapProfile = trapFocus(profileModal.querySelector('.dialog'), closeProfileModal);
 }
 
 function openEditModal(profile, index) {
@@ -204,9 +255,13 @@ function openEditModal(profile, index) {
   profileUrlInput.value = profile.url || '';
   profileAutologinCheckbox.checked = profile.autologin || false;
   profileModal.style.display = 'block';
+  profileUsernameInput.focus();
+  removeTrapProfile = trapFocus(profileModal.querySelector('.dialog'), closeProfileModal);
 }
 
 function closeProfileModal() {
+  removeTrapProfile?.();
+  removeTrapProfile = null;
   profileModal.style.display = 'none';
   currentEditIndex = -1;
   isEditMode = false;
@@ -261,14 +316,18 @@ function handleProfileSubmit(event) {
 function openConfirmModal(index) {
   currentDeleteIndexToDelete = index;
   confirmModal.style.display = 'block';
+  confirmDeleteBtn.focus();
+  removeTrapConfirm = trapFocus(confirmModal.querySelector('.dialog'), closeConfirmModal);
 }
 
 function closeConfirmModal() {
+  removeTrapConfirm?.();
+  removeTrapConfirm = null;
   confirmModal.style.display = 'none';
   currentDeleteIndexToDelete = -1;
   isBulkDelete = false;
   const msg = confirmModal.querySelector('.modal-body p');
-  msg.textContent = 'Are you sure you want to delete this profile?';
+  msg.textContent = 'Are you sure you want to delete this profile? This action cannot be undone.';
 }
 
 confirmDeleteBtn.addEventListener('click', () => {
@@ -295,8 +354,10 @@ confirmDeleteBtn.addEventListener('click', () => {
 function setToDefaults() {
   isBulkDelete = true;
   const msg = confirmModal.querySelector('.modal-body p');
-  msg.textContent = 'Are you sure you want to delete all profiles?';
+  msg.textContent = 'Delete all profiles? This action cannot be undone.';
   confirmModal.style.display = 'block';
+  confirmDeleteBtn.focus();
+  removeTrapConfirm = trapFocus(confirmModal.querySelector('.dialog'), closeConfirmModal);
 }
 
 // ── Password toggle ──────────────────────────────────────────────────────────
@@ -307,18 +368,14 @@ togglePasswordBtn.addEventListener('click', () => {
   togglePasswordBtn.style.opacity = isPassword ? '0.5' : '1';
 });
 
-// ── Copy buttons ─────────────────────────────────────────────────────────────
+// ── Copy buttons (modal) ─────────────────────────────────────────────────────
 
 document.querySelectorAll('.copy-btn').forEach(btn => {
+  if (!btn.dataset.copyTarget) return;
   btn.addEventListener('click', () => {
     const value = document.getElementById(btn.dataset.copyTarget)?.value;
     if (!value) return;
-    navigator.clipboard.writeText(value).then(() => {
-      btn.classList.add('copied');
-      const original = btn.innerHTML;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 1500);
-    });
+    copyToClipboard(value, btn);
   });
 });
 
@@ -326,7 +383,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 
 closeBtn.addEventListener('click', () => window.close());
 addProfileBtn.addEventListener('click', openAddModal);
-setToDefaultsBtn.addEventListener('click', setToDefaults);
+deleteAllProfilesBtn.addEventListener('click', setToDefaults);
 profileForm.addEventListener('submit', handleProfileSubmit);
 closeModalBtn.addEventListener('click', closeProfileModal);
 cancelProfileBtn.addEventListener('click', closeProfileModal);
@@ -383,7 +440,18 @@ document.addEventListener('DOMContentLoaded', () => {
   loadHistory();
   initializeDefaultProfilesIfNeeded();
 
-  document.getElementById('profile-search').addEventListener('input', e => {
+  const searchInput = document.getElementById('profile-search');
+  const searchClear = document.getElementById('profile-search-clear');
+
+  searchInput.addEventListener('input', e => {
     filterProfiles(e.target.value);
+    searchClear.style.display = e.target.value ? '' : 'none';
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    filterProfiles('');
+    searchInput.focus();
   });
 });
