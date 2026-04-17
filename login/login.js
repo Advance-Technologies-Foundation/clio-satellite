@@ -110,7 +110,13 @@
     const loginCaption = document.createElement('button');
     loginCaption.classList.add('creatio-satelite');
     loginCaption.classList.add('auto-login-button');
-    loginCaption.textContent = 'Login with profile';
+    const loginIconSpan = document.createElement('span');
+    loginIconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    loginIconSpan.style.marginRight = '6px';
+    loginIconSpan.style.lineHeight = '0';
+    loginIconSpan.style.color = '#ffffff';
+    loginCaption.appendChild(loginIconSpan);
+    loginCaption.appendChild(document.createTextNode('Login with profile'));
     loginCaption.style.width = loginButton.offsetWidth + 'px';
     loginCaption.style.height = loginButton.offsetHeight + 'px';
     loginCaption.style.padding = '8px 16px';
@@ -162,7 +168,39 @@
       }
     });
 
-    // Append elements: 'Setup profiles', then dropdown, then 'Login with profile'
+    // Environments button
+    const envButton = document.createElement('button');
+    envButton.classList.add('creatio-satelite');
+    envButton.classList.add('auto-login-button');
+    envButton.classList.add('settings-button');
+
+    const envIconSpan = document.createElement('span');
+    envIconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>';
+    envIconSpan.style.marginRight = '6px';
+    envIconSpan.style.lineHeight = '0';
+    envIconSpan.style.color = '#ffffff';
+    envButton.appendChild(envIconSpan);
+    envButton.appendChild(document.createTextNode('Environments'));
+
+    envButton.style.width = loginButton.offsetWidth + 'px';
+    envButton.style.height = loginButton.offsetHeight + 'px';
+    envButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    envButton.style.padding = window.getComputedStyle(loginButton).padding;
+    envButton.style.marginTop = '8px';
+    envButton.style.display = 'flex';
+    envButton.style.alignItems = 'center';
+    envButton.style.justifyContent = 'center';
+
+    envButton.addEventListener('click', () => {
+      try {
+        chrome.runtime.sendMessage({ action: 'openEnvironmentsPage' });
+      } catch {
+        window.location.reload();
+      }
+    });
+
+    // Append elements: Environments, Setup profiles, dropdown, Login with profile
+    loginProfilesContainer.appendChild(envButton);
     loginProfilesContainer.appendChild(settingsButton);
     loginProfilesContainer.appendChild(profileSelect);
     loginProfilesContainer.appendChild(loginCaption);

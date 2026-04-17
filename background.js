@@ -86,6 +86,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
         return true; // Keep the message channel open for asynchronous response
     }
+    else if (message.action === 'openEnvironmentsPage') {
+        chrome.tabs.create({ url: chrome.runtime.getURL('environments.html') });
+        sendResponse({ success: true });
+        return true;
+    }
     else if (message.action === 'executeScript') {
         // Use sender.tab.id instead of querying tabs
         const activeTabId = sender.tab.id;
