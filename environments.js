@@ -72,7 +72,7 @@ function createTile(origin, raw, isFav, userProfiles) {
   delBtn.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
-    deleteEnvironment(origin);
+    openConfirmDelete(origin);
   });
 
   const link = document.createElement('a');
@@ -159,6 +159,18 @@ function toggleFavorite(origin) {
   });
 }
 
+let pendingDeleteOrigin = null;
+
+function openConfirmDelete(origin) {
+  pendingDeleteOrigin = origin;
+  document.getElementById('confirm-modal').style.display = 'block';
+}
+
+function closeConfirmDelete() {
+  pendingDeleteOrigin = null;
+  document.getElementById('confirm-modal').style.display = 'none';
+}
+
 function deleteEnvironment(origin) {
   chrome.storage.sync.get({ lastLoginProfiles: {}, favoriteEnvironments: [] }, data => {
     const profiles = data.lastLoginProfiles;
@@ -185,4 +197,16 @@ document.getElementById('close-btn').addEventListener('click', () => window.clos
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, data => applyTheme(data.theme));
   loadEnvironments();
+
+  document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+    if (pendingDeleteOrigin) deleteEnvironment(pendingDeleteOrigin);
+    closeConfirmDelete();
+  });
+
+  document.getElementById('cancel-delete-btn').addEventListener('click', closeConfirmDelete);
+  document.querySelector('#confirm-modal .confirm-close').addEventListener('click', closeConfirmDelete);
+
+  document.getElementById('confirm-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeConfirmDelete();
+  });
 });

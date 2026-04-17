@@ -177,7 +177,31 @@ test.describe('Environments page', () => {
     expect(c1).not.toBe(c2);
   });
 
-  test('delete button removes tile from grid', async ({ page }) => {
+  test('delete button shows confirm modal', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: { 'https://site.example.com': { username: 'Supervisor', timestamp: T_NEW } },
+      },
+    });
+    await page.locator('#environments-grid .env-tile__del-btn').click();
+    await expect(page.locator('#confirm-modal')).toBeVisible();
+  });
+
+  test('cancelling confirm modal keeps the tile', async ({ page }) => {
+    await loadEnv(page, {
+      syncData: {
+        userProfiles: [PROFILE],
+        lastLoginProfiles: { 'https://site.example.com': { username: 'Supervisor', timestamp: T_NEW } },
+      },
+    });
+    await page.locator('#environments-grid .env-tile__del-btn').click();
+    await page.locator('#cancel-delete-btn').click();
+    await expect(page.locator('#confirm-modal')).toBeHidden();
+    await expect(page.locator('#environments-grid .env-tile')).toHaveCount(1);
+  });
+
+  test('confirming delete removes tile from grid', async ({ page }) => {
     await loadEnv(page, {
       syncData: {
         userProfiles: [PROFILE],
@@ -189,10 +213,11 @@ test.describe('Environments page', () => {
     });
     await expect(page.locator('#environments-grid .env-tile')).toHaveCount(2);
     await page.locator('#environments-grid .env-tile__del-btn').first().click();
+    await page.locator('#confirm-delete-btn').click();
     await expect(page.locator('#environments-grid .env-tile')).toHaveCount(1);
   });
 
-  test('deleting a favorite removes it from favorites section', async ({ page }) => {
+  test('confirming delete on favorite removes it from favorites section', async ({ page }) => {
     await loadEnv(page, {
       syncData: {
         userProfiles: [PROFILE],
@@ -202,6 +227,7 @@ test.describe('Environments page', () => {
     });
     await expect(page.locator('#favorites-section')).toBeVisible();
     await page.locator('#favorites-grid .env-tile__del-btn').click();
+    await page.locator('#confirm-delete-btn').click();
     await expect(page.locator('#favorites-section')).toBeHidden();
     await expect(page.locator('#environments-grid .env-tile')).toHaveCount(0);
   });
