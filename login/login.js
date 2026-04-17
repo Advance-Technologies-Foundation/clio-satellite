@@ -153,10 +153,12 @@
     settingsButton.style.alignItems = 'center';
     settingsButton.style.justifyContent = 'center';
     
-    // Add click event to open options page
     settingsButton.addEventListener('click', () => {
-      // Send a message to the background script to open the options page
-      chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+      try {
+        chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+      } catch {
+        window.location.reload();
+      }
     });
 
     // Append elements: 'Setup profiles', then dropdown, then 'Login with profile'
