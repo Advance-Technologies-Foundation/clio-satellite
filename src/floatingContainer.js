@@ -1,4 +1,4 @@
-import { debugLog } from './debug.js';
+import { debugLog, getLastError } from './debug.js';
 import {
   positionFloatingContainerRelativeToSearch,
   saveMenuPosition,
@@ -87,8 +87,9 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.removeAttribute('data-fallback-position');
       const key = `menuPosition_${pageType}_${window.location.origin}`;
       chrome.storage.local.remove([key], () => {
-        if (chrome.runtime.lastError) {
-          console.error('[Clio Satellite] Failed to clear position:', chrome.runtime.lastError.message);
+        const err = getLastError();
+        if (err) {
+          console.error('[Clio Satellite] Failed to clear position:', err.message);
           return;
         }
         debugLog(`${isShell ? 'Shell' : 'Configuration'} container: position cleared`);

@@ -1,4 +1,4 @@
-import { debugLog } from './debug.js';
+import { debugLog, getLastError } from './debug.js';
 
 export function positionFloatingContainerRelativeToSearch(
   floatingContainer = document.querySelector('.creatio-satelite-floating')
@@ -71,8 +71,9 @@ export function positionFloatingContainerRelativeToSearch(
 export function saveMenuPosition(x, y, pageType) {
   const key = `menuPosition_${pageType}_${window.location.origin}`;
   chrome.storage.local.set({ [key]: { x, y, timestamp: Date.now() } }, () => {
-    if (chrome.runtime.lastError) {
-      console.error('[Clio Satellite] Failed to save position:', chrome.runtime.lastError.message);
+    const err = getLastError();
+    if (err) {
+      console.error('[Clio Satellite] Failed to save position:', err.message);
       return;
     }
     debugLog(`Position saved for ${pageType}: x=${x}, y=${y}`);
@@ -82,8 +83,9 @@ export function saveMenuPosition(x, y, pageType) {
 export function loadMenuPosition(pageType, callback) {
   const key = `menuPosition_${pageType}_${window.location.origin}`;
   chrome.storage.local.get([key], (result) => {
-    if (chrome.runtime.lastError) {
-      console.error('[Clio Satellite] Failed to load position:', chrome.runtime.lastError.message);
+    const err = getLastError();
+    if (err) {
+      console.error('[Clio Satellite] Failed to load position:', err.message);
       callback(null, null);
       return;
     }
@@ -96,8 +98,9 @@ export function loadMenuPosition(pageType, callback) {
         return;
       }
       chrome.storage.local.remove([key], () => {
-        if (chrome.runtime.lastError) {
-          console.error('[Clio Satellite] Failed to remove stale position:', chrome.runtime.lastError.message);
+        const err = getLastError();
+        if (err) {
+          console.error('[Clio Satellite] Failed to remove stale position:', err.message);
         }
       });
     }

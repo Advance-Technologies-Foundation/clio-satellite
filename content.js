@@ -4,6 +4,13 @@
   function debugLog(message) {
     if (DEBUG) console.log("[Clio Satellite]:", message);
   }
+  function getLastError() {
+    try {
+      return chrome.runtime.lastError || null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   // src/menuConfig.js
   var SCRIPT_FILES = [
@@ -330,8 +337,9 @@
   function saveMenuPosition(x, y, pageType) {
     const key = `menuPosition_${pageType}_${window.location.origin}`;
     chrome.storage.local.set({ [key]: { x, y, timestamp: Date.now() } }, () => {
-      if (chrome.runtime.lastError) {
-        console.error("[Clio Satellite] Failed to save position:", chrome.runtime.lastError.message);
+      const err = getLastError();
+      if (err) {
+        console.error("[Clio Satellite] Failed to save position:", err.message);
         return;
       }
       debugLog(`Position saved for ${pageType}: x=${x}, y=${y}`);
@@ -340,8 +348,9 @@
   function loadMenuPosition(pageType, callback) {
     const key = `menuPosition_${pageType}_${window.location.origin}`;
     chrome.storage.local.get([key], (result) => {
-      if (chrome.runtime.lastError) {
-        console.error("[Clio Satellite] Failed to load position:", chrome.runtime.lastError.message);
+      const err = getLastError();
+      if (err) {
+        console.error("[Clio Satellite] Failed to load position:", err.message);
         callback(null, null);
         return;
       }
@@ -354,8 +363,9 @@
           return;
         }
         chrome.storage.local.remove([key], () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Clio Satellite] Failed to remove stale position:", chrome.runtime.lastError.message);
+          const err2 = getLastError();
+          if (err2) {
+            console.error("[Clio Satellite] Failed to remove stale position:", err2.message);
           }
         });
       }
@@ -448,8 +458,9 @@
         floatingContainer.removeAttribute("data-fallback-position");
         const key = `menuPosition_${pageType}_${window.location.origin}`;
         chrome.storage.local.remove([key], () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Clio Satellite] Failed to clear position:", chrome.runtime.lastError.message);
+          const err = getLastError();
+          if (err) {
+            console.error("[Clio Satellite] Failed to clear position:", err.message);
             return;
           }
           debugLog(`${isShell ? "Shell" : "Configuration"} container: position cleared`);
@@ -633,8 +644,9 @@
   function buildActionsMenu(actionsMenuContainer) {
     actionsMenuContainer.innerHTML = "";
     chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, (data) => {
-      if (chrome.runtime.lastError) {
-        console.error("[Clio Satellite] Failed to load profiles:", chrome.runtime.lastError.message);
+      const err = getLastError();
+      if (err) {
+        console.error("[Clio Satellite] Failed to load profiles:", err.message);
         return;
       }
       if (!actionsMenuContainer.isConnected) return;
@@ -674,16 +686,18 @@
         menuItem.addEventListener("click", () => {
           if (name === "EnableAutologin") {
             chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
-              if (chrome.runtime.lastError) {
-                console.error("[Clio Satellite] Failed to load profiles for autologin:", chrome.runtime.lastError.message);
+              const err2 = getLastError();
+              if (err2) {
+                console.error("[Clio Satellite] Failed to load profiles for autologin:", err2.message);
                 return;
               }
               const profiles = ds.userProfiles.map(
                 (p) => p.username === lastUser ? { ...p, autologin: true } : p
               );
               chrome.storage.sync.set({ userProfiles: profiles }, () => {
-                if (chrome.runtime.lastError) {
-                  console.error("[Clio Satellite] Failed to save autologin setting:", chrome.runtime.lastError.message);
+                const err3 = getLastError();
+                if (err3) {
+                  console.error("[Clio Satellite] Failed to save autologin setting:", err3.message);
                 }
               });
             });

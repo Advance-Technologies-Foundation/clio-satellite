@@ -1,4 +1,4 @@
-import { debugLog } from './debug.js';
+import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_DESCRIPTIONS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
@@ -138,8 +138,9 @@ function buildActionsMenu(actionsMenuContainer) {
   actionsMenuContainer.innerHTML = '';
 
   chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, data => {
-    if (chrome.runtime.lastError) {
-      console.error('[Clio Satellite] Failed to load profiles:', chrome.runtime.lastError.message);
+    const err = getLastError();
+    if (err) {
+      console.error('[Clio Satellite] Failed to load profiles:', err.message);
       return;
     }
     if (!actionsMenuContainer.isConnected) return;
@@ -191,16 +192,18 @@ function buildActionsMenu(actionsMenuContainer) {
       menuItem.addEventListener('click', () => {
         if (name === 'EnableAutologin') {
           chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, ds => {
-            if (chrome.runtime.lastError) {
-              console.error('[Clio Satellite] Failed to load profiles for autologin:', chrome.runtime.lastError.message);
+            const err = getLastError();
+            if (err) {
+              console.error('[Clio Satellite] Failed to load profiles for autologin:', err.message);
               return;
             }
             const profiles = ds.userProfiles.map(p =>
               p.username === lastUser ? { ...p, autologin: true } : p
             );
             chrome.storage.sync.set({ userProfiles: profiles }, () => {
-              if (chrome.runtime.lastError) {
-                console.error('[Clio Satellite] Failed to save autologin setting:', chrome.runtime.lastError.message);
+              const err = getLastError();
+              if (err) {
+                console.error('[Clio Satellite] Failed to save autologin setting:', err.message);
               }
             });
           });

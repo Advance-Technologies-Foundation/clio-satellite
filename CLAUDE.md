@@ -159,6 +159,62 @@ Failed tests save screenshots and video to `test-results/`.
 
 ---
 
+## After Every Change — Diary and Documentation
+
+After completing any code change, two things are mandatory:
+
+### 1. Write a diary entry
+
+Create a file in `docs/diary/` named `YYYY-MM-DD-short-description.md`.
+
+```
+docs/diary/2026-04-17-fix-extension-context-crash.md
+```
+
+The entry must answer three questions:
+- **What changed** — which files, what behaviour
+- **Why** — the root cause or requirement that drove the change
+- **Decision** — why this approach was chosen over alternatives (if non-obvious)
+
+Keep it short: 5–15 lines. No need to repeat what the diff already shows.
+
+### 2. Update module architecture docs
+
+Architecture lives in `docs/architecture/`, one file per source module:
+
+```
+docs/architecture/positionManager.md
+docs/architecture/menuBuilder.md
+docs/architecture/floatingContainer.md
+...
+```
+
+Update only the files whose module was touched. Do **not** maintain a single combined architecture doc — it becomes stale and unreadable.
+
+Each module doc covers:
+- **Purpose** — what problem this module solves
+- **Public API** — exported functions/constants and their contracts
+- **Key decisions** — non-obvious design choices
+- **Dependencies** — what it imports and why
+
+If you add a new module, create its architecture doc. If you delete one, remove the doc.
+
+---
+
+## Updating Agent Instructions
+
+This project uses multiple AI agent instruction files. When you change any rule or instruction, you **must** update all of them — never only the file your current agent reads:
+
+| File | Agent |
+|---|---|
+| `CLAUDE.md` | Claude Code (Anthropic) |
+| `AGENTS.md` | OpenAI Codex / generic agents |
+| `.windsurfrules` | Windsurf |
+| `.cursor/rules/release.mdc` | Cursor |
+| `.github/copilot-instructions.md` | GitHub Copilot |
+
+---
+
 ## Language
 - All documentation, comments, commit messages, and release notes must be written in **English only**
 - Do not use any other language in any project file or git history
