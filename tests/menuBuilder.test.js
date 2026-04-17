@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createScriptsMenu } from '../src/menuBuilder.js';
 import { state, resetState } from '../src/state.js';
 
 beforeEach(() => {
+  vi.useFakeTimers();
   resetState();
   // Simulate a shell page
   Object.defineProperty(window, 'location', {
@@ -12,6 +13,11 @@ beforeEach(() => {
   });
   document.body.innerHTML = '<crt-app-toolbar></crt-app-toolbar>';
   chrome.storage.local.get.mockImplementation((_keys, cb) => cb({}));
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 describe('createScriptsMenu', () => {
