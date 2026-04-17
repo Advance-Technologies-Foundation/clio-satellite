@@ -13,11 +13,10 @@
 }
 
 .env-tile {
-  position: relative;
   border-radius: var(--radius-lg);
   height: 130px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   overflow: hidden;
   transition: transform .15s ease, box-shadow .15s ease;
 }
@@ -27,35 +26,40 @@
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
 
-.env-tile__fav-btn,
-.env-tile__del-btn {
-  all: unset;
-  position: absolute;
-  right: 8px;
-  cursor: pointer;
-  opacity: .65;
-  transition: opacity .15s, transform .15s;
-  line-height: 0;
-  z-index: 1;
-}
-
-.env-tile__fav-btn { top: 8px; }
-.env-tile__del-btn { bottom: 8px; }
-
-.env-tile__fav-btn:hover,
-.env-tile__del-btn:hover   { opacity: 1; transform: scale(1.2); }
-.env-tile__fav-btn--active { opacity: 1; }
-
 .env-tile__link {
   display: flex;
   flex-direction: column;
   justify-content: center;
   flex: 1;
-  padding: 14px 36px;
+  min-width: 0;
+  padding: 14px 12px 14px 16px;
   text-decoration: none;
   color: inherit;
   gap: 6px;
 }
+
+.env-tile__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 8px;
+  flex-shrink: 0;
+  width: 32px;
+}
+
+.env-tile__fav-btn,
+.env-tile__del-btn {
+  all: unset;
+  cursor: pointer;
+  opacity: .65;
+  transition: opacity .15s, transform .15s;
+  line-height: 0;
+}
+
+.env-tile__fav-btn:hover,
+.env-tile__del-btn:hover   { opacity: 1; transform: scale(1.2); }
+.env-tile__fav-btn--active { opacity: 1; }
 
 .env-tile__hostname {
   font-size: 14px;

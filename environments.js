@@ -91,9 +91,14 @@ function createTile(origin, raw, isFav, userProfiles) {
 
   link.appendChild(hostnameEl);
   link.appendChild(metaEl);
-  tile.appendChild(favBtn);
-  tile.appendChild(delBtn);
+
+  const actions = document.createElement('div');
+  actions.className = 'env-tile__actions';
+  actions.appendChild(favBtn);
+  actions.appendChild(delBtn);
+
   tile.appendChild(link);
+  tile.appendChild(actions);
 
   return tile;
 }
