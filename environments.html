@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html data-theme="system">
+<head>
+  <meta charset="utf-8">
+  <title>Clio Satellite — Environments</title>
+  <link rel="stylesheet" href="styles/options.css">
+  <link rel="stylesheet" href="styles/environments.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="top-bar">
+      <h1 class="top-bar__title">Environments</h1>
+      <div class="top-bar__actions">
+
+        <div class="theme-switcher" id="theme-toggle" role="group" aria-label="Theme">
+          <button class="theme-switcher__btn" data-theme-value="light" title="Light">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="theme-switcher__btn" data-theme-value="system" title="System">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="2" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 14h6M8 11v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="theme-switcher__btn" data-theme-value="dark" title="Dark">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a.5.5 0 0 0-.6-.57A7 7 0 1 0 14.07 10.1a.5.5 0 0 0-.57-.6z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+
+        <a href="options.html" class="btn btn--text">Profiles</a>
+        <button id="close-btn" class="btn btn--text">Close</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="cards">
+
+        <div class="card" id="favorites-section" style="display:none">
+          <div class="card__toolbar">
+            <span class="card__section-title">Favourites</span>
+          </div>
+          <div class="env-grid" id="favorites-grid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card__toolbar">
+            <span class="card__section-title" id="all-section-title">Environments</span>
+          </div>
+          <div class="env-grid" id="environments-grid"></div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script src="environments.js"></script>
+</body>
+</html>
