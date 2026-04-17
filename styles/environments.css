@@ -11,6 +11,7 @@
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
   padding: 16px 20px;
+  user-select: none;
 }
 
 .env-tile {
@@ -20,12 +21,84 @@
   flex-direction: row;
   overflow: hidden;
   transition: transform .15s ease, box-shadow .15s ease;
+  position: relative;
+  user-select: none;
 }
 
 .env-tile:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,.25);
 }
+
+/* ── Tile selection checkbox ─────────────────────────── */
+.env-tile__check {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.65);
+  background: rgba(0,0,0,.15);
+  opacity: 0;
+  transition: opacity .15s, background .1s, border-color .1s, color .1s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  color: transparent;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.env-tile:hover .env-tile__check  { opacity: 1; }
+
+.env-tile--selected .env-tile__check {
+  opacity: 1;
+  background: rgba(255,255,255,.92);
+  border-color: rgba(255,255,255,.92);
+  color: #222;
+}
+
+.env-tile--selected {
+  outline: 2.5px solid rgba(255,255,255,.85);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px rgba(0,0,0,.22);
+}
+
+
+/* ── Rubber-band selection rect ─────────────────────── */
+.env-select-rect {
+  position: fixed;
+  border: 1.5px solid var(--c-accent, #4285F4);
+  background: rgba(66,133,244,.08);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Bulk action bar ────────────────────────────────── */
+.env-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 20px;
+  background: var(--c-bg-2, rgba(0,0,0,.035));
+  border-top: 1px solid var(--c-border, rgba(0,0,0,.08));
+}
+
+.env-bulk-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text-2);
+}
+
+.env-bulk-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* search styles live in options.css (shared) */
 
 .env-tile__link {
   display: flex;
@@ -74,11 +147,6 @@
   opacity: .8;
 }
 
-.env-empty {
-  padding: 20px;
-  color: var(--c-text-2);
-  font-size: 13px;
-}
 
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 480px) {

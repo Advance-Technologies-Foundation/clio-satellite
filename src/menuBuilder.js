@@ -5,6 +5,17 @@ import { SCRIPT_FILES, SCRIPT_DESCRIPTIONS, MENU_ICONS, ACTION_DETAILS } from '.
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 
+// Guard against "Extension context invalidated" errors that occur when the
+// extension is reloaded while a content script is still alive on the page.
+function safeSendMessage(message) {
+  try {
+    if (!chrome.runtime?.id) return;
+    chrome.runtime.sendMessage(message);
+  } catch (_) {
+    // context invalidated — nothing to do
+  }
+}
+
 function createMatButton(color, extraClass, title) {
   const btn = document.createElement('button');
   btn.setAttribute('mat-flat-button', '');
@@ -110,9 +121,9 @@ function buildNavMenu() {
     const menuItem = createMenuItem(scriptName);
     menuItem.addEventListener('click', () => {
       if (scriptName === 'Settings') {
-        chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+        safeSendMessage({ action: 'openOptionsPage' });
       } else {
-        chrome.runtime.sendMessage({ action: 'executeScript', scriptPath: `navigation/${scriptFile}` });
+        safeSendMessage({ action: 'executeScript', scriptPath: `navigation/${scriptFile}` });
       }
       hideMenuContainer(menuContainer);
     });
@@ -194,9 +205,9 @@ function buildActionsMenu(actionsMenuContainer) {
             });
           });
         } else if (name === 'DisableAutologin') {
-          chrome.runtime.sendMessage({ action: 'disableAutologin' });
+          safeSendMessage({ action: 'disableAutologin' });
         } else {
-          chrome.runtime.sendMessage({ action: 'executeScript', scriptPath: 'actions/' + detail.file });
+          safeSendMessage({ action: 'executeScript', scriptPath: 'actions/' + detail.file });
         }
         hideMenuContainer(actionsMenuContainer);
       });

@@ -39,6 +39,23 @@ let isEditMode = false;
 const SVG_PENCIL = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 2.5a2.12 2.12 0 0 1 3 3L5 15H2v-3L11.5 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 const SVG_TRASH = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 4h12M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4h10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
+// ── Profile search ────────────────────────────────────────────────────────────
+
+function filterProfiles(query) {
+  const q = query.trim().toLowerCase();
+  let visible = 0;
+
+  userList.querySelectorAll('.profile-item').forEach(item => {
+    const matches = !q || item.dataset.searchText.includes(q);
+    item.style.display = matches ? '' : 'none';
+    if (matches) visible++;
+  });
+
+  const emptyEl = document.getElementById('profile-search-empty');
+  const hasItems = userList.querySelectorAll('.profile-item').length > 0;
+  emptyEl.style.display = hasItems && visible === 0 ? '' : 'none';
+}
+
 // ── Profile list ─────────────────────────────────────────────────────────────
 
 function loadProfiles() {
@@ -56,6 +73,8 @@ function loadProfiles() {
 
       const li = document.createElement('li');
       li.className = 'profile-item';
+      li.dataset.searchText = [profile.username, profile.alias, profile.url]
+        .filter(Boolean).join(' ').toLowerCase();
 
       const info = document.createElement('div');
       info.className = 'profile-item__info';
@@ -93,6 +112,10 @@ function loadProfiles() {
       li.appendChild(actions);
       userList.appendChild(li);
     });
+
+    // Re-apply active search after list is rebuilt
+    const searchInput = document.getElementById('profile-search');
+    if (searchInput) filterProfiles(searchInput.value);
   });
 }
 
@@ -354,10 +377,13 @@ function initializeDefaultProfilesIfNeeded() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore saved theme before anything renders
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
 
   loadProfiles();
   loadHistory();
   initializeDefaultProfilesIfNeeded();
+
+  document.getElementById('profile-search').addEventListener('input', e => {
+    filterProfiles(e.target.value);
+  });
 });

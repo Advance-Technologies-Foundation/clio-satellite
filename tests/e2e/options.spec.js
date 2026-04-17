@@ -208,4 +208,57 @@ test.describe('Options page', () => {
     await expect(page.locator('#confirm-modal')).toBeVisible();
     await expect(page.locator('#confirm-modal .modal-body p')).toContainText('all profiles');
   });
+
+  // ── Profile search ──────────────────────────────────────
+
+  test('search input is visible in profiles toolbar', async ({ page }) => {
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
+    await expect(page.locator('#profile-search')).toBeVisible();
+  });
+
+  test('search filters profiles by username', async ({ page }) => {
+    const second = { username: 'OtherUser', password: 'pass', alias: '', url: '', autologin: false };
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE, second] } });
+    await expect(page.locator('#user-list li')).toHaveCount(2, { timeout: 3000 });
+    await page.locator('#profile-search').fill('AdminUser');
+    await expect(page.locator('#user-list li:visible')).toHaveCount(1);
+    await expect(page.locator('#user-list li:visible')).toContainText('AdminUser');
+  });
+
+  test('search filters profiles by alias', async ({ page }) => {
+    const second = { username: 'OtherUser', password: 'pass', alias: 'DevAlias', url: '', autologin: false };
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE, second] } });
+    await expect(page.locator('#user-list li')).toHaveCount(2, { timeout: 3000 });
+    await page.locator('#profile-search').fill('DevAlias');
+    await expect(page.locator('#user-list li:visible')).toHaveCount(1);
+    await expect(page.locator('#user-list li:visible')).toContainText('DevAlias');
+  });
+
+  test('search filters profiles by URL', async ({ page }) => {
+    const withUrl = { username: 'SiteUser', password: 'pass', alias: '', url: 'https://mysite.example.com', autologin: false };
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE, withUrl] } });
+    await expect(page.locator('#user-list li')).toHaveCount(2, { timeout: 3000 });
+    await page.locator('#profile-search').fill('mysite');
+    await expect(page.locator('#user-list li:visible')).toHaveCount(1);
+    await expect(page.locator('#user-list li:visible')).toContainText('SiteUser');
+  });
+
+  test('search with no match shows empty message', async ({ page }) => {
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
+    await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
+    await page.locator('#profile-search').fill('zzznomatch');
+    await expect(page.locator('#profile-search-empty')).toBeVisible();
+    await expect(page.locator('#profile-search-empty')).toContainText('No profiles match');
+  });
+
+  test('clearing search restores all profiles', async ({ page }) => {
+    const second = { username: 'OtherUser', password: 'pass', alias: '', url: '', autologin: false };
+    await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE, second] } });
+    await expect(page.locator('#user-list li')).toHaveCount(2, { timeout: 3000 });
+    await page.locator('#profile-search').fill('AdminUser');
+    await expect(page.locator('#user-list li:visible')).toHaveCount(1);
+    await page.locator('#profile-search').fill('');
+    await expect(page.locator('#user-list li:visible')).toHaveCount(2);
+    await expect(page.locator('#profile-search-empty')).toBeHidden();
+  });
 });

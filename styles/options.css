@@ -664,6 +664,63 @@ html[data-theme="dark"] .btn--text-danger:hover { background: rgba(242,139,130,.
   .about-row { flex-direction: column; }
 }
 
+/* ── List empty state (shared across pages) ─────────────── */
+.env-empty {
+  padding: 20px;
+  color: var(--c-text-2);
+  font-size: 13px;
+}
+
+/* ── Toolbar with search (shared across pages) ──────────── */
+.card__toolbar--search {
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.search-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: 340px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: .4;
+  pointer-events: none;
+  line-height: 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 5px 10px 5px 30px;
+  border: 1px solid var(--c-border, rgba(0,0,0,.15));
+  border-radius: var(--radius-md, 6px);
+  background: var(--c-bg, #fff);
+  color: var(--c-text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: var(--c-accent, #4285F4);
+}
+
+/* ── Small button variant ───────────────────────────────── */
+.btn--sm {
+  font-size: 12px;
+  padding: 4px 10px;
+  line-height: 1.4;
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 520px) {
   .top-bar { padding: 0 16px; height: 52px; }
@@ -671,4 +728,6 @@ html[data-theme="dark"] .btn--text-danger:hover { background: rgba(242,139,130,.
   .main { padding: 16px 12px 32px; }
   .card__toolbar, .profile-item, .card__footer { padding-left: 16px; padding-right: 16px; }
   .theme-switcher { display: none; }
+  .card__toolbar--search { flex-wrap: wrap; }
+  .search-wrap { max-width: 100%; }
 }

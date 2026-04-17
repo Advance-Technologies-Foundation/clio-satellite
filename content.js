@@ -527,6 +527,13 @@
   }
 
   // src/menuBuilder.js
+  function safeSendMessage(message) {
+    try {
+      if (!chrome.runtime?.id) return;
+      chrome.runtime.sendMessage(message);
+    } catch (_) {
+    }
+  }
   function createMatButton(color, extraClass, title) {
     const btn = document.createElement("button");
     btn.setAttribute("mat-flat-button", "");
@@ -613,9 +620,9 @@
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
         if (scriptName === "Settings") {
-          chrome.runtime.sendMessage({ action: "openOptionsPage" });
+          safeSendMessage({ action: "openOptionsPage" });
         } else {
-          chrome.runtime.sendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
+          safeSendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
         }
         hideMenuContainer(menuContainer);
       });
@@ -681,9 +688,9 @@
               });
             });
           } else if (name === "DisableAutologin") {
-            chrome.runtime.sendMessage({ action: "disableAutologin" });
+            safeSendMessage({ action: "disableAutologin" });
           } else {
-            chrome.runtime.sendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
+            safeSendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
           }
           hideMenuContainer(actionsMenuContainer);
         });
