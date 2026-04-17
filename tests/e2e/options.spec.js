@@ -114,7 +114,7 @@ test.describe('Options page', () => {
     await expect(pwInput).toHaveAttribute('type', 'password');
   });
 
-  test('profile shows site chip when it was last used on a site', async ({ page }) => {
+  test('profile shows site link when it was last used on a site', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
@@ -122,17 +122,20 @@ test.describe('Options page', () => {
       },
     });
     await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    await expect(page.locator('.profile-item__site-chip')).toBeVisible();
-    await expect(page.locator('.profile-item__site-chip')).toContainText('myapp.example.com');
+    const link = page.locator('.profile-item__site-link');
+    await expect(link).toBeVisible();
+    await expect(link).toContainText('myapp.example.com');
+    await expect(link).toHaveAttribute('href', 'https://myapp.example.com');
+    await expect(link).toHaveAttribute('target', '_blank');
   });
 
-  test('profile shows no chip when it has no last login history', async ({ page }) => {
+  test('profile shows no history when it has no last login', async ({ page }) => {
     await loadOptions(page, { syncData: { userProfiles: [TEST_PROFILE] } });
     await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    await expect(page.locator('.profile-item__site-chip')).toHaveCount(0);
+    await expect(page.locator('.profile-item__site-link')).toHaveCount(0);
   });
 
-  test('profile shows chips for multiple sites', async ({ page }) => {
+  test('profile shows links for multiple sites', async ({ page }) => {
     await loadOptions(page, {
       syncData: {
         userProfiles: [TEST_PROFILE],
@@ -143,7 +146,7 @@ test.describe('Options page', () => {
       },
     });
     await expect(page.locator('#user-list li')).toHaveCount(1, { timeout: 3000 });
-    await expect(page.locator('.profile-item__site-chip')).toHaveCount(2);
+    await expect(page.locator('.profile-item__site-link')).toHaveCount(2);
   });
 
   test('"Delete all profiles" shows confirmation modal with bulk message', async ({ page }) => {

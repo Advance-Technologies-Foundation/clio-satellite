@@ -48,8 +48,8 @@ function loadProfiles() {
     const usedOn = {};
     Object.entries(data.lastLoginProfiles).forEach(([origin, username]) => {
       if (!usedOn[username]) usedOn[username] = [];
-      try { usedOn[username].push(new URL(origin).hostname); }
-      catch { usedOn[username].push(origin); }
+      try { usedOn[username].push({ hostname: new URL(origin).hostname, origin }); }
+      catch { usedOn[username].push({ hostname: origin, origin }); }
     });
 
     data.userProfiles.forEach((profile, index) => {
@@ -82,13 +82,29 @@ function loadProfiles() {
       if (sites && sites.length > 0) {
         const usedOnEl = document.createElement('div');
         usedOnEl.className = 'profile-item__used-on';
-        sites.forEach(hostname => {
-          const chip = document.createElement('span');
-          chip.className = 'profile-item__site-chip';
-          chip.textContent = hostname;
-          chip.title = hostname;
-          usedOnEl.appendChild(chip);
+
+        const icon = document.createElement('span');
+        icon.className = 'profile-item__used-on-icon';
+        icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        usedOnEl.appendChild(icon);
+
+        sites.forEach(({ hostname, origin }, i) => {
+          if (i > 0) {
+            const sep = document.createElement('span');
+            sep.className = 'profile-item__site-sep';
+            sep.textContent = '·';
+            usedOnEl.appendChild(sep);
+          }
+          const link = document.createElement('a');
+          link.className = 'profile-item__site-link';
+          link.href = origin;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = hostname;
+          link.title = origin;
+          usedOnEl.appendChild(link);
         });
+
         info.appendChild(usedOnEl);
       }
 
