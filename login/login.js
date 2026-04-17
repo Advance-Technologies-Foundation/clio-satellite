@@ -133,9 +133,10 @@
     
     // Create icon span element
     const iconSpan = document.createElement('span');
-    iconSpan.innerHTML = '&#128100;'; // User/profile icon
-    iconSpan.style.marginRight = '5px';
-    iconSpan.style.fontSize = '16px';
+    iconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    iconSpan.style.marginRight = '6px';
+    iconSpan.style.lineHeight = '0';
+    iconSpan.style.color = '#ffffff';
     
     // Create text node
     const buttonText = document.createTextNode('Setup profiles');
