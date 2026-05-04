@@ -14,26 +14,11 @@ export function getCreatioPageType() {
   }
 
   const loginIndicators = [
-    currentPath.includes('/login'),
-    currentPath.includes('/auth/'),
-    currentPath === '/auth',
-    currentPath.includes('/signin'),
-    currentPath.includes('/authentication'),
-    currentUrl.includes('login'),
-    currentUrl.includes('/signin'),
     document.querySelector('#loginEdit-el'),
     document.querySelector('#passwordEdit-el'),
     document.querySelector('.login-button-login'),
-    document.querySelector('input[name*="username"]'),
-    document.querySelector('input[name*="password"]'),
-    document.querySelector('input[name*="login"]'),
-    document.querySelector('form[action*="login"]'),
-    document.querySelector('[class*="login"]'),
-    document.querySelector('[id*="login"]'),
-    document.title.toLowerCase().includes('login'),
-    document.title.toLowerCase().includes('sign in'),
-    document.querySelector('meta[name*="login"]'),
-    document.querySelector('meta[content*="login"]'),
+    currentPath === '/login' || currentPath.startsWith('/login/'),
+    currentPath === '/auth' || currentPath.startsWith('/auth/'),
   ];
 
   if (loginIndicators.some(Boolean)) {
@@ -54,32 +39,21 @@ export function getCreatioPageType() {
     document.querySelector('crt-schema-outlet'),
     document.querySelector('[data-item-marker="AppToolbarGlobalSearch"]'),
     document.querySelector('crt-app-toolbar'),
-    document.querySelector('.creatio-logo'),
-    document.querySelector('[id*="Terrasoft"]'),
-    document.querySelector('[class*="Terrasoft"]'),
-    document.querySelector('script[src*="creatio"]'),
-    document.querySelector('script[src*="terrasoft"]'),
-    document.querySelector('link[href*="creatio"]'),
-    document.querySelector('link[href*="terrasoft"]'),
     document.querySelector('crt-root'),
-    document.querySelector('[class*="shell"]'),
-    document.querySelector('[id*="shell"]'),
     document.querySelector('crt-page'),
     document.querySelector('crt-reusable-schema'),
   ];
 
   const foundCount = shellSelectors.filter(Boolean).length;
-  const minRequired = urlMatchesShell ? 1 : 2;
+  const minRequired = 1;
 
   debugLog(`Shell detection: ${foundCount}/${minRequired} indicators, URL match: ${urlMatchesShell}`);
 
   if (DEBUG) {
     const names = [
       'ShellContainerWithBackground', 'mainshell', 'crt-schema-outlet',
-      'AppToolbarGlobalSearch', 'crt-app-toolbar', 'creatio-logo',
-      'Terrasoft ID', 'Terrasoft class', 'creatio script', 'terrasoft script',
-      'creatio link', 'terrasoft link', 'crt-root', 'shell class',
-      'shell ID', 'crt-page', 'crt-reusable-schema',
+      'AppToolbarGlobalSearch', 'crt-app-toolbar', 'crt-root',
+      'crt-page', 'crt-reusable-schema',
     ];
     shellSelectors.forEach((el, i) => { if (el) debugLog(`✓ Found: ${names[i]}`); });
     if (urlMatchesShell) debugLog('✓ URL pattern matches Shell page');

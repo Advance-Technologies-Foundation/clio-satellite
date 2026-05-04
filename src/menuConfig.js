@@ -106,6 +106,11 @@ export const EXCLUDED_DOMAINS = [
   'work.creatio.com',
   'community.creatio.com',
   'academy.creatio.com',
+  'www.creatio.com',
+  'marketplace.creatio.com',
+  'partners.creatio.com',
+  'events.creatio.com',
+  'blog.creatio.com',
 ];
 
 export const SHELL_URL_PATTERNS = [

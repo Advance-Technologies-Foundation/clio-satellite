@@ -9,7 +9,9 @@
     "gitlab.com", "github.com", "bitbucket.org", "google.com",
     "mail.google.com", "youtube.com", "atlassian.net",
     "upsource.creatio.com", "work.creatio.com",
-    "community.creatio.com", "academy.creatio.com"
+    "community.creatio.com", "academy.creatio.com",
+    "www.creatio.com", "marketplace.creatio.com",
+    "partners.creatio.com", "events.creatio.com", "blog.creatio.com"
   ];
   if (EXCLUDED_DOMAINS.some(d => window.location.hostname.includes(d))) return;
 
