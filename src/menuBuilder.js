@@ -150,7 +150,7 @@ function buildActionsMenu(actionsMenuContainer) {
     const profile = data.userProfiles.find(p => p.username === lastUser);
     const autologinEnabled = profile ? profile.autologin : false;
 
-    const actionsList = ['RestartApp', 'FlushRedisDB'];
+    const actionsList = ['RestartApp', 'FlushRedisDB', 'TelemetryLog'];
     if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
 
     actionsList.forEach(name => {

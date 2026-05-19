@@ -86,6 +86,12 @@ export const ACTION_DETAILS = {
     name: 'block',
     desc: 'Disable autologin for this site',
   },
+  'TelemetryLog': {
+    file: 'TelemetryLog.js',
+    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L5 8l2.5 3L10 6l2 3 2-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>`,
+    name: 'telemetry',
+    desc: 'Open Telemetry log (installs from Marketplace if not present)',
+  },
   'Settings': {
     file: null,
     icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
