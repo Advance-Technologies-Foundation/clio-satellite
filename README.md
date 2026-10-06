@@ -9,7 +9,7 @@
 - Access **Shell page tools**:
   - Navigation scripts (Features, Lookups, Process Log, etc.)
   - Actions (Restart App, Flush Redis, toggle autologin, open settings)
-- Open and configure all settings from the **settings** (gear) button on the login page or the extension toolbar menu.
+- Open and configure all settings from **Manage profiles…** in the profile dropdown on the login page or the extension toolbar menu.
 
 ## Installation
 1. Clone or download this repository.
@@ -19,15 +19,14 @@
 
 ## Usage
 ### Options Page
-- Open via the extension toolbar **context menu** or the **settings** (gear) button on the login page.
+- Open via the extension toolbar **context menu** or **Manage profiles…** in the profile dropdown on the login page.
 - Add new profiles (username, password, alias, autologin).
 - Edit or delete existing profiles.
 - Reset to default profiles or delete all profiles.
 
 ### Login Page Enhancements
 One compact row under the login form:
-- A **settings** button (gear icon) opens the options page; Environments are linked from its top bar.
-- A **Profile selector** dropdown lists saved profiles with aliases.
+- A **Profile selector** dropdown lists saved profiles with aliases; its last entries, **Manage profiles…** and **Environments…**, open the extension pages.
 - A **Login with profile** button (orange, arrow icon) fills credentials and submits the form.
 - Last used profile is remembered per site origin; autologin will log in automatically if enabled.
 

@@ -1,7 +1,8 @@
 /**
  * Login page enhancements: one compact row under the Creatio login form —
- * profile selector, "Login with profile" and settings. The extension is an add-on,
- * so the row takes no more room than one form field and inherits the page font.
+ * the profile selector (its last entries open the extension pages) and "Login with profile".
+ * The extension is an add-on, so the row takes no more room than one form field and
+ * inherits the page font.
  */
 
 .creatio-satelite-login-profiles-container {
@@ -63,7 +64,7 @@
   box-shadow: 0 0 0 3px var(--csl-focus);
 }
 
-/* Square icon buttons, as tall as the native login button */
+/* Square icon button, as tall as the native login button */
 .creatio-satelite-login-profiles-container button.creatio-satelite {
   flex: 0 0 auto;
   display: inline-flex;
@@ -112,19 +113,6 @@
 
 .creatio-satelite.auto-login-button:active {
   background-color: var(--csl-accent-active, #e64a19);
-}
-
-/* Secondary: settings */
-.creatio-satelite.creatio-satelite-login-secondary {
-  color: var(--csl-muted);
-  background-color: var(--csl-surface);
-  border: 1px solid var(--csl-border);
-}
-
-.creatio-satelite.creatio-satelite-login-secondary:hover {
-  color: var(--csl-text);
-  background-color: var(--csl-surface-hover);
-  border-color: var(--csl-border-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {
