@@ -128,7 +128,7 @@ npm test && npm run test:e2e
 npm test
 ```
 
-### Mock E2E tests (Playwright, headless, no real site needed)
+### Mock E2E tests (Playwright, headless, no real site needed; run on every commit via CI)
 ```bash
 npm run test:e2e
 ```
