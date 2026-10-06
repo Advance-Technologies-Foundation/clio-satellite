@@ -6,3 +6,7 @@ node_modules/
 
 # Coverage
 coverage/
+
+# Playwright output
+test-results/
+playwright-report/
