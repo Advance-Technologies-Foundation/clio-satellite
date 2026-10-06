@@ -27,89 +27,75 @@ export const SCRIPT_DESCRIPTIONS = {
   'Settings': 'Open plugin settings',
 };
 
-// svg is the fallback used when icons/ui/<iconFile> cannot be loaded
+// Duotone icons: outline in currentColor, one accent in var(--csl-icon-accent)
 export const MENU_ICONS = {
   'Features': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="12.5" height="5" rx="2.5" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/><circle cx="11.75" cy="4.25" r="1.25" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><rect x="1.75" y="9.25" width="12.5" height="5" rx="2.5"/><circle cx="4.25" cy="11.75" r="1.25" fill="currentColor" stroke="none"/></svg>`,
     name: 'online-help',
-    iconFile: 'features.png',
   },
   'Application_Managment': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2H14V15H2V2ZM3.333 3.333V13.333H12.667V3.333H3.333Z" fill="currentColor"/>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="5" height="5" rx="1.25" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)"/><rect x="9.25" y="1.75" width="5" height="5" rx="1.25"/><rect x="1.75" y="9.25" width="5" height="5" rx="1.25"/><rect x="9.25" y="9.25" width="5" height="5" rx="1.25"/></svg>`,
     name: 'application_management',
-    iconFile: 'application-management.png',
   },
   'Lookups': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 3h12.5M1.75 7.5h4M1.75 12h3"/><circle cx="10.25" cy="10.25" r="3" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/><path d="M12.5 12.5l1.75 1.75"/></svg>`,
     name: 'lookups',
-    iconFile: 'lookups.png',
   },
   'Process_library': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="1.75" width="6" height="3.75" rx="1" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)"/><path d="M8 5.5v2.75M4 10.5V8.25h8v2.25"/><rect x="1.75" y="10.5" width="4.5" height="3.75" rx="1"/><rect x="9.75" y="10.5" width="4.5" height="3.75" rx="1"/></svg>`,
     name: 'process_library',
-    iconFile: 'process-library.png',
   },
   'Process_log': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/><path d="M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.25 14.25H3.25a1 1 0 0 1-1-1V2.75a1 1 0 0 1 1-1h5l3.5 3.5v2"/><path d="M4.75 5.5h2.5M4.75 8.5h2.5"/><circle cx="11.25" cy="11.25" r="3" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/><path d="M11.25 9.75v1.5l1 1"/></svg>`,
     name: 'process_log',
-    iconFile: 'process-log.png',
   },
   'SysSettings': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 4h6.25M12 4h2.25M1.75 8h1.25M7 8h7.25M1.75 12h7.25M13 12h1.25"/><g fill="var(--csl-icon-accent, #ff5722)" stroke="none"><circle cx="10" cy="4" r="2"/><circle cx="5" cy="8" r="2"/><circle cx="11" cy="12" r="2"/></g></svg>`,
     name: 'sys_settings',
-    iconFile: 'sys-settings.png',
   },
   'Users': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="2"/><path d="M2 14c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="2"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.25 2.75a2.5 2.5 0 0 1 0 4.5M12.25 9.6c1.2.55 2 1.85 2 3.65"/><circle cx="6" cy="5" r="2.5" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/><path d="M1.75 13.25c0-2.35 1.9-4 4.25-4s4.25 1.65 4.25 4z" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/></svg>`,
     name: 'users',
-    iconFile: 'users.png',
   },
   'Configuration': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="2.5"/><path d="M6 5.5L4 8l2 2.5M10 5.5l2 2.5-2 2.5M8.75 5l-1.5 6" stroke="var(--csl-icon-accent, #ff5722)"/></svg>`,
     name: 'configuration',
-    iconFile: 'configuration.png',
   },
   'Settings': {
-    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/></svg>`,
+    svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.38 3.54L6.76 1.62L9.24 1.62L9.62 3.54L10.01 3.70L11.63 2.61L13.39 4.37L12.30 5.99L12.46 6.38L14.38 6.76L14.38 9.24L12.46 9.62L12.30 10.01L13.39 11.63L11.63 13.39L10.01 12.30L9.62 12.46L9.24 14.38L6.76 14.38L6.38 12.46L5.99 12.30L4.37 13.39L2.61 11.63L3.70 10.01L3.54 9.62L1.62 9.24L1.62 6.76L3.54 6.38L3.70 5.99L2.61 4.37L4.37 2.61L5.99 3.70z"/><circle cx="8" cy="8" r="2" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/></svg>`,
     name: 'settings',
-    iconFile: 'settings.png',
   },
 };
 
 export const ACTION_DETAILS = {
   'RestartApp': {
     file: 'RestartApp.js',
-    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2v6l4 2" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/></svg>`,
+    icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.75 8A5.75 5.75 0 1 1 11.3 3.29"/><path d="M12.2 1.48l1.23 3.3-3.52-.02z" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)" stroke-width="1"/></svg>`,
     name: 'refresh',
-    iconFile: 'restart-app.png',
     desc: 'Reload the Creatio application',
   },
   'FlushRedisDB': {
     file: 'FlushRedisDB.js',
-    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/><path d="M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2"/></svg>`,
+    icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="5.75" cy="3.5" rx="4" ry="1.75" fill="var(--csl-icon-accent, #ff5722)" fill-opacity=".35"/><path d="M1.75 3.5v8.5c0 .97 1.8 1.75 4 1.75"/><path d="M1.75 7.75c0 .97 1.8 1.75 4 1.75.55 0 1.05-.04 1.5-.1"/><path d="M9.75 3.5v3"/><g transform="rotate(20 12.25 11)"><path d="M12.25 1.75v7.25"/><path d="M10.5 9.25h3.5l1.25 5h-6z" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)"/></g></svg>`,
     name: 'delete',
-    iconFile: 'flush-redis.png',
     desc: 'Clear Redis database',
   },
   'EnableAutologin': {
     file: null,
-    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 8l2 2 4-4" stroke="#fff" stroke-width="2"/></svg>`,
+    icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="5.5" r="3"/><path d="M8.4 7.6L2 14M3.25 12.75l1.5 1.5M5 11l1.25 1.25"/><path d="M9.5 12.25l1.5 1.5 3.25-3.5" stroke="var(--csl-icon-accent, #ff5722)" stroke-width="1.75"/></svg>`,
     name: 'check',
-    iconFile: 'autologin-on.png',
     desc: 'Enable autologin for this site',
   },
   'DisableAutologin': {
     file: null,
-    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="#fff" stroke-width="2"/></svg>`,
+    icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="5.5" r="3"/><path d="M8.4 7.6L2 14M3.25 12.75l1.5 1.5M5 11l1.25 1.25"/><path d="M10 10l3.75 3.75M13.75 10L10 13.75" stroke="var(--csl-icon-accent, #ff5722)" stroke-width="1.75"/></svg>`,
     name: 'block',
-    iconFile: 'autologin-off.png',
     desc: 'Disable autologin for this site',
   },
   'Settings': {
     file: null,
-    icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
+    icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.38 3.54L6.76 1.62L9.24 1.62L9.62 3.54L10.01 3.70L11.63 2.61L13.39 4.37L12.30 5.99L12.46 6.38L14.38 6.76L14.38 9.24L12.46 9.62L12.30 10.01L13.39 11.63L11.63 13.39L10.01 12.30L9.62 12.46L9.24 14.38L6.76 14.38L6.38 12.46L5.99 12.30L4.37 13.39L2.61 11.63L3.70 10.01L3.54 9.62L1.62 9.24L1.62 6.76L3.54 6.38L3.70 5.99L2.61 4.37L4.37 2.61L5.99 3.70z"/><circle cx="8" cy="8" r="2" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/></svg>`,
     name: 'settings',
-    iconFile: 'settings.png',
     desc: 'Open plugin settings',
   },
 };

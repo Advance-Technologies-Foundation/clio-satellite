@@ -116,7 +116,7 @@ test.describe('Extension UI — profile selector', () => {
 
     await expect(page.locator('.creatio-satelite-login-profile-select')).toBeVisible();
     await expect(page.locator('.login-with-profile-button')).toBeVisible();
-    await expect(page.locator('.settings-button')).toBeVisible();
+    await expect(page.locator('.creatio-satelite-login-profile-select option', { hasText: 'Manage profiles' })).toHaveCount(1);
   });
 
   test('shows "Setup user in options" when storage is empty', async ({ context, page }) => {

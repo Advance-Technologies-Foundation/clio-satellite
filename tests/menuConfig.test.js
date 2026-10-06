@@ -69,3 +69,19 @@ describe('SHELL_URL_PATTERNS', () => {
     expect(SHELL_URL_PATTERNS).toContain('/shell/');
   });
 });
+
+describe('icon markup', () => {
+  const all = [
+    ...Object.values(MENU_ICONS).map(i => i.svg),
+    ...Object.values(ACTION_DETAILS).map(d => d.icon),
+  ];
+
+  it('every icon is a self-contained duotone SVG safe to inline many times', () => {
+    for (const svg of all) {
+      expect(svg.startsWith('<svg')).toBe(true);
+      expect(svg).toContain('currentColor');
+      expect(svg).toContain('var(--csl-icon-accent');
+      expect(svg).not.toMatch(/\sid=|<mask|<style|<script/);
+    }
+  });
+});

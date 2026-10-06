@@ -14,6 +14,6 @@
 - Visual styling of the buttons and menus lives in `menu-item.css` (the "Visual refresh" block at the end overrides earlier rules); the divider color is set inline because Creatio styles override `mat-divider`.
 
 - The extension container is appended to `<html>`, not `<body>`: Creatio marks `<body>` as `inert` while Shell loads, which would block clicks and focus on the visible buttons.
-- Menu item, Clio satellite and quick-actions icons are raster PNGs rendered through `icons.js` (`iconFile` in `menuConfig.js`); the SVGs in the config are the fallback.
+- Icons are inline duotone SVGs (`MENU_ICONS.svg`, `ACTION_DETAILS.icon`, and the two button icons here): outline `currentColor`, accent `var(--csl-icon-accent)`, no ids/masks so they can be inlined many times. Colours are set in `menu-item.css`.
 
-**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`, `icons.js`
+**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`

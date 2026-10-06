@@ -52,15 +52,20 @@ test.describe('Shell page', () => {
     await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
-  test('menu items and buttons show loaded raster icons', async ({ page }) => {
+  test('menu items and buttons show duotone SVG icons that follow the hover colour', async ({ page }) => {
     await load(page, '/shell/');
+    await page.addStyleTag({ url: '/styles/shell.css' });
+    await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
     await page.locator('.scripts-menu-button').click();
-    const icons = page.locator('.creatio-satelite-extension-container img.creatio-satelite-icon');
-    await expect(icons).toHaveCount(11);
-    await page.waitForFunction(() => [...document.querySelectorAll('img.creatio-satelite-icon')].every(i => i.complete));
-    const broken = await icons.evaluateAll(imgs => imgs.filter(i => i.naturalWidth === 0).map(i => i.src));
-    expect(broken).toEqual([]);
+    await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(9);
+    await expect(page.locator('.scripts-menu-button svg')).toHaveCount(1);
+    await expect(page.locator('.actions-button svg')).toHaveCount(1);
+
+    const icon = page.locator('[data-item-marker="Users"] mat-icon');
+    const normal = await icon.evaluate(el => getComputedStyle(el).color);
+    await page.locator('[data-item-marker="Users"]').hover();
+    await expect.poll(() => icon.evaluate(el => getComputedStyle(el).color)).not.toBe(normal);
   });
 
   test('buttons stay clickable while Creatio keeps <body> inert during loading', async ({ page }) => {

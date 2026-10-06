@@ -4,7 +4,6 @@ import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
-import { renderIcon } from './icons.js';
 
 // Guard against "Extension context invalidated" errors that occur when the
 // extension is reloaded while a content script is still alive on the page.
@@ -76,7 +75,7 @@ function createMenuItem(scriptName) {
   matIcon.setAttribute('aria-hidden', 'true');
   matIcon.setAttribute('data-mat-icon-type', 'svg');
   if (iconData.name) matIcon.setAttribute('data-mat-icon-name', iconData.name);
-  renderIcon(matIcon, iconData.iconFile, iconData.svg);
+  matIcon.innerHTML = iconData.svg;
 
   const caption = document.createElement('span');
   caption.className = 'caption';
@@ -175,7 +174,7 @@ function buildActionsMenu(actionsMenuContainer) {
       iconWrap.setAttribute('aria-hidden', 'true');
       iconWrap.setAttribute('data-mat-icon-type', 'svg');
       iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
-      renderIcon(iconWrap, detail.iconFile, detail.icon);
+      iconWrap.innerHTML = detail.icon || '';
 
       const caption = document.createElement('span');
       caption.className = 'caption';
@@ -264,13 +263,7 @@ export function createScriptsMenu() {
 
   const navIcon = document.createElement('span');
   navIcon.className = 'creatio-satelite-button-icon';
-  renderIcon(navIcon, 'clio-satellite.png', `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
-    <path d="M8.109 1.023c.133-.133.35-.133.482 0l6.276 6.276c.133.133.133.35 0 .482l-6.276 6.276c-.133.133-.35.133-.482 0L1.833 7.781c-.133-.133-.133-.35 0-.482L8.109 1.023z" fill="currentColor"/>
-    <path d="M10.5 6.5L9 5l-1 1 1.5 1.5L10.5 6.5z" fill="white"/>
-    <path d="M13.5 3.5L12 2l-1 1 1.5 1.5L13.5 3.5z" fill="white"/>
-    <path d="M4.5 12.5L3 11l-1 1 1.5 1.5L4.5 12.5z" fill="white"/>
-    <path d="M2 13l1-1 1 1-1 1-1-1z" fill="white"/>
-  </svg>`);
+  navIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.6" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><path d="M13.6 6.2A6 6 0 1 1 9.8 2.3"/><circle cx="12.6" cy="3.4" r="1.6" fill="currentColor" stroke="none"/></svg>`;
 
   navCaption.appendChild(navIcon);
   navCaption.appendChild(document.createTextNode('Clio satellite'));
@@ -285,9 +278,7 @@ export function createScriptsMenu() {
 
   const actionsIcon = document.createElement('span');
   actionsIcon.className = 'creatio-satelite-button-icon';
-  renderIcon(actionsIcon, 'quick-actions.png', `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6.5 1L2 7h4l-1 8L11 9H7l1.5-8z" fill="currentColor"/>
-  </svg>`);
+  actionsIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.25 1.75L3.25 9.25h4.5l-1 5 6-7.5h-4.5z" fill="var(--csl-icon-accent, #ff5722)"/></svg>`;
 
   actionsCaption.appendChild(actionsIcon);
   actionsButtonWrapper.appendChild(actionsCaption);

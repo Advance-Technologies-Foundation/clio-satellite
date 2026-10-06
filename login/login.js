@@ -20,6 +20,7 @@
     option.value = value;
     option.textContent = text;
     parent.appendChild(option);
+    return option;
   }
 
   const { usernameField, passwordField, loginButton } = getLoginElements();
@@ -33,6 +34,29 @@
     const profileSelect = document.createElement('select');
     profileSelect.className = 'creatio-satelite-login-profile-select';
     profileSelect.setAttribute('aria-label', 'Saved profile');
+
+    // Duotone icons: outline in currentColor, accent in var(--csl-icon-accent)
+    const ICONS = {
+      login: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.75h3.25a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H9.5"/><path d="M1.75 8h7.5M6.75 5l3 3-3 3" stroke="var(--csl-icon-accent, #ff5722)"/></svg>',
+      settings: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.38 3.54L6.76 1.62L9.24 1.62L9.62 3.54L10.01 3.70L11.63 2.61L13.39 4.37L12.30 5.99L12.46 6.38L14.38 6.76L14.38 9.24L12.46 9.62L12.30 10.01L13.39 11.63L11.63 13.39L10.01 12.30L9.62 12.46L9.24 14.38L6.76 14.38L6.38 12.46L5.99 12.30L4.37 13.39L2.61 11.63L3.70 10.01L3.54 9.62L1.62 9.24L1.62 6.76L3.54 6.38L3.70 5.99L2.61 4.37L4.37 2.61L5.99 3.70z"/><circle cx="8" cy="8" r="2" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/></svg>',
+      environments: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="1.5"/><path d="M1.75 6h12.5M1.75 10h12.5M7.5 3.9h4.25M7.5 8h4.25M7.5 12.1h4.25"/><g fill="var(--csl-icon-accent, #ff5722)" stroke="none"><circle cx="4.5" cy="3.9" r="1"/><circle cx="4.5" cy="8" r="1"/><circle cx="4.5" cy="12.1" r="1"/></g></svg>',
+    };
+
+    // Menu entries at the end of the dropdown; picking one opens the page and keeps the profile selected
+    const MENU_ACTIONS = {
+      '__csl_manage_profiles__': { text: 'Manage profiles…', action: 'openOptionsPage', icon: 'settings' },
+      '__csl_environments__': { text: 'Environments…', action: 'openEnvironmentsPage', icon: 'environments' },
+    };
+    let lastProfileValue = '';
+    profileSelect.addEventListener('change', () => {
+      const menuItem = MENU_ACTIONS[profileSelect.value];
+      if (!menuItem) {
+        lastProfileValue = profileSelect.value;
+        return;
+      }
+      profileSelect.value = lastProfileValue;
+      openExtensionPage(menuItem.action);
+    });
 
     // Get current profiles and add the new one
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
@@ -86,6 +110,26 @@
         profileSelect.appendChild(option);
       });
 
+      // Extension pages live in the same dropdown, below the profiles, instead of separate buttons
+      const menuGroup = document.createElement('optgroup');
+      menuGroup.label = 'Clio satellite';
+      // The styled dropdown renders a <legend> as the group heading; a plain select uses the label
+      const legend = document.createElement('legend');
+      legend.textContent = 'Clio satellite';
+      menuGroup.appendChild(legend);
+      Object.entries(MENU_ACTIONS).forEach(([value, { text, icon }]) => {
+        // Icons render only in the styled dropdown (appearance: base-select); a plain select shows the text
+        const option = addOption(menuGroup, value, '');
+        option.className = 'creatio-satelite-login-menu-option';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'creatio-satelite-login-option-icon';
+        iconSpan.setAttribute('aria-hidden', 'true');
+        iconSpan.innerHTML = ICONS[icon];
+        option.append(iconSpan, document.createTextNode(text));
+      });
+      profileSelect.appendChild(menuGroup);
+      lastProfileValue = profileSelect.value;
+
       // Restore last used profile for this URL
       chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
         const map = result.lastLoginProfiles;
@@ -95,6 +139,7 @@
         const lastUser = typeof entry === 'string' ? entry : entry?.username;
         if (lastUser) {
           profileSelect.value = lastUser;
+          lastProfileValue = profileSelect.value;
 
           // Trigger autologin if enabled
           const selectedOption = profileSelect.options[profileSelect.selectedIndex];
@@ -105,38 +150,19 @@
       });
     });
 
-    const ICONS = {
-      login: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      profiles: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-      environments: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>',
-    };
 
-    // Raster icons from icons/ui/; the inline SVG above is the fallback when the URL is unavailable
-    const ICON_FILES = { login: 'login.png', profiles: 'profiles.png', environments: 'environments.png' };
-
-    function renderIcon(container, key) {
-      let url = null;
-      try { url = chrome.runtime?.getURL ? chrome.runtime.getURL('icons/ui/' + ICON_FILES[key]) : null; } catch { url = null; }
-      if (!url) { container.innerHTML = ICONS[key]; return; }
-      const img = document.createElement('img');
-      img.className = 'creatio-satelite-icon';
-      img.src = url;
-      img.alt = '';
-      img.draggable = false;
-      img.addEventListener('error', () => { container.innerHTML = ICONS[key]; }, { once: true });
-      container.replaceChildren(img);
-    }
-
-    function createButton(classNames, iconKey, text) {
+    // Icon-only button; the visible name comes from the tooltip and aria-label
+    function createIconButton(classNames, iconKey, label) {
       const button = document.createElement('button');
       button.type = 'button';
       button.classList.add(...classNames);
+      button.title = label;
+      button.setAttribute('aria-label', label);
       const iconSpan = document.createElement('span');
       iconSpan.className = 'creatio-satelite-login-icon';
       iconSpan.setAttribute('aria-hidden', 'true');
-      renderIcon(iconSpan, iconKey);
+      iconSpan.innerHTML = ICONS[iconKey];
       button.appendChild(iconSpan);
-      button.appendChild(document.createTextNode(text));
       return button;
     }
 
@@ -148,44 +174,20 @@
       }
     }
 
-    // Primary action: log in with the selected profile
-    const loginCaption = createButton(
+    // One compact row: profile selector (with the extension menu inside) and log in with it.
+    // The extension is an add-on to the login form, so it takes one form row, not a block.
+    const loginCaption = createIconButton(
       ['creatio-satelite', 'auto-login-button', 'login-with-profile-button'],
       'login',
       'Login with profile'
     );
-    loginCaption.style.height = (loginButton.offsetHeight || 36) + 'px';
 
-    // Secondary actions: open extension pages
-    const settingsButton = createButton(
-      ['creatio-satelite', 'creatio-satelite-login-secondary', 'settings-button'],
-      'profiles',
-      'Profiles'
-    );
-    settingsButton.addEventListener('click', () => openExtensionPage('openOptionsPage'));
 
-    const envButton = createButton(
-      ['creatio-satelite', 'creatio-satelite-login-secondary', 'environments-button'],
-      'environments',
-      'Environments'
-    );
-    envButton.addEventListener('click', () => openExtensionPage('openEnvironmentsPage'));
-
-    const header = document.createElement('div');
-    header.className = 'creatio-satelite-login-header';
-    header.textContent = 'Clio satellite';
-
-    const secondaryRow = document.createElement('div');
-    secondaryRow.className = 'creatio-satelite-login-secondary-row';
-    secondaryRow.appendChild(envButton);
-    secondaryRow.appendChild(settingsButton);
-
-    // Panel width follows the native login button so the block lines up with the form
+    // Row width and height follow the native login button so it lines up with the form
     loginProfilesContainer.style.width = (loginButton.offsetWidth || 280) + 'px';
-    loginProfilesContainer.appendChild(header);
+    loginProfilesContainer.style.setProperty('--csl-row-height', (loginButton.offsetHeight || 36) + 'px');
     loginProfilesContainer.appendChild(profileSelect);
     loginProfilesContainer.appendChild(loginCaption);
-    loginProfilesContainer.appendChild(secondaryRow);
 
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
@@ -193,7 +195,7 @@
 
     // Save selected profile on login button click
     loginButton.addEventListener('click', () => {
-      const selectedUser = profileSelect.value;
+      const selectedUser = MENU_ACTIONS[profileSelect.value] ? lastProfileValue : profileSelect.value;
       chrome.storage.sync.get({ lastLoginProfiles: {} }, (result) => {
         const map = result.lastLoginProfiles;
         // Instead of full href, use origin for storage key

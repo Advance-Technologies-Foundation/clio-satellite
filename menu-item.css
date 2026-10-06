@@ -367,10 +367,10 @@
   height: 34px !important;
 }
 
-/* Brand accent on the icons keeps the two segments distinguishable */
+/* Light outline on graphite; the orange accent part keeps the segments recognisable */
 .creatio-satelite-extension-container .scripts-menu-button .compile-button-caption svg,
 .creatio-satelite-extension-container .actions-button .compile-button-caption svg {
-  color: #ff7043 !important;
+  color: #e5e7eb !important;
 }
 
 .creatio-satelite-extension-container .mat-select-arrow-wrapper {
@@ -384,13 +384,16 @@
 /* Menus */
 .creatio-satelite-extension-container .scripts-menu-container,
 .creatio-satelite-extension-container .actions-menu-container {
-  background: rgba(24, 27, 32, 0.94) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  /* Same glass as Creatio's own menus (.crt-menu-glassmorphism): its theme tokens with fallbacks.
+     80% opacity keeps the text readable on white pages, not only on the wallpaper. */
+  background: var(--crt-glass-color-dark-800, rgba(24, 24, 24, 0.8)) !important;
+  border: 1px solid var(--crt-glass-color-light-100, rgba(255, 255, 255, 0.1)) !important;
   border-radius: 12px !important;
   padding: 6px !important;
   min-width: 220px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16), 0 16px 40px rgba(0, 0, 0, 0.28) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
+  box-shadow: 0 2px 4px rgba(34, 39, 47, 0.2), 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
 .creatio-satelite-extension-container .scripts-menu-container.visible,
@@ -442,17 +445,13 @@
 
 .creatio-satelite-extension-container .crt-menu-item.mat-flat-button:hover mat-icon,
 .creatio-satelite-extension-container .crt-menu-item.mat-flat-button:hover .mat-icon {
-  color: #ff7043 !important;
+  color: #e5e7eb !important;
+  --csl-icon-accent: #ff7043;
 }
 
-/* Raster icons (icons/ui/*.png). Full-colour, so hover adds depth instead of recolouring. */
-.creatio-satelite-extension-container img.creatio-satelite-icon {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
-  pointer-events: none !important;
-  transition: transform 0.15s ease, filter 0.15s ease !important;
+/* Duotone SVG icons: the outline follows `color`, the accent part uses --csl-icon-accent */
+.creatio-satelite-extension-container {
+  --csl-icon-accent: #ff5722;
 }
 
 .creatio-satelite-extension-container .creatio-satelite-button-icon {
@@ -462,24 +461,18 @@
   flex: 0 0 16px !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-button .creatio-satelite-button-icon {
-  margin-right: 8px !important;
+.creatio-satelite-extension-container .creatio-satelite-button-icon svg {
+  width: 16px !important;
+  height: 16px !important;
 }
 
-.creatio-satelite-extension-container .crt-menu-item.mat-flat-button:hover img.creatio-satelite-icon,
-.creatio-satelite-extension-container .creatio-satelite button.mat-flat-button:hover img.creatio-satelite-icon {
-  transform: scale(1.1) !important;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)) brightness(1.08) !important;
+.creatio-satelite-extension-container .scripts-menu-button .creatio-satelite-button-icon {
+  margin-right: 8px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .creatio-satelite-extension-container .scripts-menu-container.visible,
   .creatio-satelite-extension-container .actions-menu-container.visible {
     animation: none !important;
-  }
-
-  .creatio-satelite-extension-container img.creatio-satelite-icon {
-    transition: none !important;
-    transform: none !important;
   }
 }

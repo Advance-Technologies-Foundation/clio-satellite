@@ -140,12 +140,14 @@ describe('createScriptsMenu', () => {
     expect(actBtn.title).toBe('Quick actions');
   });
 
-  it('renders raster icons from icons/ui/ for menu items and both buttons', () => {
+  it('renders duotone SVG icons inline for menu items and both buttons', () => {
     createScriptsMenu();
-    const icon = document.querySelector('[data-item-marker="Users"] img.creatio-satelite-icon');
-    expect(icon.getAttribute('src')).toContain('icons/ui/users.png');
-    expect(document.querySelector('.scripts-menu-button img').getAttribute('src')).toContain('icons/ui/clio-satellite.png');
-    expect(document.querySelector('.actions-button img').getAttribute('src')).toContain('icons/ui/quick-actions.png');
+    for (const sel of ['[data-item-marker="Users"] mat-icon', '.scripts-menu-button', '.actions-button']) {
+      const svg = document.querySelector(`${sel} svg`);
+      expect(svg, sel).not.toBeNull();
+      expect(svg.innerHTML).toContain('var(--csl-icon-accent');
+    }
+    expect(document.querySelector('.creatio-satelite-extension-container img')).toBeNull();
   });
 
   it('mounts the container outside <body> so an inert body does not block the buttons', () => {

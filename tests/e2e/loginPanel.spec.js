@@ -22,51 +22,68 @@ async function loadLoginPanel(page) {
 }
 
 test.describe('Login page profile panel', () => {
-  test('primary action comes right after the profile selector', async ({ page }) => {
+  test('is one row: profile selector and login with profile', async ({ page }) => {
     await loadLoginPanel(page);
     const order = await page.$$eval(
       '.creatio-satelite-login-profiles-container > *',
       els => els.map(e => e.className)
     );
-    expect(order[0]).toContain('creatio-satelite-login-header');
-    expect(order[1]).toContain('creatio-satelite-login-profile-select');
-    expect(order[2]).toContain('login-with-profile-button');
-    expect(order[3]).toContain('creatio-satelite-login-secondary-row');
+    expect(order).toHaveLength(2);
+    expect(order[0]).toContain('creatio-satelite-login-profile-select');
+    expect(order[1]).toContain('login-with-profile-button');
+    const select = await page.locator('.creatio-satelite-login-profile-select').boundingBox();
+    const login = await page.locator('.login-with-profile-button').boundingBox();
+    expect(Math.abs(select.y - login.y)).toBeLessThan(1);
   });
 
-  test('Environments and Profiles buttons share one row', async ({ page }) => {
+  test('row is as wide and as tall as the native login button', async ({ page }) => {
     await loadLoginPanel(page);
-    const env = await page.locator('.environments-button').boundingBox();
-    const profiles = await page.locator('.settings-button').boundingBox();
-    expect(Math.abs(env.y - profiles.y)).toBeLessThan(1);
-    expect(profiles.x).toBeGreaterThan(env.x + env.width - 1);
+    const row = await page.locator('.creatio-satelite-login-profiles-container').boundingBox();
+    expect(Math.round(row.width)).toBe(300);
+    expect(Math.round(row.height)).toBe(34);
   });
 
-  test('panel width matches the native login button', async ({ page }) => {
+  test('the dropdown lists profiles first, then the extension pages', async ({ page }) => {
     await loadLoginPanel(page);
-    const panel = await page.locator('.creatio-satelite-login-profiles-container').boundingBox();
-    expect(Math.round(panel.width)).toBe(300);
+    const options = await page.locator('.creatio-satelite-login-profile-select option').allTextContents();
+    expect(options).toEqual(['Admin (Supervisor)', 'Manage profiles…', 'Environments…']);
+    await expect(page.locator('.creatio-satelite-login-profile-select optgroup')).toHaveAttribute('label', 'Clio satellite');
   });
 
-  test('login with profile button uses sentence case and the accent color', async ({ page }) => {
+  for (const [text, action] of [['Manage profiles…', 'openOptionsPage'], ['Environments…', 'openEnvironmentsPage']]) {
+    test(`choosing "${text}" opens the page and keeps the profile selected`, async ({ page }) => {
+      await loadLoginPanel(page);
+      await page.evaluate(() => {
+        window.__sent = [];
+        chrome.runtime.sendMessage = (m) => window.__sent.push(m);
+      });
+      const select = page.locator('.creatio-satelite-login-profile-select');
+      await select.selectOption({ label: text });
+      expect(await page.evaluate(() => window.__sent)).toEqual([{ action }]);
+      await expect(select).toHaveValue('Supervisor');
+    });
+  }
+
+  test('the dropdown is styled: custom picker, group heading and icons on the menu entries', async ({ page }) => {
     await loadLoginPanel(page);
-    const btn = page.locator('.login-with-profile-button');
-    await expect(btn).toHaveText('Login with profile');
-    await expect(btn).toHaveCSS('text-transform', 'none');
+    const select = page.locator('.creatio-satelite-login-profile-select');
+    await expect(select).toHaveCSS('appearance', 'base-select');
+    await expect(select.locator('optgroup legend')).toHaveText('Clio satellite');
+    await expect(select.locator('.creatio-satelite-login-menu-option svg')).toHaveCount(2);
+
+    await select.click();
+    await expect(select.locator('option').first()).toBeVisible();
+    await select.locator('.creatio-satelite-login-menu-option', { hasText: 'Environments' }).click();
+    await expect(select).toHaveValue('Supervisor');
+  });
+
+  test('login with profile is an orange icon button with an accessible name', async ({ page }) => {
+    await loadLoginPanel(page);
+    const btn = page.getByRole('button', { name: 'Login with profile' });
+    await expect(btn).toHaveAttribute('title', 'Login with profile');
     await expect(btn).toHaveCSS('background-color', 'rgb(255, 87, 34)');
-  });
-
-  test('secondary buttons are not styled as the primary action', async ({ page }) => {
-    await loadLoginPanel(page);
-    await expect(page.locator('.environments-button')).not.toHaveClass(/auto-login-button/);
-    await expect(page.locator('.settings-button')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  });
-
-  test('button icons load from icons/ui/', async ({ page }) => {
-    await loadLoginPanel(page);
-    const icons = page.locator('.creatio-satelite-login-profiles-container img.creatio-satelite-icon');
-    await expect(icons).toHaveCount(3);
-    const loaded = await icons.evaluateAll(imgs => imgs.map(i => i.complete && i.naturalWidth > 0));
-    expect(loaded).toEqual([true, true, true]);
+    const accent = await btn.evaluate(el => getComputedStyle(el).getPropertyValue('--csl-icon-accent').trim());
+    expect(accent).toBe('#ffffff');
+    await expect(btn.locator('svg')).toHaveCount(1);
   });
 });
