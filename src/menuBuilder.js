@@ -347,7 +347,9 @@ export function createScriptsMenu() {
     rootMenuContainer.appendChild(actionsMenuContainer);
     extensionContainer.appendChild(rootMenuContainer);
 
-    document.body.appendChild(extensionContainer);
+    // Mount on <html>, not <body>: while Shell loads, Creatio sets `inert` on <body>,
+    // which would make the already visible buttons ignore clicks and focus.
+    document.documentElement.appendChild(extensionContainer);
 
     state.actionsMenuCreated = true;
     state.menuCreating = false;

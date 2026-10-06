@@ -275,6 +275,8 @@
   }
 
   // src/positionManager.js
+  var STABLE_CHECK_MS = 120;
+  var lastTargetRect = /* @__PURE__ */ new WeakMap();
   function positionFloatingContainerRelativeToSearch(floatingContainer = document.querySelector(".creatio-satelite-floating")) {
     if (!floatingContainer) {
       debugLog("Cannot position floating container - not found");
@@ -288,6 +290,10 @@
     const actionButton = document.querySelector("button[mat-button].action-button");
     const targetElement = searchElement || actionButton;
     if (!targetElement) {
+      if (floatingContainer.hasAttribute("data-auto-restored")) {
+        debugLog("Anchor not ready, keeping restored position");
+        return true;
+      }
       const containerRect2 = floatingContainer.getBoundingClientRect();
       const centerX = (window.innerWidth - containerRect2.width) / 2;
       floatingContainer.style.left = centerX + "px";
@@ -313,6 +319,19 @@
       debugLog("Target element outside viewport");
       return false;
     }
+    const rectKey = `${Math.round(targetRect.left)},${Math.round(targetRect.right)},${Math.round(targetRect.top)}`;
+    const now = Date.now();
+    const seen = lastTargetRect.get(floatingContainer);
+    if (!seen || seen.key !== rectKey) {
+      lastTargetRect.set(floatingContainer, { key: rectKey, since: now });
+      setTimeout(() => positionFloatingContainerRelativeToSearch(floatingContainer), STABLE_CHECK_MS);
+      debugLog("Target element still moving, retrying");
+      return false;
+    }
+    if (now - seen.since < STABLE_CHECK_MS) {
+      debugLog("Target element not stable long enough yet");
+      return false;
+    }
     const leftPosition = targetRect.right + 20;
     const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2 - 20;
     const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
@@ -320,8 +339,45 @@
     floatingContainer.style.left = finalLeft + "px";
     floatingContainer.style.top = finalTop + "px";
     floatingContainer.style.right = "auto";
+    floatingContainer.removeAttribute("data-auto-restored");
+    saveAutoPosition(floatingContainer.getAttribute("data-page-type"), finalLeft, finalTop);
     debugLog(`Positioned container: left=${finalLeft}, top=${finalTop}`);
     return true;
+  }
+  var autoPositionKey = (pageType) => `menuAutoPosition_${pageType}_${window.location.origin}`;
+  var lastSavedAuto = null;
+  function saveAutoPosition(pageType, x, y) {
+    if (!pageType) return;
+    const key = autoPositionKey(pageType);
+    const vw = window.innerWidth;
+    if (lastSavedAuto && lastSavedAuto.key === key && lastSavedAuto.x === x && lastSavedAuto.y === y && lastSavedAuto.vw === vw) return;
+    lastSavedAuto = { key, x, y, vw };
+    chrome.storage.local.set({ [key]: { x, y, vw, timestamp: Date.now() } }, () => {
+      const err = getLastError();
+      if (err) console.error("[Clio Satellite] Failed to save auto position:", err.message);
+    });
+  }
+  function loadAutoPosition(pageType, callback) {
+    const key = autoPositionKey(pageType);
+    chrome.storage.local.get([key], (result) => {
+      const err = getLastError();
+      const pos = err ? null : result[key];
+      if (!pos || pos.vw !== window.innerWidth) {
+        callback(null);
+        return;
+      }
+      callback(pos);
+    });
+  }
+  function applyAutoPosition(floatingContainer, pos) {
+    const containerRect = floatingContainer.getBoundingClientRect();
+    const x = Math.max(10, Math.min(window.innerWidth - containerRect.width - 10, pos.x));
+    const y = Math.max(10, Math.min(window.innerHeight - containerRect.height - 10, pos.y));
+    floatingContainer.style.left = x + "px";
+    floatingContainer.style.top = y + "px";
+    floatingContainer.style.right = "auto";
+    floatingContainer.setAttribute("data-auto-restored", "true");
+    debugLog(`Restored auto position: x=${x}, y=${y}`);
   }
   function saveMenuPosition(x, y, pageType) {
     const key = `menuPosition_${pageType}_${window.location.origin}`;
@@ -383,6 +439,7 @@
     const isShell = pageType === "shell";
     const floatingContainer = document.createElement("div");
     floatingContainer.className = "creatio-satelite-floating";
+    floatingContainer.setAttribute("data-page-type", pageType);
     floatingContainer.style.cssText = `
     position: fixed;
     top: 20px;
@@ -402,7 +459,7 @@
     box-sizing: border-box;
     pointer-events: auto;
     opacity: 0;
-    transition: opacity ${isShell ? "3s" : "0.3s"} ease;
+    transition: opacity 0.3s ease;
   `;
     let isDragging = false;
     let startX, startY, initialX, initialY;
@@ -477,6 +534,11 @@
           floatingContainer.style.opacity = "1";
         }, 50);
       };
+      loadAutoPosition(pageType, (pos) => {
+        if (!pos || floatingContainer.hasAttribute("data-user-positioned")) return;
+        applyAutoPosition(floatingContainer, pos);
+        floatingContainer.style.opacity = "1";
+      });
       setTimeout(attemptPositioning, isShell ? 100 : 200);
       if (isShell) {
         setTimeout(() => {
@@ -831,7 +893,7 @@
       rootMenuContainer.appendChild(menuContainer);
       rootMenuContainer.appendChild(actionsMenuContainer);
       extensionContainer.appendChild(rootMenuContainer);
-      document.body.appendChild(extensionContainer);
+      document.documentElement.appendChild(extensionContainer);
       state.actionsMenuCreated = true;
       state.menuCreating = false;
       debugLog("Scripts menu created successfully");

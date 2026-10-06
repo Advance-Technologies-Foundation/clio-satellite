@@ -50,4 +50,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
   document.body.innerHTML = '';
+  // The extension container is mounted on <html>, outside <body>
+  document.querySelectorAll('.creatio-satelite-extension-container').forEach(el => el.remove());
 });
