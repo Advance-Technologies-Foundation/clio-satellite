@@ -26,9 +26,9 @@
 
 ### Login Page Enhancements
 One compact row under the login form:
+- A **settings** button (gear icon) opens the options page; Environments are linked from its top bar.
 - A **Profile selector** dropdown lists saved profiles with aliases.
 - A **Login with profile** button (orange, arrow icon) fills credentials and submits the form.
-- A **settings** button (gear icon) opens the options page; Environments are linked from its top bar.
 - Last used profile is remembered per site origin; autologin will log in automatically if enabled.
 
 ### Shell Page Tools

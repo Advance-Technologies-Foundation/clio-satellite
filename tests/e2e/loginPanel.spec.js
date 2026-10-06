@@ -22,16 +22,16 @@ async function loadLoginPanel(page) {
 }
 
 test.describe('Login page profile panel', () => {
-  test('is one row: profile selector, login with profile, settings', async ({ page }) => {
+  test('is one row: settings, profile selector, login with profile', async ({ page }) => {
     await loadLoginPanel(page);
     const order = await page.$$eval(
       '.creatio-satelite-login-profiles-container > *',
       els => els.map(e => e.className)
     );
     expect(order).toHaveLength(3);
-    expect(order[0]).toContain('creatio-satelite-login-profile-select');
-    expect(order[1]).toContain('login-with-profile-button');
-    expect(order[2]).toContain('settings-button');
+    expect(order[0]).toContain('settings-button');
+    expect(order[1]).toContain('creatio-satelite-login-profile-select');
+    expect(order[2]).toContain('login-with-profile-button');
 
     const boxes = await Promise.all(
       ['.creatio-satelite-login-profile-select', '.login-with-profile-button', '.settings-button']

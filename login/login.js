@@ -134,7 +134,7 @@
       }
     }
 
-    // One compact row: profile selector, log in with it, open the extension settings.
+    // One compact row: extension settings, profile selector, log in with it.
     // The extension is an add-on to the login form, so it takes one form row, not a block.
     const loginCaption = createIconButton(
       ['creatio-satelite', 'auto-login-button', 'login-with-profile-button'],
@@ -153,9 +153,10 @@
     // Row width and height follow the native login button so it lines up with the form
     loginProfilesContainer.style.width = (loginButton.offsetWidth || 280) + 'px';
     loginProfilesContainer.style.setProperty('--csl-row-height', (loginButton.offsetHeight || 36) + 'px');
+    // Settings first, so the selector and the button that uses it stay next to each other
+    loginProfilesContainer.appendChild(settingsButton);
     loginProfilesContainer.appendChild(profileSelect);
     loginProfilesContainer.appendChild(loginCaption);
-    loginProfilesContainer.appendChild(settingsButton);
 
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
