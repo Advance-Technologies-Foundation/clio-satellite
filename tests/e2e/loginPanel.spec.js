@@ -64,6 +64,19 @@ test.describe('Login page profile panel', () => {
     });
   }
 
+  test('the dropdown is styled: custom picker, group heading and icons on the menu entries', async ({ page }) => {
+    await loadLoginPanel(page);
+    const select = page.locator('.creatio-satelite-login-profile-select');
+    await expect(select).toHaveCSS('appearance', 'base-select');
+    await expect(select.locator('optgroup legend')).toHaveText('Clio satellite');
+    await expect(select.locator('.creatio-satelite-login-menu-option svg')).toHaveCount(2);
+
+    await select.click();
+    await expect(select.locator('option').first()).toBeVisible();
+    await select.locator('.creatio-satelite-login-menu-option', { hasText: 'Environments' }).click();
+    await expect(select).toHaveValue('Supervisor');
+  });
+
   test('login with profile is an orange icon button with an accessible name', async ({ page }) => {
     await loadLoginPanel(page);
     const btn = page.getByRole('button', { name: 'Login with profile' });
