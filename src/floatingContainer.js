@@ -4,6 +4,8 @@ import {
   saveMenuPosition,
   loadMenuPosition,
   applySavedPosition,
+  loadAutoPosition,
+  applyAutoPosition,
 } from './positionManager.js';
 
 let resizeAbortController = null;
@@ -15,6 +17,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
 
   const floatingContainer = document.createElement('div');
   floatingContainer.className = 'creatio-satelite-floating';
+  floatingContainer.setAttribute('data-page-type', pageType);
   floatingContainer.style.cssText = `
     position: fixed;
     top: 20px;
@@ -34,7 +37,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     box-sizing: border-box;
     pointer-events: auto;
     opacity: 0;
-    transition: opacity ${isShell ? '3s' : '0.3s'} ease;
+    transition: opacity 0.3s ease;
   `;
 
   let isDragging = false;
@@ -115,6 +118,14 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       positionFloatingContainerRelativeToSearch(floatingContainer);
       setTimeout(() => { floatingContainer.style.opacity = '1'; }, 50);
     };
+
+    // Show the buttons at once where they stood last time; the search-based
+    // positioning below then confirms or corrects the spot.
+    loadAutoPosition(pageType, (pos) => {
+      if (!pos || floatingContainer.hasAttribute('data-user-positioned')) return;
+      applyAutoPosition(floatingContainer, pos);
+      floatingContainer.style.opacity = '1';
+    });
 
     setTimeout(attemptPositioning, isShell ? 100 : 200);
 

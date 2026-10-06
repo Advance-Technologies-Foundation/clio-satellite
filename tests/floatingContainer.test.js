@@ -5,6 +5,8 @@ vi.mock('../src/positionManager.js', () => ({
   saveMenuPosition: vi.fn(),
   loadMenuPosition: vi.fn((_pageType, cb) => cb(null, null)),
   applySavedPosition: vi.fn(() => true),
+  loadAutoPosition: vi.fn((_pageType, cb) => cb(null)),
+  applyAutoPosition: vi.fn(),
 }));
 
 import { setupFloatingContainer } from '../src/floatingContainer.js';
@@ -13,6 +15,8 @@ import {
   saveMenuPosition,
   applySavedPosition,
   positionFloatingContainerRelativeToSearch,
+  loadAutoPosition,
+  applyAutoPosition,
 } from '../src/positionManager.js';
 
 function makeWrapper() {
@@ -68,9 +72,14 @@ describe('setupFloatingContainer — creation', () => {
     expect(wrapper.classList.contains('creatio-satelite-configuration')).toBe(true);
   });
 
-  it('shell: transition is 3s', () => {
+  it('shell: fades in within 0.3s so the buttons are noticeable right away', () => {
     const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
-    expect(fc.style.transition).toContain('3s');
+    expect(fc.style.transition).toContain('0.3s');
+  });
+
+  it('marks the container with its page type', () => {
+    const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
+    expect(fc.getAttribute('data-page-type')).toBe('shell');
   });
 
   it('configuration: transition is 0.3s', () => {
@@ -103,6 +112,19 @@ describe('setupFloatingContainer — position loading', () => {
     const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
     vi.advanceTimersByTime(100);
     expect(fc.style.opacity).toBe('1');
+  });
+
+  it('restores the last auto position and shows the buttons at once when the user never dragged them', () => {
+    loadAutoPosition.mockImplementationOnce((_pt, cb) => cb({ x: 500, y: 10, vw: 1280 }));
+    const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
+    expect(applyAutoPosition).toHaveBeenCalledWith(fc, { x: 500, y: 10, vw: 1280 });
+    expect(fc.style.opacity).toBe('1');
+  });
+
+  it('does not use the auto position when the user dragged the buttons', () => {
+    loadMenuPosition.mockImplementationOnce((_pt, cb) => cb(200, 150));
+    setupFloatingContainer('shell', makeWrapper(), makeExtension());
+    expect(loadAutoPosition).not.toHaveBeenCalled();
   });
 
   it('calls positioning function when no saved position', () => {

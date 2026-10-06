@@ -13,6 +13,7 @@
 - The icon-only actions button carries `aria-label` and `title` ("Quick actions"). The CSS tooltip in `styles/shell.css` is never visible because `menu-item.css` sets `overflow: hidden` on the button, so the native `title` tooltip is what the user sees.
 - Visual styling of the buttons and menus lives in `menu-item.css` (the "Visual refresh" block at the end overrides earlier rules); the divider color is set inline because Creatio styles override `mat-divider`.
 
+- The extension container is appended to `<html>`, not `<body>`: Creatio marks `<body>` as `inert` while Shell loads, which would block clicks and focus on the visible buttons.
 - Menu item, Clio satellite and quick-actions icons are raster PNGs rendered through `icons.js` (`iconFile` in `menuConfig.js`); the SVGs in the config are the fallback.
 
 **Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`, `icons.js`

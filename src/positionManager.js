@@ -1,5 +1,8 @@
 import { debugLog, getLastError } from './debug.js';
 
+const STABLE_CHECK_MS = 120;
+const lastTargetRect = new WeakMap();
+
 export function positionFloatingContainerRelativeToSearch(
   floatingContainer = document.querySelector('.creatio-satelite-floating')
 ) {
@@ -23,6 +26,12 @@ export function positionFloatingContainerRelativeToSearch(
   const targetElement = searchElement || actionButton;
 
   if (!targetElement) {
+    // Keep the position restored from the previous visit until the anchor appears,
+    // so the buttons do not jump to the centre and back while Shell loads.
+    if (floatingContainer.hasAttribute('data-auto-restored')) {
+      debugLog('Anchor not ready, keeping restored position');
+      return true;
+    }
     const containerRect = floatingContainer.getBoundingClientRect();
     const centerX = (window.innerWidth - containerRect.width) / 2;
     floatingContainer.style.left = centerX + 'px';
@@ -55,6 +64,22 @@ export function positionFloatingContainerRelativeToSearch(
     return false;
   }
 
+  // The search field animates its width when it appears; positioning against an
+  // intermediate size makes the buttons jump. Move only once the rect is stable.
+  const rectKey = `${Math.round(targetRect.left)},${Math.round(targetRect.right)},${Math.round(targetRect.top)}`;
+  const now = Date.now();
+  const seen = lastTargetRect.get(floatingContainer);
+  if (!seen || seen.key !== rectKey) {
+    lastTargetRect.set(floatingContainer, { key: rectKey, since: now });
+    setTimeout(() => positionFloatingContainerRelativeToSearch(floatingContainer), STABLE_CHECK_MS);
+    debugLog('Target element still moving, retrying');
+    return false;
+  }
+  if (now - seen.since < STABLE_CHECK_MS) {
+    debugLog('Target element not stable long enough yet');
+    return false;
+  }
+
   const leftPosition = targetRect.right + 20;
   const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2 - 20;
   const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
@@ -63,9 +88,58 @@ export function positionFloatingContainerRelativeToSearch(
   floatingContainer.style.left = finalLeft + 'px';
   floatingContainer.style.top = finalTop + 'px';
   floatingContainer.style.right = 'auto';
+  floatingContainer.removeAttribute('data-auto-restored');
+  saveAutoPosition(floatingContainer.getAttribute('data-page-type'), finalLeft, finalTop);
 
   debugLog(`Positioned container: left=${finalLeft}, top=${finalTop}`);
   return true;
+}
+
+// Last position computed next to the search field, per page type and origin.
+// Restored on the next load before the search field exists, so the buttons
+// appear right where they will end up instead of jumping there later.
+const autoPositionKey = pageType => `menuAutoPosition_${pageType}_${window.location.origin}`;
+let lastSavedAuto = null;
+
+export function saveAutoPosition(pageType, x, y) {
+  if (!pageType) return;
+  const key = autoPositionKey(pageType);
+  const vw = window.innerWidth;
+  if (lastSavedAuto && lastSavedAuto.key === key && lastSavedAuto.x === x && lastSavedAuto.y === y && lastSavedAuto.vw === vw) return;
+  lastSavedAuto = { key, x, y, vw };
+  chrome.storage.local.set({ [key]: { x, y, vw, timestamp: Date.now() } }, () => {
+    const err = getLastError();
+    if (err) console.error('[Clio Satellite] Failed to save auto position:', err.message);
+  });
+}
+
+export function loadAutoPosition(pageType, callback) {
+  const key = autoPositionKey(pageType);
+  chrome.storage.local.get([key], (result) => {
+    const err = getLastError();
+    const pos = err ? null : result[key];
+    // Toolbar layout depends on the window width; a position saved for another width is wrong
+    if (!pos || pos.vw !== window.innerWidth) {
+      callback(null);
+      return;
+    }
+    callback(pos);
+  });
+}
+
+export function applyAutoPosition(floatingContainer, pos) {
+  const containerRect = floatingContainer.getBoundingClientRect();
+  const x = Math.max(10, Math.min(window.innerWidth - containerRect.width - 10, pos.x));
+  const y = Math.max(10, Math.min(window.innerHeight - containerRect.height - 10, pos.y));
+  floatingContainer.style.left = x + 'px';
+  floatingContainer.style.top = y + 'px';
+  floatingContainer.style.right = 'auto';
+  floatingContainer.setAttribute('data-auto-restored', 'true');
+  debugLog(`Restored auto position: x=${x}, y=${y}`);
+}
+
+export function resetAutoPositionCache() {
+  lastSavedAuto = null;
 }
 
 export function saveMenuPosition(x, y, pageType) {

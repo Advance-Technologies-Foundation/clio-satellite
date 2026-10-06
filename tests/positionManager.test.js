@@ -4,6 +4,10 @@ import {
   saveMenuPosition,
   loadMenuPosition,
   positionFloatingContainerRelativeToSearch,
+  saveAutoPosition,
+  loadAutoPosition,
+  applyAutoPosition,
+  resetAutoPositionCache,
 } from '../src/positionManager.js';
 
 beforeEach(() => {
@@ -106,7 +110,7 @@ describe('saveMenuPosition', () => {
 describe('saveMenuPosition', () => {
   it('logs error when storage.set fails', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    chrome.storage.local.set.mockImplementation((_data, callback) => {
+    chrome.storage.local.set.mockImplementationOnce((_data, callback) => {
       global.chrome.runtime.lastError = { message: 'QuotaExceededError' };
       callback();
       global.chrome.runtime.lastError = undefined;
@@ -125,7 +129,7 @@ describe('saveMenuPosition', () => {
 describe('loadMenuPosition', () => {
   it('calls callback(null, null) and logs error when storage.get fails', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    chrome.storage.local.get.mockImplementation((_keys, callback) => {
+    chrome.storage.local.get.mockImplementationOnce((_keys, callback) => {
       global.chrome.runtime.lastError = { message: 'StorageError' };
       callback({});
       global.chrome.runtime.lastError = undefined;
@@ -141,7 +145,7 @@ describe('loadMenuPosition', () => {
 
   it('returns saved position if recent', () => {
     const recentTimestamp = Date.now() - 1000;
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementationOnce((keys, callback) => {
       callback({ 'menuPosition_shell_https://myapp.example.com': { x: 100, y: 200, timestamp: recentTimestamp } });
     });
 
@@ -153,7 +157,7 @@ describe('loadMenuPosition', () => {
 
   it('returns null for positions older than 30 days', () => {
     const oldTimestamp = Date.now() - (31 * 24 * 60 * 60 * 1000);
-    chrome.storage.local.get.mockImplementation((keys, callback) => {
+    chrome.storage.local.get.mockImplementationOnce((keys, callback) => {
       callback({ 'menuPosition_shell_https://myapp.example.com': { x: 100, y: 200, timestamp: oldTimestamp } });
     });
 
@@ -165,7 +169,7 @@ describe('loadMenuPosition', () => {
   });
 
   it('returns null when no saved position', () => {
-    chrome.storage.local.get.mockImplementation((keys, callback) => callback({}));
+    chrome.storage.local.get.mockImplementationOnce((keys, callback) => callback({}));
 
     const callback = vi.fn();
     loadMenuPosition('shell', callback);
@@ -202,5 +206,105 @@ describe('positionFloatingContainerRelativeToSearch', () => {
     expect(result).toBe(true);
     expect(el.getAttribute('data-fallback-position')).toBe('true');
     expect(el.style.top).toBe('16px');
+  });
+});
+
+describe('auto position memory', () => {
+  beforeEach(() => resetAutoPositionCache());
+
+  it('round-trips a position saved for the same window width', () => {
+    saveAutoPosition('shell', 502, 10);
+    const cb = vi.fn();
+    loadAutoPosition('shell', cb);
+    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ x: 502, y: 10, vw: 1280 }));
+  });
+
+  it('ignores a position saved for another window width', () => {
+    saveAutoPosition('shell', 502, 10);
+    window.innerWidth = 1600;
+    const cb = vi.fn();
+    loadAutoPosition('shell', cb);
+    expect(cb).toHaveBeenCalledWith(null);
+  });
+
+  it('does not write to storage again when the position did not change', () => {
+    saveAutoPosition('shell', 502, 10);
+    saveAutoPosition('shell', 502, 10);
+    expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips saving without a page type', () => {
+    saveAutoPosition(null, 502, 10);
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  it('keeps a restored position while the search field is not rendered yet', () => {
+    const el = document.createElement('div');
+    el.className = 'creatio-satelite-floating';
+    el.getBoundingClientRect = () => ({ width: 150, height: 40, top: 0, left: 0, right: 150, bottom: 40 });
+    document.body.innerHTML = '';
+    document.body.appendChild(el);
+    applyAutoPosition(el, { x: 502, y: 10 });
+
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(true);
+    expect(el.style.left).toBe('502px');
+    expect(el.style.top).toBe('10px');
+    expect(el.hasAttribute('data-fallback-position')).toBe(false);
+  });
+
+  it('saves the position computed next to the search field', () => {
+    document.body.innerHTML = '<crt-global-search></crt-global-search>';
+    const search = document.querySelector('crt-global-search');
+    search.getBoundingClientRect = () => ({ width: 300, height: 32, top: 10, left: 100, right: 400, bottom: 42 });
+    const el = document.createElement('div');
+    el.className = 'creatio-satelite-floating';
+    el.setAttribute('data-page-type', 'shell');
+    el.setAttribute('data-auto-restored', 'true');
+    el.getBoundingClientRect = () => ({ width: 150, height: 40, top: 0, left: 0, right: 150, bottom: 40 });
+    document.body.appendChild(el);
+
+    vi.useFakeTimers();
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(false); // first sight: wait for a stable rect
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(false); // same rect, but not long enough
+    vi.advanceTimersByTime(150);
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(true);
+    vi.useRealTimers();
+    expect(el.hasAttribute('data-auto-restored')).toBe(false);
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(
+      { 'menuAutoPosition_shell_https://myapp.example.com': expect.objectContaining({ x: 420, vw: 1280 }) },
+      expect.any(Function)
+    );
+  });
+});
+
+describe('positioning waits for the search field to stop moving', () => {
+  function setup(rect) {
+    document.body.innerHTML = '<crt-global-search></crt-global-search>';
+    const search = document.querySelector('crt-global-search');
+    let current = rect;
+    search.getBoundingClientRect = () => current;
+    const el = document.createElement('div');
+    el.className = 'creatio-satelite-floating';
+    el.getBoundingClientRect = () => ({ width: 150, height: 40, top: 0, left: 0, right: 150, bottom: 40 });
+    document.body.appendChild(el);
+    return { el, setRect: r => { current = r; } };
+  }
+
+  it('does not move the buttons while the search width is changing', () => {
+    const { el, setRect } = setup({ width: 200, height: 32, top: 10, left: 100, right: 300, bottom: 42 });
+    el.style.left = '502px';
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
+    setRect({ width: 250, height: 32, top: 10, left: 100, right: 350, bottom: 42 });
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
+    expect(el.style.left).toBe('502px');
+  });
+
+  it('retries by itself and positions once the rect is stable', () => {
+    vi.useFakeTimers();
+    const { el } = setup({ width: 300, height: 32, top: 10, left: 100, right: 400, bottom: 42 });
+    expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
+    vi.advanceTimersByTime(150);
+    expect(el.style.left).toBe('420px');
+    vi.useRealTimers();
   });
 });

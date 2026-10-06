@@ -7,7 +7,9 @@
 
 **Key decisions:**
 - Double-click resets position to auto (removes `data-user-positioned`, clears storage, re-runs `positionFloatingContainerRelativeToSearch`).
-- Shell page uses a longer opacity transition (3 s) and more aggressive position retry intervals because the search bar renders late.
+- Opacity fades in over 0.3 s on every page type (it was 3 s on Shell, which made the buttons look unavailable).
+- When the user never dragged the buttons, the last auto position is restored and shown at once (`loadAutoPosition`), before the search bar renders; the search-based positioning then confirms the spot. Shell keeps more aggressive retry intervals because the search bar renders late.
+- The container carries `data-page-type` so `positionManager` can store the auto position per page type.
 - `resizeAbortController` tears down the previous resize listener whenever `setupFloatingContainer` is called again, preventing listener accumulation.
 
 **Dependencies:** `debug.js`, `positionManager.js`

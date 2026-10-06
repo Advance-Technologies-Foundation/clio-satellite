@@ -63,6 +63,18 @@ test.describe('Shell page', () => {
     expect(broken).toEqual([]);
   });
 
+  test('buttons stay clickable while Creatio keeps <body> inert during loading', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.goto(`${BASE}/shell/`);
+    // Creatio sets `inert` on <body> until Shell finishes loading
+    await page.evaluate(() => { document.body.inert = true; });
+    await injectContentScript(page);
+    await waitForMenu(page);
+
+    await page.locator('.scripts-menu-button').click({ timeout: 2000 });
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+  });
+
   test('drag sets data-user-positioned and moves the container', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

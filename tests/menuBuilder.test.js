@@ -148,10 +148,20 @@ describe('createScriptsMenu', () => {
     expect(document.querySelector('.actions-button img').getAttribute('src')).toContain('icons/ui/quick-actions.png');
   });
 
+  it('mounts the container outside <body> so an inert body does not block the buttons', () => {
+    document.body.inert = true;
+    createScriptsMenu();
+    const ec = document.querySelector('.creatio-satelite-extension-container');
+    expect(ec.parentElement).toBe(document.documentElement);
+    expect(document.body.contains(ec)).toBe(false);
+    expect(ec.closest('[inert]')).toBeNull();
+    document.body.inert = false;
+  });
+
   it('resets state if DOM creation throws', () => {
     // Make appendChild throw
-    const original = document.body.appendChild.bind(document.body);
-    document.body.appendChild = () => { throw new Error('DOM error'); };
+    const original = document.documentElement.appendChild.bind(document.documentElement);
+    document.documentElement.appendChild = () => { throw new Error('DOM error'); };
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const result = createScriptsMenu();
@@ -159,7 +169,7 @@ describe('createScriptsMenu', () => {
     expect(result).toBe(false);
     expect(state.menuCreated).toBe(false);
 
-    document.body.appendChild = original;
+    document.documentElement.appendChild = original;
     consoleSpy.mockRestore();
   });
 });
