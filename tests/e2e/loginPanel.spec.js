@@ -22,49 +22,57 @@ async function loadLoginPanel(page) {
 }
 
 test.describe('Login page profile panel', () => {
-  test('primary action comes right after the profile selector', async ({ page }) => {
+  test('is one row: profile selector, login with profile, settings', async ({ page }) => {
     await loadLoginPanel(page);
     const order = await page.$$eval(
       '.creatio-satelite-login-profiles-container > *',
       els => els.map(e => e.className)
     );
-    expect(order[0]).toContain('creatio-satelite-login-header');
-    expect(order[1]).toContain('creatio-satelite-login-profile-select');
-    expect(order[2]).toContain('login-with-profile-button');
-    expect(order[3]).toContain('creatio-satelite-login-secondary-row');
+    expect(order).toHaveLength(3);
+    expect(order[0]).toContain('creatio-satelite-login-profile-select');
+    expect(order[1]).toContain('login-with-profile-button');
+    expect(order[2]).toContain('settings-button');
+
+    const boxes = await Promise.all(
+      ['.creatio-satelite-login-profile-select', '.login-with-profile-button', '.settings-button']
+        .map(sel => page.locator(sel).boundingBox())
+    );
+    for (const b of boxes) expect(Math.abs(b.y - boxes[0].y)).toBeLessThan(1);
   });
 
-  test('Environments and Profiles buttons share one row', async ({ page }) => {
+  test('row is as wide and as tall as the native login button', async ({ page }) => {
     await loadLoginPanel(page);
-    const env = await page.locator('.environments-button').boundingBox();
-    const profiles = await page.locator('.settings-button').boundingBox();
-    expect(Math.abs(env.y - profiles.y)).toBeLessThan(1);
-    expect(profiles.x).toBeGreaterThan(env.x + env.width - 1);
+    const row = await page.locator('.creatio-satelite-login-profiles-container').boundingBox();
+    expect(Math.round(row.width)).toBe(300);
+    expect(Math.round(row.height)).toBe(34);
   });
 
-  test('panel width matches the native login button', async ({ page }) => {
+  test('icon-only buttons have accessible names and tooltips', async ({ page }) => {
     await loadLoginPanel(page);
-    const panel = await page.locator('.creatio-satelite-login-profiles-container').boundingBox();
-    expect(Math.round(panel.width)).toBe(300);
+    await expect(page.getByRole('button', { name: 'Login with profile' })).toHaveAttribute('title', 'Login with profile');
+    await expect(page.getByRole('button', { name: 'Clio satellite settings' })).toHaveAttribute('title', 'Clio satellite settings');
   });
 
-  test('login with profile button uses sentence case and the accent color', async ({ page }) => {
+  test('login with profile is the orange primary action, settings is neutral', async ({ page }) => {
     await loadLoginPanel(page);
-    const btn = page.locator('.login-with-profile-button');
-    await expect(btn).toHaveText('Login with profile');
-    await expect(btn).toHaveCSS('text-transform', 'none');
-    await expect(btn).toHaveCSS('background-color', 'rgb(255, 87, 34)');
-  });
-
-  test('secondary buttons are not styled as the primary action', async ({ page }) => {
-    await loadLoginPanel(page);
-    await expect(page.locator('.environments-button')).not.toHaveClass(/auto-login-button/);
+    await expect(page.locator('.login-with-profile-button')).toHaveCSS('background-color', 'rgb(255, 87, 34)');
+    await expect(page.locator('.settings-button')).not.toHaveClass(/auto-login-button/);
     await expect(page.locator('.settings-button')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  });
+
+  test('settings opens the extension options page', async ({ page }) => {
+    await loadLoginPanel(page);
+    await page.evaluate(() => {
+      window.__sent = [];
+      chrome.runtime.sendMessage = (m) => window.__sent.push(m);
+    });
+    await page.locator('.settings-button').click();
+    expect(await page.evaluate(() => window.__sent)).toEqual([{ action: 'openOptionsPage' }]);
   });
 
   test('button icons are inline duotone SVGs; the accent turns white on the orange button', async ({ page }) => {
     await loadLoginPanel(page);
-    await expect(page.locator('.creatio-satelite-login-profiles-container .creatio-satelite-login-icon svg')).toHaveCount(3);
+    await expect(page.locator('.creatio-satelite-login-profiles-container .creatio-satelite-login-icon svg')).toHaveCount(2);
     const accent = await page.locator('.login-with-profile-button').evaluate(el => getComputedStyle(el).getPropertyValue('--csl-icon-accent').trim());
     expect(accent).toBe('#ffffff');
   });

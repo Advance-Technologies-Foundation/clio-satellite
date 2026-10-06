@@ -1,6 +1,7 @@
 /**
- * Login page enhancements: profile selector panel injected under the Creatio login form.
- * The panel inherits the host page font so it reads as part of the form.
+ * Login page enhancements: one compact row under the Creatio login form —
+ * profile selector, "Login with profile" and settings. The extension is an add-on,
+ * so the row takes no more room than one form field and inherits the page font.
  */
 
 .creatio-satelite-login-profiles-container {
@@ -14,18 +15,14 @@
   --csl-surface: #ffffff;
   --csl-surface-hover: #f5f6f8;
   --csl-focus: rgba(255, 87, 34, 0.35);
+  --csl-row-height: 36px;
 
   box-sizing: border-box;
   max-width: 100%;
-  margin: 20px auto 0;
-  padding: 14px;
+  margin: 16px auto 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--csl-surface);
-  border: 1px solid #e6e8ec;
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.06);
+  align-items: stretch;
+  gap: 6px;
   font-family: inherit;
   color: var(--csl-text);
 }
@@ -34,41 +31,22 @@
   box-sizing: border-box;
 }
 
-/* Small brand line so the user knows these controls come from the extension */
-.creatio-satelite-login-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--csl-muted);
-  margin-bottom: 2px;
-}
-
-.creatio-satelite-login-header::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--csl-accent);
-}
-
-/* Profile selector */
+/* Profile selector takes the rest of the row */
 .creatio-satelite-login-profile-select {
-  width: 100%;
-  height: 36px;
-  padding: 0 32px 0 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--csl-row-height);
+  padding: 0 30px 0 10px;
   font: inherit;
   font-size: 14px;
-  font-weight: 500;
   color: var(--csl-text);
   background-color: var(--csl-surface);
   background-image: url("data:image/svg+xml;utf8,<svg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M3 4.5l3 3 3-3' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right 10px center;
   border: 1px solid var(--csl-border);
-  border-radius: 6px;
+  border-radius: 4px;
+  text-overflow: ellipsis;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -85,23 +63,19 @@
   box-shadow: 0 0 0 3px var(--csl-focus);
 }
 
-/* Shared button base */
+/* Square icon buttons, as tall as the native login button */
 .creatio-satelite-login-profiles-container button.creatio-satelite {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
+  width: var(--csl-row-height);
+  height: var(--csl-row-height);
   margin: 0;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  border-radius: 6px;
+  padding: 0;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 .creatio-satelite-login-profiles-container button.creatio-satelite:active {
@@ -119,14 +93,12 @@
 }
 
 .creatio-satelite-login-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Primary: log in with the selected profile */
 .creatio-satelite.auto-login-button {
-  min-height: 36px;
-  padding: 0 16px;
   color: #ffffff;
   /* White icon on the orange button: the accent part turns white as well */
   --csl-icon-accent: #ffffff;
@@ -142,29 +114,15 @@
   background-color: var(--csl-accent-active, #e64a19);
 }
 
-/* Secondary: Environments and Profiles side by side */
-.creatio-satelite-login-secondary-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
+/* Secondary: settings */
 .creatio-satelite.creatio-satelite-login-secondary {
-  height: 32px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--csl-text);
+  color: var(--csl-muted);
   background-color: var(--csl-surface);
   border: 1px solid var(--csl-border);
-  white-space: nowrap;
-}
-
-.creatio-satelite.creatio-satelite-login-secondary .creatio-satelite-login-icon {
-  color: var(--csl-muted);
 }
 
 .creatio-satelite.creatio-satelite-login-secondary:hover {
+  color: var(--csl-text);
   background-color: var(--csl-surface-hover);
   border-color: var(--csl-border-hover);
 }

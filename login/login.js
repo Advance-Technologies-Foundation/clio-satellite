@@ -108,20 +108,21 @@
     // Duotone icons: outline in currentColor, accent in var(--csl-icon-accent)
     const ICONS = {
       login: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.75h3.25a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H9.5"/><path d="M1.75 8h7.5M6.75 5l3 3-3 3" stroke="var(--csl-icon-accent, #ff5722)"/></svg>',
-      profiles: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.75" cy="6.75" r="1.5" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><path d="M3.5 11c.2-1.25 1.1-2 2.25-2s2.05.75 2.25 2z" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)" stroke-width="1"/><path d="M9.75 6.5h2M9.75 9.5h2"/></svg>',
-      environments: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="1.5"/><path d="M1.75 6h12.5M1.75 10h12.5M7.5 3.9h4.25M7.5 8h4.25M7.5 12.1h4.25"/><g fill="var(--csl-icon-accent, #ff5722)" stroke="none"><circle cx="4.5" cy="3.9" r="1"/><circle cx="4.5" cy="8" r="1"/><circle cx="4.5" cy="12.1" r="1"/></g></svg>',
+      settings: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.38 3.54L6.76 1.62L9.24 1.62L9.62 3.54L10.01 3.70L11.63 2.61L13.39 4.37L12.30 5.99L12.46 6.38L14.38 6.76L14.38 9.24L12.46 9.62L12.30 10.01L13.39 11.63L11.63 13.39L10.01 12.30L9.62 12.46L9.24 14.38L6.76 14.38L6.38 12.46L5.99 12.30L4.37 13.39L2.61 11.63L3.70 10.01L3.54 9.62L1.62 9.24L1.62 6.76L3.54 6.38L3.70 5.99L2.61 4.37L4.37 2.61L5.99 3.70z"/><circle cx="8" cy="8" r="2" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/></svg>',
     };
 
-    function createButton(classNames, iconKey, text) {
+    // Icon-only button; the visible name comes from the tooltip and aria-label
+    function createIconButton(classNames, iconKey, label) {
       const button = document.createElement('button');
       button.type = 'button';
       button.classList.add(...classNames);
+      button.title = label;
+      button.setAttribute('aria-label', label);
       const iconSpan = document.createElement('span');
       iconSpan.className = 'creatio-satelite-login-icon';
       iconSpan.setAttribute('aria-hidden', 'true');
       iconSpan.innerHTML = ICONS[iconKey];
       button.appendChild(iconSpan);
-      button.appendChild(document.createTextNode(text));
       return button;
     }
 
@@ -133,44 +134,28 @@
       }
     }
 
-    // Primary action: log in with the selected profile
-    const loginCaption = createButton(
+    // One compact row: profile selector, log in with it, open the extension settings.
+    // The extension is an add-on to the login form, so it takes one form row, not a block.
+    const loginCaption = createIconButton(
       ['creatio-satelite', 'auto-login-button', 'login-with-profile-button'],
       'login',
       'Login with profile'
     );
-    loginCaption.style.height = (loginButton.offsetHeight || 36) + 'px';
 
-    // Secondary actions: open extension pages
-    const settingsButton = createButton(
+    // Settings opens the profiles page; Environments is one click away from its top bar
+    const settingsButton = createIconButton(
       ['creatio-satelite', 'creatio-satelite-login-secondary', 'settings-button'],
-      'profiles',
-      'Profiles'
+      'settings',
+      'Clio satellite settings'
     );
     settingsButton.addEventListener('click', () => openExtensionPage('openOptionsPage'));
 
-    const envButton = createButton(
-      ['creatio-satelite', 'creatio-satelite-login-secondary', 'environments-button'],
-      'environments',
-      'Environments'
-    );
-    envButton.addEventListener('click', () => openExtensionPage('openEnvironmentsPage'));
-
-    const header = document.createElement('div');
-    header.className = 'creatio-satelite-login-header';
-    header.textContent = 'Clio satellite';
-
-    const secondaryRow = document.createElement('div');
-    secondaryRow.className = 'creatio-satelite-login-secondary-row';
-    secondaryRow.appendChild(envButton);
-    secondaryRow.appendChild(settingsButton);
-
-    // Panel width follows the native login button so the block lines up with the form
+    // Row width and height follow the native login button so it lines up with the form
     loginProfilesContainer.style.width = (loginButton.offsetWidth || 280) + 'px';
-    loginProfilesContainer.appendChild(header);
+    loginProfilesContainer.style.setProperty('--csl-row-height', (loginButton.offsetHeight || 36) + 'px');
     loginProfilesContainer.appendChild(profileSelect);
     loginProfilesContainer.appendChild(loginCaption);
-    loginProfilesContainer.appendChild(secondaryRow);
+    loginProfilesContainer.appendChild(settingsButton);
 
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;
