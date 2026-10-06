@@ -384,15 +384,16 @@
 /* Menus */
 .creatio-satelite-extension-container .scripts-menu-container,
 .creatio-satelite-extension-container .actions-menu-container {
-  /* Semi-transparent glass: the page shows through, blurred enough to keep the text readable */
-  background: rgba(24, 27, 32, 0.62) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  /* Same glass as Creatio's own menus (.crt-menu-glassmorphism): its theme tokens with fallbacks.
+     80% opacity keeps the text readable on white pages, not only on the wallpaper. */
+  background: var(--crt-glass-color-dark-800, rgba(24, 24, 24, 0.8)) !important;
+  border: 1px solid var(--crt-glass-color-light-100, rgba(255, 255, 255, 0.1)) !important;
   border-radius: 12px !important;
   padding: 6px !important;
   min-width: 220px !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16), 0 16px 40px rgba(0, 0, 0, 0.28) !important;
-  backdrop-filter: blur(20px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  box-shadow: 0 2px 4px rgba(34, 39, 47, 0.2), 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
 .creatio-satelite-extension-container .scripts-menu-container.visible,
