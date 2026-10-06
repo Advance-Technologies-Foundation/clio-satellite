@@ -32,10 +32,7 @@
     // Create dropdown select element
     const profileSelect = document.createElement('select');
     profileSelect.className = 'creatio-satelite-login-profile-select';
-    profileSelect.style.width = (loginButton.offsetWidth || 200) + 'px';
-    profileSelect.style.padding = '8px';
-    profileSelect.style.borderRadius = '4px';
-    profileSelect.style.border = '1px solid #ddd';
+    profileSelect.setAttribute('aria-label', 'Saved profile');
 
     // Get current profiles and add the new one
     chrome.storage.sync.get({ userProfiles: [] }, (data) => {
@@ -108,106 +105,87 @@
       });
     });
 
-    // Add caption text - login button
-    const loginCaption = document.createElement('button');
-    loginCaption.classList.add('creatio-satelite');
-    loginCaption.classList.add('auto-login-button');
-    const loginIconSpan = document.createElement('span');
-    loginIconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    loginIconSpan.style.marginRight = '6px';
-    loginIconSpan.style.lineHeight = '0';
-    loginIconSpan.style.color = '#ffffff';
-    loginCaption.appendChild(loginIconSpan);
-    loginCaption.appendChild(document.createTextNode('Login with profile'));
-    loginCaption.style.width = loginButton.offsetWidth + 'px';
-    loginCaption.style.height = loginButton.offsetHeight + 'px';
-    loginCaption.style.padding = '8px 16px';
-    loginCaption.style.backgroundColor = 'rgb(255, 87, 34)'; // Orange color for "LOGIN WITH PROFILE" button
-    loginCaption.style.color = 'white';
-    loginCaption.style.border = 'none';
-    loginCaption.style.borderRadius = '4px';
-    loginCaption.style.cursor = 'pointer';
-    loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
-    loginCaption.style.display = 'flex';
-    loginCaption.style.alignItems = 'center';
-    loginCaption.style.justifyContent = 'center';
-    loginCaption.style.textAlign = 'center';
+    const ICONS = {
+      login: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      profiles: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      environments: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>',
+    };
 
-    // Create settings button
-    const settingsButton = document.createElement('button');
-    settingsButton.classList.add('creatio-satelite');
-    settingsButton.classList.add('auto-login-button');
-    settingsButton.classList.add('settings-button');
-    
-    // Create icon span element
-    const iconSpan = document.createElement('span');
-    iconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-    iconSpan.style.marginRight = '6px';
-    iconSpan.style.lineHeight = '0';
-    iconSpan.style.color = '#ffffff';
-    
-    // Create text node
-    const buttonText = document.createTextNode('Setup profiles');
-    
-    // Append icon and text to button
-    settingsButton.appendChild(iconSpan);
-    settingsButton.appendChild(buttonText);
-    
-    settingsButton.style.width = loginButton.offsetWidth + 'px';
-    settingsButton.style.height = loginButton.offsetHeight + 'px';
-    settingsButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
-    settingsButton.style.padding = window.getComputedStyle(loginButton).padding;
-    settingsButton.style.marginTop = '8px'; // Add some spacing between dropdown and settings button
-    settingsButton.style.display = 'flex';
-    settingsButton.style.alignItems = 'center';
-    settingsButton.style.justifyContent = 'center';
-    
-    settingsButton.addEventListener('click', () => {
+    // Raster icons from icons/ui/; the inline SVG above is the fallback when the URL is unavailable
+    const ICON_FILES = { login: 'login.png', profiles: 'profiles.png', environments: 'environments.png' };
+
+    function renderIcon(container, key) {
+      let url = null;
+      try { url = chrome.runtime?.getURL ? chrome.runtime.getURL('icons/ui/' + ICON_FILES[key]) : null; } catch { url = null; }
+      if (!url) { container.innerHTML = ICONS[key]; return; }
+      const img = document.createElement('img');
+      img.className = 'creatio-satelite-icon';
+      img.src = url;
+      img.alt = '';
+      img.draggable = false;
+      img.addEventListener('error', () => { container.innerHTML = ICONS[key]; }, { once: true });
+      container.replaceChildren(img);
+    }
+
+    function createButton(classNames, iconKey, text) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.classList.add(...classNames);
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'creatio-satelite-login-icon';
+      iconSpan.setAttribute('aria-hidden', 'true');
+      renderIcon(iconSpan, iconKey);
+      button.appendChild(iconSpan);
+      button.appendChild(document.createTextNode(text));
+      return button;
+    }
+
+    function openExtensionPage(action) {
       try {
-        chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+        chrome.runtime.sendMessage({ action });
       } catch {
         window.location.reload();
       }
-    });
+    }
 
-    // Environments button
-    const envButton = document.createElement('button');
-    envButton.classList.add('creatio-satelite');
-    envButton.classList.add('auto-login-button');
-    envButton.classList.add('environments-button');
+    // Primary action: log in with the selected profile
+    const loginCaption = createButton(
+      ['creatio-satelite', 'auto-login-button', 'login-with-profile-button'],
+      'login',
+      'Login with profile'
+    );
+    loginCaption.style.height = (loginButton.offsetHeight || 36) + 'px';
 
-    const envIconSpan = document.createElement('span');
-    envIconSpan.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>';
-    envIconSpan.style.marginRight = '6px';
-    envIconSpan.style.lineHeight = '0';
-    envIconSpan.style.color = '#ffffff';
-    envButton.appendChild(envIconSpan);
-    envButton.appendChild(document.createTextNode('Environments'));
+    // Secondary actions: open extension pages
+    const settingsButton = createButton(
+      ['creatio-satelite', 'creatio-satelite-login-secondary', 'settings-button'],
+      'profiles',
+      'Profiles'
+    );
+    settingsButton.addEventListener('click', () => openExtensionPage('openOptionsPage'));
 
-    envButton.style.width = loginButton.offsetWidth + 'px';
-    envButton.style.height = loginButton.offsetHeight + 'px';
-    envButton.style.fontSize = window.getComputedStyle(loginButton).fontSize;
-    envButton.style.padding = window.getComputedStyle(loginButton).padding;
-    envButton.style.marginTop = '8px';
-    envButton.style.display = 'flex';
-    envButton.style.alignItems = 'center';
-    envButton.style.justifyContent = 'center';
+    const envButton = createButton(
+      ['creatio-satelite', 'creatio-satelite-login-secondary', 'environments-button'],
+      'environments',
+      'Environments'
+    );
+    envButton.addEventListener('click', () => openExtensionPage('openEnvironmentsPage'));
 
-    envButton.addEventListener('click', () => {
-      try {
-        chrome.runtime.sendMessage({ action: 'openEnvironmentsPage' });
-      } catch {
-        window.location.reload();
-      }
-    });
+    const header = document.createElement('div');
+    header.className = 'creatio-satelite-login-header';
+    header.textContent = 'Clio satellite';
 
-    // Append elements: Environments, Setup profiles, dropdown, Login with profile
-    loginProfilesContainer.appendChild(envButton);
-    loginProfilesContainer.appendChild(settingsButton);
+    const secondaryRow = document.createElement('div');
+    secondaryRow.className = 'creatio-satelite-login-secondary-row';
+    secondaryRow.appendChild(envButton);
+    secondaryRow.appendChild(settingsButton);
+
+    // Panel width follows the native login button so the block lines up with the form
+    loginProfilesContainer.style.width = (loginButton.offsetWidth || 280) + 'px';
+    loginProfilesContainer.appendChild(header);
     loginProfilesContainer.appendChild(profileSelect);
     loginProfilesContainer.appendChild(loginCaption);
-    loginCaption.style.fontSize = window.getComputedStyle(loginButton).fontSize;
-    profileSelect.style.fontSize = window.getComputedStyle(loginButton).fontSize;
+    loginProfilesContainer.appendChild(secondaryRow);
 
     // Insert container into the login form
     const passwordFieldRow = document.querySelector('#passwordEdit-wrap').parentElement;

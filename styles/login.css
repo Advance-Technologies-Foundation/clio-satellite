@@ -1,118 +1,177 @@
-.creatio-satelite.auto-login-button {
-    font-family: "Montserrat", sans-serif;
-    font-weight: 500;
-    color: #ffffff;
-    border-radius: 4px;
-    border: none;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    background-color: orangered;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-/* Environments button */
-.creatio-satelite.auto-login-button.environments-button {
-    background-color: #1a1a1a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.creatio-satelite.auto-login-button.environments-button:hover  { background-color: #333333; }
-.creatio-satelite.auto-login-button.environments-button:active { background-color: #000000; }
-
-/* Setup profiles button styling */
-.creatio-satelite.auto-login-button.settings-button {
-    background-color: #2d76cc; /* Different color to distinguish from login button */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.creatio-satelite.auto-login-button.settings-button:hover {
-    background-color: #1e5daa; /* Darker on hover */
-}
-
-.creatio-satelite.auto-login-button.settings-button:active {
-    background-color: #164785; /* Even darker when clicked */
-}
-
 /**
- * Styles for the login page enhancements
+ * Login page enhancements: profile selector panel injected under the Creatio login form.
+ * The panel inherits the host page font so it reads as part of the form.
  */
 
-/* Container for login profiles */
 .creatio-satelite-login-profiles-container {
-  margin-top: 15px;
+  --csl-accent: #ff5722;
+  --csl-accent-hover: #f4511e;
+  --csl-accent-active: #e64a19;
+  --csl-text: #1f2329;
+  --csl-muted: #6b7280;
+  --csl-border: #d5d9e0;
+  --csl-border-hover: #a9b0bc;
+  --csl-surface: #ffffff;
+  --csl-surface-hover: #f5f6f8;
+  --csl-focus: rgba(255, 87, 34, 0.35);
+
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 20px auto 0;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 8px;
+  background: var(--csl-surface);
+  border: 1px solid #e6e8ec;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.06);
+  font-family: inherit;
+  color: var(--csl-text);
 }
 
-/* Caption for the dropdown */
-.creatio-satelite-login-caption {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
-  text-align: center;
+.creatio-satelite-login-profiles-container * {
+  box-sizing: border-box;
 }
 
-/* Profile selector dropdown */
+/* Small brand line so the user knows these controls come from the extension */
+.creatio-satelite-login-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--csl-muted);
+  margin-bottom: 2px;
+}
+
+.creatio-satelite-login-header::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--csl-accent);
+}
+
+/* Profile selector */
 .creatio-satelite-login-profile-select {
-  font-family: 'Montserrat', sans-serif;
+  width: 100%;
+  height: 36px;
+  padding: 0 32px 0 12px;
+  font: inherit;
+  font-size: 14px;
   font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-  background-color: white;
-  color: #333;
+  color: var(--csl-text);
+  background-color: var(--csl-surface);
+  background-image: url("data:image/svg+xml;utf8,<svg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M3 4.5l3 3 3-3' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid var(--csl-border);
+  border-radius: 6px;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  padding-right: 32px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Hover state for dropdown */
 .creatio-satelite-login-profile-select:hover {
-  border-color: #aaa;
+  border-color: var(--csl-border-hover);
 }
 
-/* Focus state for dropdown */
-.creatio-satelite-login-profile-select:focus {
+.creatio-satelite-login-profile-select:focus-visible {
   outline: none;
-  border-color: #0066cc;
-  box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
+  border-color: var(--csl-accent);
+  box-shadow: 0 0 0 3px var(--csl-focus);
 }
 
-/* Login button for selected profile */
-.creatio-satelite-login-profile-button {
-  background-color: rgb(255, 87, 34) !important; /* Принудительно применяем цвет */
-  color: white;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 500;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 15px;
+/* Shared button base */
+.creatio-satelite-login-profiles-container button.creatio-satelite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  border-radius: 6px;
   cursor: pointer;
-  text-align: center;
-  margin-top: 10px;
-  transition: background-color 0.2s;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-/* Hover state for login button */
-.creatio-satelite-login-profile-button:hover {
-  background-color: #0052a3;
+.creatio-satelite-login-profiles-container button.creatio-satelite:active {
+  transform: translateY(1px);
 }
 
-/* Active state for login button */
-.creatio-satelite-login-profile-button:active {
-  background-color: #004080;
+.creatio-satelite-login-profiles-container button.creatio-satelite:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--csl-focus);
+}
+
+.creatio-satelite-login-icon {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.creatio-satelite-login-icon img.creatio-satelite-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Primary: log in with the selected profile */
+.creatio-satelite.auto-login-button {
+  min-height: 36px;
+  padding: 0 16px;
+  color: #ffffff;
+  background-color: var(--csl-accent, #ff5722);
+  border: 1px solid transparent;
+}
+
+.creatio-satelite.auto-login-button:hover {
+  background-color: var(--csl-accent-hover, #f4511e);
+}
+
+.creatio-satelite.auto-login-button:active {
+  background-color: var(--csl-accent-active, #e64a19);
+}
+
+/* Secondary: Environments and Profiles side by side */
+.creatio-satelite-login-secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.creatio-satelite.creatio-satelite-login-secondary {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--csl-text);
+  background-color: var(--csl-surface);
+  border: 1px solid var(--csl-border);
+  white-space: nowrap;
+}
+
+.creatio-satelite.creatio-satelite-login-secondary .creatio-satelite-login-icon {
+  color: var(--csl-muted);
+}
+
+.creatio-satelite.creatio-satelite-login-secondary:hover {
+  background-color: var(--csl-surface-hover);
+  border-color: var(--csl-border-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creatio-satelite-login-profiles-container *,
+  .creatio-satelite-login-profiles-container {
+    transition: none !important;
+  }
 }

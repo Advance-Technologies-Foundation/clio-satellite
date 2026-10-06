@@ -24,42 +24,54 @@
     "Configuration.js",
     "Settings"
   ];
+  var SCRIPT_LABELS = {
+    "Application_Managment": "Application management"
+  };
   var MENU_ICONS = {
     "Features": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6477 3.7921C10.0849 3.98314 9.4883 4.26947 8.94174 4.69091C8.89082 4.73017 8.85784 4.78936 8.85784 4.85366V14.2763C8.85784 14.3201 8.90952 14.3396 8.93467 14.3038C9.31132 13.7685 10.03 13.3802 10.9124 13.1213C11.774 12.8685 12.6597 12.7776 13.1956 12.7466C13.6472 12.7204 14 12.3491 14 11.8998V4.25019C14 3.79737 13.6424 3.42414 13.187 3.40169L13.1839 3.40154L13.1785 3.40131L13.1631 3.40071C13.1509 3.40028 13.1346 3.39979 13.1146 3.39938C13.0747 3.39856 13.0196 3.39803 12.9514 3.39884C12.815 3.40044 12.6247 3.40734 12.3953 3.428C11.9394 3.46907 11.3143 3.56581 10.6477 3.7921Z" fill="currentColor"></path><path d="M7.06679 14.3046C7.09196 14.3403 7.14355 14.3208 7.14355 14.2771V4.85559C7.14355 4.79051 7.11013 4.73061 7.05859 4.69087C6.51205 4.26945 5.91539 3.98312 5.35259 3.7921C4.6859 3.5658 4.06074 3.46906 3.60478 3.428C3.37541 3.40734 3.18503 3.40044 3.04866 3.39884C2.98038 3.39803 2.92533 3.39856 2.88537 3.39938C2.86539 3.39979 2.84915 3.40028 2.83688 3.40071L2.82148 3.40131L2.81607 3.40154L2.81394 3.40164L2.8122 3.40173C2.35727 3.42415 2 3.79701 2 4.24937V11.8999C2 12.3484 2.35168 12.7194 2.80252 12.7464C3.3393 12.7786 4.22567 12.8705 5.08792 13.1237C5.97123 13.383 6.69031 13.7709 7.06679 14.3046Z" fill="currentColor"></path>`,
-      name: "online-help"
+      name: "online-help",
+      iconFile: "features.png"
     },
     "Application_Managment": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2H14V15H2V2ZM3.333 3.333V13.333H12.667V3.333H3.333Z" fill="currentColor"/>`,
-      name: "application_management"
+      name: "application_management",
+      iconFile: "application-management.png"
     },
     "Lookups": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
-      name: "lookups"
+      name: "lookups",
+      iconFile: "lookups.png"
     },
     "Process_library": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="12" height="12" rx="2" fill="currentColor"/></svg>`,
-      name: "process_library"
+      name: "process_library",
+      iconFile: "process-library.png"
     },
     "Process_log": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/><path d="M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2"/></svg>`,
-      name: "process_log"
+      name: "process_log",
+      iconFile: "process-log.png"
     },
     "SysSettings": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
-      name: "sys_settings"
+      name: "sys_settings",
+      iconFile: "sys-settings.png"
     },
     "Users": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="2"/><path d="M2 14c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="2"/></svg>`,
-      name: "users"
+      name: "users",
+      iconFile: "users.png"
     },
     "Configuration": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/></svg>`,
-      name: "configuration"
+      name: "configuration",
+      iconFile: "configuration.png"
     },
     "Settings": {
       svg: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M12.7 6.4a1 1 0 0 0 .3-1.4l-.8-1.4a1 1 0 0 0-1.4-.3l-.5.3a6 6 0 0 0-1.6-.9V2a1 1 0 0 0-1-1H6.3a1 1 0 0 0-1 1v.7a6 6 0 0 0-1.6.9l-.5-.3a1 1 0 0 0-1.4.3l-.8 1.4a1 1 0 0 0 .3 1.4l.5.3v1.6l-.5.3a1 1 0 0 0-.3 1.4l.8 1.4a1 1 0 0 0 1.4.3l.5-.3a6 6 0 0 0 1.6.9V14a1 1 0 0 0 1 1h1.4a1 1 0 0 0 1-1v-.7a6 6 0 0 0 1.6-.9l.5.3a1 1 0 0 0 1.4-.3l.8-1.4a1 1 0 0 0-.3-1.4l-.5-.3V8l.5-.3z" stroke="currentColor" stroke-width="1" fill="none"/></svg>`,
-      name: "settings"
+      name: "settings",
+      iconFile: "settings.png"
     }
   };
   var ACTION_DETAILS = {
@@ -67,30 +79,35 @@
       file: "RestartApp.js",
       icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2v6l4 2" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/></svg>`,
       name: "refresh",
+      iconFile: "restart-app.png",
       desc: "Reload the Creatio application"
     },
     "FlushRedisDB": {
       file: "FlushRedisDB.js",
       icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor"/><path d="M5 6h6M5 8h6M5 10h4" stroke="#fff" stroke-width="1.2"/></svg>`,
       name: "delete",
+      iconFile: "flush-redis.png",
       desc: "Clear Redis database"
     },
     "EnableAutologin": {
       file: null,
       icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 8l2 2 4-4" stroke="#fff" stroke-width="2"/></svg>`,
       name: "check",
+      iconFile: "autologin-on.png",
       desc: "Enable autologin for this site"
     },
     "DisableAutologin": {
       file: null,
       icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="#fff" stroke-width="2"/></svg>`,
       name: "block",
+      iconFile: "autologin-off.png",
       desc: "Disable autologin for this site"
     },
     "Settings": {
       file: null,
       icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="2"/></svg>`,
       name: "settings",
+      iconFile: "settings.png",
       desc: "Open plugin settings"
     }
   };
@@ -509,6 +526,34 @@
     return floatingContainer;
   }
 
+  // src/icons.js
+  var ICON_DIR = "icons/ui/";
+  function getIconUrl(file) {
+    try {
+      if (!file || !chrome.runtime?.getURL) return null;
+      return chrome.runtime.getURL(ICON_DIR + file);
+    } catch (_) {
+      return null;
+    }
+  }
+  function renderIcon(container, file, fallbackSvg) {
+    const url = getIconUrl(file);
+    if (!url) {
+      container.innerHTML = fallbackSvg || "";
+      return container;
+    }
+    const img = document.createElement("img");
+    img.className = "creatio-satelite-icon";
+    img.src = url;
+    img.alt = "";
+    img.draggable = false;
+    img.addEventListener("error", () => {
+      container.innerHTML = fallbackSvg || "";
+    }, { once: true });
+    container.replaceChildren(img);
+    return container;
+  }
+
   // src/menuBuilder.js
   function safeSendMessage(message) {
     try {
@@ -567,11 +612,11 @@
     matIcon.setAttribute("aria-hidden", "true");
     matIcon.setAttribute("data-mat-icon-type", "svg");
     if (iconData.name) matIcon.setAttribute("data-mat-icon-name", iconData.name);
-    matIcon.innerHTML = iconData.svg;
+    renderIcon(matIcon, iconData.iconFile, iconData.svg);
     const caption = document.createElement("span");
     caption.className = "caption";
     caption.setAttribute("crttextoverflowtitle", "");
-    caption.textContent = " " + scriptName.replace(/_/g, " ");
+    caption.textContent = " " + (SCRIPT_LABELS[scriptName] || scriptName.replace(/_/g, " "));
     button.appendChild(matIcon);
     button.appendChild(caption);
     menuItem.appendChild(button);
@@ -587,15 +632,15 @@
         const dividerContainer = document.createElement("div");
         dividerContainer.className = "ng-star-inserted";
         dividerContainer.setAttribute("crt-menu-view-element-item", "settings-divider");
-        dividerContainer.style.cssText = "display: block; margin: 8px 0; opacity: 1; visibility: visible;";
+        dividerContainer.style.cssText = "display: block; margin: 4px 0; opacity: 1; visibility: visible;";
         const crtDivider = document.createElement("crt-menu-divider");
         crtDivider.className = "ng-star-inserted";
-        crtDivider.style.cssText = "display: block; margin: 8px 0;";
+        crtDivider.style.cssText = "display: block; margin: 0;";
         const matDivider = document.createElement("mat-divider");
         matDivider.setAttribute("role", "separator");
         matDivider.className = "mat-divider mat-divider-horizontal";
         matDivider.setAttribute("aria-orientation", "horizontal");
-        matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: #e0e0e0 !important; border: none !important; margin: 0 16px !important;";
+        matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;";
         crtDivider.appendChild(matDivider);
         dividerContainer.appendChild(crtDivider);
         menuContainer.appendChild(dividerContainer);
@@ -647,7 +692,7 @@
         iconWrap.setAttribute("aria-hidden", "true");
         iconWrap.setAttribute("data-mat-icon-type", "svg");
         iconWrap.setAttribute("data-mat-icon-name", detail.name || "help");
-        iconWrap.innerHTML = detail.icon || "";
+        renderIcon(iconWrap, detail.iconFile, detail.icon);
         const caption = document.createElement("span");
         caption.className = "caption";
         caption.setAttribute("crttextoverflowtitle", "");
@@ -716,24 +761,27 @@
     const navCaption = document.createElement("div");
     navCaption.className = "compile-button-caption";
     const navIcon = document.createElement("span");
-    navIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+    navIcon.className = "creatio-satelite-button-icon";
+    renderIcon(navIcon, "clio-satellite.png", `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
     <path d="M8.109 1.023c.133-.133.35-.133.482 0l6.276 6.276c.133.133.133.35 0 .482l-6.276 6.276c-.133.133-.35.133-.482 0L1.833 7.781c-.133-.133-.133-.35 0-.482L8.109 1.023z" fill="currentColor"/>
     <path d="M10.5 6.5L9 5l-1 1 1.5 1.5L10.5 6.5z" fill="white"/>
     <path d="M13.5 3.5L12 2l-1 1 1.5 1.5L13.5 3.5z" fill="white"/>
     <path d="M4.5 12.5L3 11l-1 1 1.5 1.5L4.5 12.5z" fill="white"/>
     <path d="M2 13l1-1 1 1-1 1-1-1z" fill="white"/>
-  </svg>`;
+  </svg>`);
     navCaption.appendChild(navIcon);
     navCaption.appendChild(document.createTextNode("Clio satellite"));
     menuButtonWrapper.appendChild(navCaption);
     menuButtonWrapper.appendChild(createArrowWrapper());
-    const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton("accent", "actions-button");
+    const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton("accent", "actions-button", "Quick actions");
+    actionsButton.setAttribute("aria-label", "Quick actions");
     const actionsCaption = document.createElement("div");
     actionsCaption.className = "compile-button-caption";
     const actionsIcon = document.createElement("span");
-    actionsIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    actionsIcon.className = "creatio-satelite-button-icon";
+    renderIcon(actionsIcon, "quick-actions.png", `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M6.5 1L2 7h4l-1 8L11 9H7l1.5-8z" fill="currentColor"/>
-  </svg>`;
+  </svg>`);
     actionsCaption.appendChild(actionsIcon);
     actionsButtonWrapper.appendChild(actionsCaption);
     actionsButtonWrapper.appendChild(createArrowWrapper());

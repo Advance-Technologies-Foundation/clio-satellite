@@ -36,6 +36,7 @@ global.chrome = {
   },
   runtime: {
     sendMessage: vi.fn(),
+    getURL: vi.fn(path => `chrome-extension://test-id/${path}`),
     lastError: undefined,
   },
 };

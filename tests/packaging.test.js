@@ -46,4 +46,17 @@ describe('Extension packaging', () => {
       expect(zipUjLine, `${file} is excluded by *.html but not re-added in the release workflow`).toContain(file);
     }
   });
+
+  it('every raster icon referenced in code exists and is web-accessible', () => {
+    const manifest = JSON.parse(readFile('manifest.json'));
+    const resources = manifest.web_accessible_resources.flatMap(r => r.resources);
+    expect(resources).toContain('icons/ui/*');
+
+    const sources = ['src/menuConfig.js', 'src/menuBuilder.js', 'login/login.js'].map(readFile).join('\n');
+    const files = new Set([...sources.matchAll(/['"]([a-z-]+\.png)['"]/g)].map(m => m[1]));
+    expect(files.size).toBeGreaterThanOrEqual(18);
+    for (const file of files) {
+      expect(existsSync(resolve(ROOT, 'icons/ui', file)), `icons/ui/${file} is referenced but missing`).toBe(true);
+    }
+  });
 });

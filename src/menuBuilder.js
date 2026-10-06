@@ -1,9 +1,10 @@
 import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
-import { SCRIPT_FILES, SCRIPT_DESCRIPTIONS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
+import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
+import { renderIcon } from './icons.js';
 
 // Guard against "Extension context invalidated" errors that occur when the
 // extension is reloaded while a content script is still alive on the page.
@@ -75,12 +76,12 @@ function createMenuItem(scriptName) {
   matIcon.setAttribute('aria-hidden', 'true');
   matIcon.setAttribute('data-mat-icon-type', 'svg');
   if (iconData.name) matIcon.setAttribute('data-mat-icon-name', iconData.name);
-  matIcon.innerHTML = iconData.svg;
+  renderIcon(matIcon, iconData.iconFile, iconData.svg);
 
   const caption = document.createElement('span');
   caption.className = 'caption';
   caption.setAttribute('crttextoverflowtitle', '');
-  caption.textContent = ' ' + scriptName.replace(/_/g, ' ');
+  caption.textContent = ' ' + (SCRIPT_LABELS[scriptName] || scriptName.replace(/_/g, ' '));
 
   button.appendChild(matIcon);
   button.appendChild(caption);
@@ -101,17 +102,17 @@ function buildNavMenu() {
       const dividerContainer = document.createElement('div');
       dividerContainer.className = 'ng-star-inserted';
       dividerContainer.setAttribute('crt-menu-view-element-item', 'settings-divider');
-      dividerContainer.style.cssText = 'display: block; margin: 8px 0; opacity: 1; visibility: visible;';
+      dividerContainer.style.cssText = 'display: block; margin: 4px 0; opacity: 1; visibility: visible;';
 
       const crtDivider = document.createElement('crt-menu-divider');
       crtDivider.className = 'ng-star-inserted';
-      crtDivider.style.cssText = 'display: block; margin: 8px 0;';
+      crtDivider.style.cssText = 'display: block; margin: 0;';
 
       const matDivider = document.createElement('mat-divider');
       matDivider.setAttribute('role', 'separator');
       matDivider.className = 'mat-divider mat-divider-horizontal';
       matDivider.setAttribute('aria-orientation', 'horizontal');
-      matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: #e0e0e0 !important; border: none !important; margin: 0 16px !important;';
+      matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;';
 
       crtDivider.appendChild(matDivider);
       dividerContainer.appendChild(crtDivider);
@@ -174,7 +175,7 @@ function buildActionsMenu(actionsMenuContainer) {
       iconWrap.setAttribute('aria-hidden', 'true');
       iconWrap.setAttribute('data-mat-icon-type', 'svg');
       iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
-      iconWrap.innerHTML = detail.icon || '';
+      renderIcon(iconWrap, detail.iconFile, detail.icon);
 
       const caption = document.createElement('span');
       caption.className = 'caption';
@@ -262,28 +263,31 @@ export function createScriptsMenu() {
   navCaption.className = 'compile-button-caption';
 
   const navIcon = document.createElement('span');
-  navIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
+  navIcon.className = 'creatio-satelite-button-icon';
+  renderIcon(navIcon, 'clio-satellite.png', `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 8px;">
     <path d="M8.109 1.023c.133-.133.35-.133.482 0l6.276 6.276c.133.133.133.35 0 .482l-6.276 6.276c-.133.133-.35.133-.482 0L1.833 7.781c-.133-.133-.133-.35 0-.482L8.109 1.023z" fill="currentColor"/>
     <path d="M10.5 6.5L9 5l-1 1 1.5 1.5L10.5 6.5z" fill="white"/>
     <path d="M13.5 3.5L12 2l-1 1 1.5 1.5L13.5 3.5z" fill="white"/>
     <path d="M4.5 12.5L3 11l-1 1 1.5 1.5L4.5 12.5z" fill="white"/>
     <path d="M2 13l1-1 1 1-1 1-1-1z" fill="white"/>
-  </svg>`;
+  </svg>`);
 
   navCaption.appendChild(navIcon);
   navCaption.appendChild(document.createTextNode('Clio satellite'));
   menuButtonWrapper.appendChild(navCaption);
   menuButtonWrapper.appendChild(createArrowWrapper());
 
-  const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton('accent', 'actions-button');
+  const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton('accent', 'actions-button', 'Quick actions');
+  actionsButton.setAttribute('aria-label', 'Quick actions');
 
   const actionsCaption = document.createElement('div');
   actionsCaption.className = 'compile-button-caption';
 
   const actionsIcon = document.createElement('span');
-  actionsIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  actionsIcon.className = 'creatio-satelite-button-icon';
+  renderIcon(actionsIcon, 'quick-actions.png', `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M6.5 1L2 7h4l-1 8L11 9H7l1.5-8z" fill="currentColor"/>
-  </svg>`;
+  </svg>`);
 
   actionsCaption.appendChild(actionsIcon);
   actionsButtonWrapper.appendChild(actionsCaption);
