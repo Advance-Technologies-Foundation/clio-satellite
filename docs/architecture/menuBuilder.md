@@ -9,5 +9,10 @@
 - Actions menu items are generated from `ACTION_DETAILS` config; the autologin toggle item is added only when a last-login profile exists for the current origin.
 - Autologin enable/disable reads and writes `chrome.storage.sync` directly (not via background) because it modifies only the profile array, not runtime state.
 - `safeSendMessage` is used for script execution and disable-autologin to route through the background worker.
+- Menu captions come from `SCRIPT_LABELS` when present, otherwise from the script name with underscores replaced. This lets a caption be corrected without renaming the script file that `executeScript` loads.
+- The icon-only actions button carries `aria-label` and `title` ("Quick actions"). The CSS tooltip in `styles/shell.css` is never visible because `menu-item.css` sets `overflow: hidden` on the button, so the native `title` tooltip is what the user sees.
+- Visual styling of the buttons and menus lives in `menu-item.css` (the "Visual refresh" block at the end overrides earlier rules); the divider color is set inline because Creatio styles override `mat-divider`.
 
-**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`
+- Menu item, Clio satellite and quick-actions icons are raster PNGs rendered through `icons.js` (`iconFile` in `menuConfig.js`); the SVGs in the config are the fallback.
+
+**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`, `icons.js`

@@ -127,6 +127,27 @@ describe('createScriptsMenu', () => {
     expect(navMenu.classList.contains('hidden')).toBe(true);
   });
 
+  it('shows the corrected caption for Application management while keeping the script file name', () => {
+    createScriptsMenu();
+    const item = document.querySelector('[data-item-marker="Application_Managment"] .caption');
+    expect(item.textContent.trim()).toBe('Application management');
+  });
+
+  it('gives the icon-only actions button an accessible name and tooltip', () => {
+    createScriptsMenu();
+    const actBtn = document.querySelector('.actions-button');
+    expect(actBtn.getAttribute('aria-label')).toBe('Quick actions');
+    expect(actBtn.title).toBe('Quick actions');
+  });
+
+  it('renders raster icons from icons/ui/ for menu items and both buttons', () => {
+    createScriptsMenu();
+    const icon = document.querySelector('[data-item-marker="Users"] img.creatio-satelite-icon');
+    expect(icon.getAttribute('src')).toContain('icons/ui/users.png');
+    expect(document.querySelector('.scripts-menu-button img').getAttribute('src')).toContain('icons/ui/clio-satellite.png');
+    expect(document.querySelector('.actions-button img').getAttribute('src')).toContain('icons/ui/quick-actions.png');
+  });
+
   it('resets state if DOM creation throws', () => {
     // Make appendChild throw
     const original = document.body.appendChild.bind(document.body);

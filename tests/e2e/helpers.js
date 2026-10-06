@@ -40,7 +40,7 @@ export async function setupChromeMock(page, { syncData = {} } = {}) {
           set: (d, cb) => { Object.assign(sync, d); if (cb) cb(); },
         },
       },
-      runtime: { sendMessage: () => {}, lastError: undefined },
+      runtime: { sendMessage: () => {}, getURL: (p) => `${location.origin}/${p}`, lastError: undefined },
     };
   }, syncData);
 }

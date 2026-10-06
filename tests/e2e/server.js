@@ -16,6 +16,7 @@ const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js':   'application/javascript; charset=utf-8',
   '.css':  'text/css; charset=utf-8',
+  '.png':  'image/png',
 };
 
 const server = http.createServer((req, res) => {
@@ -38,7 +39,7 @@ const server = http.createServer((req, res) => {
   if (MIME_TYPES[ext]) {
     try {
       const filePath = path.join(PROJECT_ROOT, urlPath);
-      const content = fs.readFileSync(filePath, 'utf8');
+      const content = ext === '.png' ? fs.readFileSync(filePath) : fs.readFileSync(filePath, 'utf8');
       res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] });
       res.end(content);
     } catch {

@@ -52,6 +52,17 @@ test.describe('Shell page', () => {
     await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
+  test('menu items and buttons show loaded raster icons', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    await page.locator('.scripts-menu-button').click();
+    const icons = page.locator('.creatio-satelite-extension-container img.creatio-satelite-icon');
+    await expect(icons).toHaveCount(11);
+    await page.waitForFunction(() => [...document.querySelectorAll('img.creatio-satelite-icon')].every(i => i.complete));
+    const broken = await icons.evaluateAll(imgs => imgs.filter(i => i.naturalWidth === 0).map(i => i.src));
+    expect(broken).toEqual([]);
+  });
+
   test('drag sets data-user-positioned and moves the container', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

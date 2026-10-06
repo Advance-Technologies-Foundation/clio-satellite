@@ -70,6 +70,19 @@ async function setStorageProfiles(context, profiles, lastLoginProfiles = {}) {
   }, { userProfiles: profiles, lastLoginProfiles });
 }
 
+// Waits for the onInstalled seeding in background.js, then empties the profile list.
+// Clearing earlier is racy: onInstalled can run after the clear and re-seed the profile.
+async function clearSeededProfiles(context) {
+  const sw = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 8000 });
+  await sw.evaluate(async () => {
+    const read = () => new Promise(r => chrome.storage.sync.get({ userProfiles: [] }, d => r(d.userProfiles)));
+    for (let i = 0; i < 30 && (await read()).length === 0; i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    await new Promise(r => chrome.storage.sync.set({ userProfiles: [] }, r));
+  });
+}
+
 const SUPERVISOR_PROFILE = {
   username: LOGIN_USER,
   password: LOGIN_PASS,
@@ -102,11 +115,13 @@ test.describe('Extension UI — profile selector', () => {
     await expect(container).toBeVisible({ timeout: 15000 });
 
     await expect(page.locator('.creatio-satelite-login-profile-select')).toBeVisible();
-    await expect(page.locator('.auto-login-button:not(.settings-button)')).toBeVisible();
+    await expect(page.locator('.login-with-profile-button')).toBeVisible();
     await expect(page.locator('.settings-button')).toBeVisible();
   });
 
-  test('shows "Setup user in options" when storage is empty', async ({ page }) => {
+  test('shows "Setup user in options" when storage is empty', async ({ context, page }) => {
+    // background.js seeds a default Supervisor profile on install; wait for it, then clear
+    await clearSeededProfiles(context);
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
     const select = page.locator('.creatio-satelite-login-profile-select');
@@ -137,7 +152,7 @@ test.describe('Login flow — real credentials', () => {
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
     const select   = page.locator('.creatio-satelite-login-profile-select');
-    const loginBtn = page.locator('.auto-login-button:not(.settings-button)');
+    const loginBtn = page.locator('.login-with-profile-button');
 
     await expect(loginBtn).toBeVisible({ timeout: 15000 });
     await select.selectOption({ value: LOGIN_USER });
@@ -152,7 +167,7 @@ test.describe('Login flow — real credentials', () => {
     await setStorageProfiles(context, [SUPERVISOR_PROFILE]);
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
-    const loginBtn = page.locator('.auto-login-button:not(.settings-button)');
+    const loginBtn = page.locator('.login-with-profile-button');
     await expect(loginBtn).toBeVisible({ timeout: 15000 });
     await page.locator('.creatio-satelite-login-profile-select').selectOption({ value: LOGIN_USER });
     await loginBtn.click();
