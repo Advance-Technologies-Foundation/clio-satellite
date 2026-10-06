@@ -105,27 +105,12 @@
       });
     });
 
+    // Duotone icons: outline in currentColor, accent in var(--csl-icon-accent)
     const ICONS = {
-      login: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      profiles: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
-      environments: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>',
+      login: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.75h3.25a1.5 1.5 0 0 1 1.5 1.5v9.5a1.5 1.5 0 0 1-1.5 1.5H9.5"/><path d="M1.75 8h7.5M6.75 5l3 3-3 3" stroke="var(--csl-icon-accent, #ff5722)"/></svg>',
+      profiles: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.75" cy="6.75" r="1.5" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><path d="M3.5 11c.2-1.25 1.1-2 2.25-2s2.05.75 2.25 2z" fill="var(--csl-icon-accent, #ff5722)" stroke="var(--csl-icon-accent, #ff5722)" stroke-width="1"/><path d="M9.75 6.5h2M9.75 9.5h2"/></svg>',
+      environments: '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="1.5"/><path d="M1.75 6h12.5M1.75 10h12.5M7.5 3.9h4.25M7.5 8h4.25M7.5 12.1h4.25"/><g fill="var(--csl-icon-accent, #ff5722)" stroke="none"><circle cx="4.5" cy="3.9" r="1"/><circle cx="4.5" cy="8" r="1"/><circle cx="4.5" cy="12.1" r="1"/></g></svg>',
     };
-
-    // Raster icons from icons/ui/; the inline SVG above is the fallback when the URL is unavailable
-    const ICON_FILES = { login: 'login.png', profiles: 'profiles.png', environments: 'environments.png' };
-
-    function renderIcon(container, key) {
-      let url = null;
-      try { url = chrome.runtime?.getURL ? chrome.runtime.getURL('icons/ui/' + ICON_FILES[key]) : null; } catch { url = null; }
-      if (!url) { container.innerHTML = ICONS[key]; return; }
-      const img = document.createElement('img');
-      img.className = 'creatio-satelite-icon';
-      img.src = url;
-      img.alt = '';
-      img.draggable = false;
-      img.addEventListener('error', () => { container.innerHTML = ICONS[key]; }, { once: true });
-      container.replaceChildren(img);
-    }
 
     function createButton(classNames, iconKey, text) {
       const button = document.createElement('button');
@@ -134,7 +119,7 @@
       const iconSpan = document.createElement('span');
       iconSpan.className = 'creatio-satelite-login-icon';
       iconSpan.setAttribute('aria-hidden', 'true');
-      renderIcon(iconSpan, iconKey);
+      iconSpan.innerHTML = ICONS[iconKey];
       button.appendChild(iconSpan);
       button.appendChild(document.createTextNode(text));
       return button;

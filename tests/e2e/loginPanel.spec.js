@@ -62,11 +62,10 @@ test.describe('Login page profile panel', () => {
     await expect(page.locator('.settings-button')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   });
 
-  test('button icons load from icons/ui/', async ({ page }) => {
+  test('button icons are inline duotone SVGs; the accent turns white on the orange button', async ({ page }) => {
     await loadLoginPanel(page);
-    const icons = page.locator('.creatio-satelite-login-profiles-container img.creatio-satelite-icon');
-    await expect(icons).toHaveCount(3);
-    const loaded = await icons.evaluateAll(imgs => imgs.map(i => i.complete && i.naturalWidth > 0));
-    expect(loaded).toEqual([true, true, true]);
+    await expect(page.locator('.creatio-satelite-login-profiles-container .creatio-satelite-login-icon svg')).toHaveCount(3);
+    const accent = await page.locator('.login-with-profile-button').evaluate(el => getComputedStyle(el).getPropertyValue('--csl-icon-accent').trim());
+    expect(accent).toBe('#ffffff');
   });
 });

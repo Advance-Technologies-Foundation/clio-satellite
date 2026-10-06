@@ -1,0 +1,9 @@
+## 2026-10-06 — Duotone SVG icons instead of raster 3D
+
+**What changed:** The 18 raster 3D icons (`icons/ui/*.png`, `src/icons.js`) are replaced by inline SVG icons in a duotone style: 1.5px outline in `currentColor` plus one flat accent part filled with `var(--csl-icon-accent, #ff5722)`. SVGs live in `MENU_ICONS` / `ACTION_DETAILS` (`src/menuConfig.js`), in `src/menuBuilder.js` (Clio satellite and quick-actions buttons) and in `login/login.js` (`ICONS`). `icons/ui/*` is removed from `web_accessible_resources`. CSS: menu icons are grey and turn light on hover while the accent turns `#ff7043`; button icons have a light outline; on the orange login button the accent is white.
+
+**Why:** The team did not like the 3D look ("it was prettier before"). Three flat styles (line, duotone, solid) were mocked on three icons; duotone was chosen.
+
+**Decision:** Vector instead of raster: the icons recolour with the text, stay sharp at 16–18 px, weigh ~8 KB in total and need no extension URLs, so the `getURL` fallback logic and the extra web-accessible resource are gone. Hover recolours the outline only; making the outline orange too (as in the first mock) merged it with the accent. Autologin on/off differ by shape (check vs cross), not only by colour.
+
+**Follow-up:** The Clio satellite button icon (a ringed planet tilted 30°) read as an orange dash at 16 px on the real Shell; it is now an orbit ring with a satellite dot around an orange planet. The menus became semi-transparent glass: background alpha 0.94 → 0.62, `backdrop-filter: blur(20px) saturate(160%)`, slightly brighter border; checked on the stand's purple wallpaper — text and icons stay readable.

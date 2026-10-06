@@ -118,11 +118,9 @@
   line-height: 0;
 }
 
-.creatio-satelite-login-icon img.creatio-satelite-icon {
+.creatio-satelite-login-icon svg {
   width: 16px;
   height: 16px;
-  object-fit: contain;
-  pointer-events: none;
 }
 
 /* Primary: log in with the selected profile */
@@ -130,6 +128,8 @@
   min-height: 36px;
   padding: 0 16px;
   color: #ffffff;
+  /* White icon on the orange button: the accent part turns white as well */
+  --csl-icon-accent: #ffffff;
   background-color: var(--csl-accent, #ff5722);
   border: 1px solid transparent;
 }
