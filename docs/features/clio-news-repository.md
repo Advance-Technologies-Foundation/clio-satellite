@@ -3,7 +3,7 @@
 **Status:** design, repository not created yet. Target: `Advance-Technologies-Foundation/clio-news`.
 Related: [`developer-news-hosting.md`](developer-news-hosting.md) (why a static feed and how it is delivered), [`developer-news.md`](developer-news.md) (how Clio Satellite shows news).
 
-`clio-news` holds **all news about the clio tool family**: the clio CLI, Clio Satellite, and any future clio tooling. Each tool that shows news is a **channel** and gets its own feed built from the same pool of news items. One item can go to several channels: a clio CLI release is relevant both to people who use the CLI and to people who see the Satellite strip on the login page.
+`clio-news` holds **all news about the clio tool family**: the clio CLI, Clio Satellite, and any future clio tooling. Each place that shows news is a **channel** and gets its own feed built from the same pool of news items. Today there are two channels: `clio-satellite` (the Chrome extension) and `web` (archive site and RSS). The clio CLI does not get its own news command; news about clio reach users through these channels. A new channel can be added later without touching existing items.
 
 The sections "Writing news" and later are meant to become `CONTRIBUTING.md` of the repository.
 
@@ -15,7 +15,7 @@ The sections "Writing news" and later are meant to become `CONTRIBUTING.md` of t
 |---|---|
 | **Item** | One news entry, one file in `news/` |
 | **Product** | What the item is *about*: `clio`, `clio-satellite`, `creatio-dev-tools`, … Used for tags and the archive filter |
-| **Channel** | Who *shows* the item: `clio-satellite` (extension), `clio-cli` (a future `clio news` command), `web` (archive site and RSS). Defined in `channels.yml` |
+| **Channel** | Who *shows* the item: `clio-satellite` (extension), `web` (archive site and RSS). Defined in `channels.yml` |
 | **Feed** | Built JSON file per channel, `v1/feeds/<channel>.json`. Clients read only their own feed |
 | **Status** | `draft` (staging only), `published`, `withdrawn` |
 
@@ -76,7 +76,6 @@ https://advance-technologies-foundation.github.io/clio-news/
     ├── feeds/
     │   ├── clio-satellite.json        read by the extension
     │   ├── clio-satellite.staging.json  drafts + published, for preview
-    │   ├── clio-cli.json
     │   └── all.json                   every published item, all channels
     └── media/2026/10/clio-8-1-pushw.webp
 ```
@@ -104,14 +103,6 @@ channels:
     media: [image, youtube]
     options:              # allowed keys in channelOptions.clio-satellite
       surfaces: { values: [login, shell], default: [login, shell] }
-
-  clio-cli:
-    name: clio CLI (`clio news`)
-    owners: ["@Advance-Technologies-Foundation/clio-maintainers"]
-    maxActive: 3
-    title: { max: 80 }
-    body:  { max: 200 }
-    media: []             # terminal: text only, media is dropped for this channel
 
   web:
     name: Archive site and RSS
@@ -151,7 +142,7 @@ Without git: open the repository in Pages CMS, choose **News → New**, fill the
 status: published            # draft | published | withdrawn
 type: release                # release | tip | event | breaking
 product: clio                # what it is about (one of `products` in channels.yml)
-channels: [clio-satellite, clio-cli, web]
+channels: [clio-satellite, web]
 
 title: Deploy packages 2× faster with clio 8.1
 body: pushw now uploads only the packages that changed since the last deploy.
@@ -283,5 +274,4 @@ owner: "@v.nikonov"          # who to ask about this item; not published
 ## Open questions
 
 - Public or private repository? Public is simpler: free Pages, and the built site is public anyway.
-- First CODEOWNERS per channel (`clio-satellite`, `clio-cli`, `web`).
-- Does the clio CLI want a `clio news` command now, or is `clio-cli` a channel reserved for later?
+- First CODEOWNERS per channel (`clio-satellite`, `web`).
