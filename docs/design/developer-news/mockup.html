@@ -198,6 +198,27 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 .media.yt .dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 5px; border-radius: 3px; background: rgba(0,0,0,.75); color: #fff; font-size: 10.5px; font-family: var(--font-mono); }
 .media.yt .src { position: absolute; left: 8px; top: 6px; color: rgba(255,255,255,.85); font-size: 10.5px; font-weight: 600; }
 .media:focus-visible { outline: 2px solid #ff7043; outline-offset: 2px; }
+
+/* video dialog: overlays the whole mocked browser viewport */
+.browser { position: relative; }
+.vd-back { position: absolute; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.vd { width: min(560px, 100%); background: rgba(24,24,24,.92); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; box-shadow: 0 20px 48px rgba(0,0,0,.45); color: #f3f4f6; overflow: hidden; font-family: var(--font-body); }
+.vd-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.vd-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vd-x { width: 28px; height: 28px; border-radius: 6px; border: 0; background: rgba(255,255,255,.08); color: #f3f4f6; cursor: pointer; font-size: 16px; line-height: 1; }
+.vd-x:hover, .vd-x:focus-visible { background: rgba(255,255,255,.16); outline: none; }
+.vd-screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; display: grid; place-items: center; }
+.vd-screen .bar { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; overflow: hidden; }
+.vd-screen .bar i { display: block; height: 100%; width: 0; background: #e62117; animation: vdplay 30s linear forwards; }
+@keyframes vdplay { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .vd-screen .bar i { animation: none; width: 8%; } }
+.vd-screen .now { font-size: 12px; color: rgba(255,255,255,.7); font-family: var(--font-mono); text-align: center; padding: 0 16px; }
+.vd-screen.fail { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.vd-screen .msg { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; text-align: center; padding: 0 16px; }
+.vd-screen .msg a { background: #e62117; color: #fff; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+.vd-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; font-size: 12px; color: #a3a9b4; }
+.vd-foot a { color: #ff7043; text-decoration: none; font-weight: 600; }
+.vd-mode { font-family: var(--font-mono); font-size: 10.5px; }
 </style>
 </head>
 <body>
@@ -260,6 +281,12 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
         <label><input type="radio" name="scn" id="scn-empty" value="empty"> <span>No feed<small>Server down or no items: nothing is rendered</small></span></label>
       </fieldset>
       <fieldset>
+        <legend>Video player</legend>
+        <label><input type="radio" name="pm" id="pm-direct" value="direct" checked><span>Direct embed<small>Host CSP allows YouTube frames</small></span></label>
+        <label><input type="radio" name="pm" id="pm-ext" value="ext"><span>Extension frame<small>Host CSP blocks YouTube; extension page hosts the player</small></span></label>
+        <label><input type="radio" name="pm" id="pm-link" value="link"><span>Link out<small>Embedding impossible (error 150/153)</small></span></label>
+      </fieldset>
+      <fieldset>
         <legend>Dimensions</legend>
         <div class="measure">collapsed: 32 px<br>expanded: ≤ 32 + 330 px<br>width: same as the form<br>visible cards: up to 3, then scroll</div>
       </fieldset>
@@ -308,7 +335,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
     if (!i.media) return null;
     var el = document.createElement('a');
     el.href = '#media'; el.className = 'media ' + (i.media.type === 'youtube' ? 'yt' : 'img');
-    el.setAttribute('aria-label', i.media.type === 'youtube' ? 'Watch on YouTube: ' + i.media.title : i.media.alt);
+    el.setAttribute('aria-label', i.media.type === 'youtube' ? 'Play video: ' + i.media.title : i.media.alt);
     if (i.media.type === 'youtube') {
       var s = document.createElement('span'); s.className = 'src'; s.textContent = 'YouTube';
       var pl = document.createElement('span'); pl.className = 'play';
@@ -317,9 +344,56 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
     } else {
       for (var k = 0; k < 4; k++) el.appendChild(document.createElement('i'));
     }
-    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); if (i.media.type === 'youtube') openVideo(i, el); });
     return el;
   }
+
+
+  // Video dialog. Real build: youtube-nocookie iframe, fallback chain direct → extension frame → link out
+  var playerMode = 'direct';
+  var vdBack = null, vdReturn = null;
+  function openVideo(i, poster) {
+    closeVideo();
+    vdReturn = poster;
+    var frame = document.querySelector('.browser');
+    vdBack = document.createElement('div'); vdBack.className = 'vd-back';
+    var d = document.createElement('div'); d.className = 'vd';
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', i.media.title);
+    var head = document.createElement('div'); head.className = 'vd-head';
+    var t = document.createElement('strong'); t.textContent = i.media.title;
+    var x = document.createElement('button'); x.className = 'vd-x'; x.type = 'button'; x.setAttribute('aria-label', 'Close video'); x.textContent = '×';
+    head.append(t, x);
+    var scr = document.createElement('div'); scr.className = 'vd-screen';
+    if (playerMode === 'link') {
+      scr.classList.add('fail');
+      var m = document.createElement('div'); m.className = 'msg';
+      var mt = document.createElement('span'); mt.textContent = "This video can't play on this page.";
+      var ml = document.createElement('a'); ml.href = '#youtube'; ml.textContent = 'Watch on YouTube ↗';
+      m.append(mt, ml); scr.appendChild(m);
+    } else {
+      var now = document.createElement('div'); now.className = 'now'; now.textContent = '▶ playing · youtube-nocookie.com/embed/…';
+      var bar = document.createElement('div'); bar.className = 'bar'; bar.appendChild(document.createElement('i'));
+      scr.append(now, bar);
+    }
+    var foot = document.createElement('div'); foot.className = 'vd-foot';
+    var mode = document.createElement('span'); mode.className = 'vd-mode';
+    mode.textContent = { direct: 'mode: direct embed', ext: 'mode: extension frame (host CSP blocks YouTube)', link: 'mode: link out (embedding not possible)' }[playerMode];
+    var yl = document.createElement('a'); yl.href = '#youtube'; yl.textContent = 'Watch on YouTube ↗';
+    foot.append(mode, yl);
+    d.append(head, scr, foot); vdBack.appendChild(d); frame.appendChild(vdBack);
+    x.addEventListener('click', closeVideo);
+    vdBack.addEventListener('click', function (e) { e.stopPropagation(); if (e.target === vdBack) closeVideo(); });
+    d.addEventListener('click', function (e) { e.stopPropagation(); });
+    x.focus();
+    if (typeof onVideoStart === 'function') onVideoStart(i);
+  }
+  function closeVideo() {
+    if (!vdBack) return;
+    vdBack.remove(); vdBack = null;
+    if (vdReturn) vdReturn.focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && vdBack) { e.stopPropagation(); closeVideo(); } }, true);
+  document.querySelectorAll('input[name="pm"]').forEach(function (r) { r.addEventListener('change', function () { playerMode = r.value; }); });
 
   function render() {
     news.hidden = state.items.length === 0;

@@ -194,15 +194,48 @@ Any item may carry **one** optional `media` block: an image or a YouTube video. 
 ### YouTube video
 
 ```json
-"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://news.example.com/img/webinar.webp" }
+"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://news.example.com/v1/media/webinar.webp", "player": "embed", "start": 95 }
 ```
 
-- `videoId`: exactly 11 characters `[A-Za-z0-9_-]`. The client builds the link itself (`https://www.youtube.com/watch?v=<id>`); full URLs from the feed are not accepted, so a video entry cannot point anywhere else.
-- `title` is required; `poster` is optional (same rules as an image `url`).
-- The card shows a **poster with a play button**, not an embedded player. Click opens the video on youtube.com in a new tab.
-- Poster source: `poster` if set, otherwise `https://i.ytimg.com/vi/<id>/hqdefault.jpg`. Administrators should prefer their own `poster`, because the fallback sends a request to Google when the panel opens.
+| Field | Required | Rules |
+|---|---|---|
+| `videoId` | yes | Exactly 11 characters `[A-Za-z0-9_-]`. Full URLs are not accepted; the client builds every YouTube URL itself, so a video entry cannot point anywhere else |
+| `title` | yes | ≤ 120 chars; accessible name of the poster and the player dialog title |
+| `poster` | no | Same rules as an image `url`. Fallback: `https://i.ytimg.com/vi/<id>/hqdefault.jpg` (a request to Google when the panel opens, so prefer an own poster) |
+| `player` | no | `embed` (default): play inside Creatio in the built-in player. `link`: open youtube.com in a new tab |
+| `start` | no | Start offset in seconds (0–36000) |
 
-Why no embedded player: an `<iframe>` inside the Creatio page depends on the host's `frame-src` CSP (self-hosted instances differ), loads several MB and third-party cookies into a CRM page, and plays video in a 300 px panel where nobody wants to watch a webinar. Linking out is lighter, works everywhere and is what Google, X and LinkedIn do for compact cards. An embedded player (`youtube-nocookie.com` in a modal) can be reconsidered later.
+The card shows a **poster with a play button and the duration-free YouTube label**. The video never plays inside the 300 px card.
+
+### Built-in player
+
+Clicking the poster of an `embed` video opens a **player dialog** over the current page (login or Shell):
+
+- Centered modal, 16:9, width `min(960px, 92vw)`, dark backdrop (`rgba(0,0,0,.72)`), title above the video, `Watch on YouTube ↗` and a close button. Same glass style as the Shell menus.
+- Opens from a click, so it autoplays with sound (`autoplay=1`). Esc, the close button or a backdrop click close it.
+- Focus moves into the dialog and is trapped there; on close it returns to the poster. `role="dialog"`, `aria-modal="true"`, labelled by the title.
+- On close the player iframe is **removed**, so audio stops and nothing keeps running in the CRM page.
+- The news panel/flyout stays open underneath; the item is marked read when the video starts.
+- Uses `https://www.youtube-nocookie.com/embed/<id>?autoplay=1&rel=0&playsinline=1&start=<start>&enablejsapi=1&origin=<page origin>` with `referrerpolicy="strict-origin-when-cross-origin"` and `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"`. Nothing is requested from YouTube until the user clicks play (the poster comes from our host).
+
+#### Why it is not trivial, and how it is solved
+
+1. **Host CSP.** A self-hosted Creatio may send `Content-Security-Policy: frame-src` that does not list YouTube; then an iframe added to the page is blocked.
+2. **YouTube's referrer check.** Since 2025 the embedded player refuses to play without an HTTP `Referer` (error 153, "Video player configuration error"). An embed whose referrer is missing or unusual can fail.
+
+The dialog therefore tries three ways, in order, and stops at the first that works:
+
+| Step | How | Works when | Detected failure |
+|---|---|---|---|
+| 1. Direct embed | `youtube-nocookie` iframe in the dialog, inside the Creatio page. Referer = the Creatio origin, which YouTube accepts | Host CSP allows `frame-src` for YouTube or has no `frame-src` | `securitypolicyviolation` event for the frame URL, or no `onReady` from the player within 8 s |
+| 2. Extension player frame | The dialog hosts an iframe of `chrome-extension://<id>/news/player.html` (web-accessible). Chrome exempts extension resources from the page's CSP. `player.html` embeds the `youtube-nocookie` iframe itself | Host CSP blocks YouTube, and YouTube accepts the extension origin as referrer | Player `onError` (e.g. 150/153) via postMessage, or no `onReady` within 8 s |
+| 3. Link out | The dialog shows the poster and "This video can't play here. Watch on YouTube ↗" | Always | — |
+
+- Readiness and errors are read with YouTube's **postMessage protocol** (`enablejsapi=1`, listen for `onReady` / `onError` messages). The extension does **not** load YouTube's `iframe_api` script: that would be remote code, which MV3 forbids.
+- The working step is remembered per origin (`newsPlayerMode` in `storage.local`), so the next video on the same Creatio instance opens directly in the right mode.
+- Step 2 is a spike: YouTube's acceptance of a `chrome-extension://` referrer must be verified before release. If it fails, step 2 is dropped and the chain is 1 → 3.
+- Videos whose owner disabled embedding return error 150/101 in step 1; the dialog goes straight to step 3.
+- `player: "link"` skips the dialog entirely (for long webinars where YouTube's own page with chapters and comments is better).
 
 ### How media is loaded
 
@@ -241,7 +274,7 @@ This avoids the page's `img-src` CSP, which on some self-hosted Creatio instance
 
 ## Feed format
 
-Static JSON served over HTTPS. Recommended host: a separate repository published with GitHub Pages, so every news item is a pull request with review and history. Any server or CMS can serve the same format later.
+Static JSON served over HTTPS at `https://<news-domain>/v1/news.json`. How it is authored, built, scheduled and hosted is described in [`developer-news-hosting.md`](developer-news-hosting.md). Optional feed-level `refreshHours` (1–24, default 6) overrides the client refresh interval.
 
 ```json
 {
@@ -287,7 +320,7 @@ Static JSON served over HTTPS. Recommended host: a separate repository published
 | `expiresAt` | no | ISO date; item hidden after it |
 | `minExtensionVersion` | no | Item hidden on older extension versions |
 | `trending` | no | `true` (uses `defaults.trendingHours`) or `{ "hours"?: 1–720, "until"?: ISO UTC }`; not allowed with `priority: "critical"` |
-| `media` | no | One of: `{ "type": "image", "url", "alt" }` or `{ "type": "youtube", "videoId", "title", "poster"? }` (see Media) |
+| `media` | no | One of: `{ "type": "image", "url", "alt" }` or `{ "type": "youtube", "videoId", "title", "poster"?, "player"?, "start"? }` (see Media) |
 | `surfaces` | no | `["login", "shell"]` (default both). Use `["login"]` for news that are not worth a dot inside Creatio |
 
 Feed-level `defaults.trendingHours` (optional, 1–720, default 72) is used for `"trending": true`.
@@ -328,7 +361,8 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 - **Background stores raw text; content validates.** Validation lives only in `newsCore.js` (unit-tested once). The worker checks size and JSON syntax only. This keeps `background.js` free of a bundling step.
 - **Refresh by TTL when a Creatio page opens** (cache older than 6 h → refetch). No `alarms` permission needed.
 - **Render with `textContent` only.** No HTML from the feed; CTA links must be `https://` and on the allowlist in `newsCore.js`.
-- **Media through the worker.** Images and posters are returned as `data:` URLs by `getNewsMedia`; YouTube links are built from a validated `videoId`. No `<iframe>`.
+- **Media through the worker.** Images and posters are returned as `data:` URLs by `getNewsMedia`; YouTube URLs are built from a validated `videoId`.
+- **Player:** `src/news/videoDialog.js` (dialog, focus trap, fallback chain, postMessage listener) and `news/player.html` + `news/player.js` (extension page for step 2, listed in `web_accessible_resources` with `use_dynamic_url: true` so other sites cannot frame it by a fixed URL).
 - **Cross-tab sync** through `chrome.storage.onChanged`; both surfaces re-render from the store.
 - **Shell integration points:** the dot is a child of `.scripts-menu-button`; the `What's new` row is prepended in `buildNavMenu()`; the flyout is a sibling of `.scripts-menu-container` positioned with `adjustMenuPosition`. `monitorButtons` re-creates the button group, so the indicator must re-mount idempotently.
 - **Options page:** toggle `Show developer news` (`newsEnabled`, default on). When off, no request is made and nothing renders on either surface.
@@ -337,14 +371,15 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 ## Chrome Web Store
 
 - Allowed: MV3 policy forbids remote **code**, but allows fetching remote configuration/data when all logic ships in the package. The feed is plain-text data.
+- `web_accessible_resources` gains `news/player.html` (and its script), needed to play videos on Creatio instances whose CSP blocks YouTube frames. Justify in the release notes and in `CLAUDE.md`.
 - No new permissions: `host_permissions: <all_urls>` already covers the fetch (feed, images, `i.ytimg.com` posters), `storage` is already declared.
-- Images are explicitly allowed remote resources under MV3 ("remote resources that are not used to evaluate logic, such as images"). YouTube videos are links, not embedded code.
-- Privacy policy must mention: images are loaded from the news host only when the news panel is opened; YouTube posters may be loaded from `i.ytimg.com` (Google) unless the item has its own poster; opening a video goes to youtube.com.
+- Images are explicitly allowed remote resources under MV3 ("remote resources that are not used to evaluate logic, such as images"). YouTube videos play in a YouTube iframe (a web page, not extension code); YouTube's JS API script is never loaded.
+- Privacy policy must mention: images are loaded from the news host only when the news panel is opened; YouTube posters may be loaded from `i.ytimg.com` (Google) unless the item has its own poster; playing a video loads the YouTube player from `youtube-nocookie.com` (no cookies until playback), only after the user clicks play; "Watch on YouTube" goes to youtube.com.
 - Must be disclosed in the release notes and the privacy policy (`docs/PRIVACY_POLICY.md`): feed URL, refresh interval, no user data sent, how to turn it off.
 - Draft release-note lines:
   - *"Added a collapsible developer news strip under the login profile selector."*
   - *"Added an unread-news dot to the Clio satellite button and a What's new entry at the top of its menu that opens the news list."*
-  - *"News items can include an image or a link to a YouTube video, shown as a preview in the expanded news list; videos open on youtube.com."*
+  - *"News items can include an image or a YouTube video. Videos play in a built-in player dialog (youtube-nocookie.com) after the user clicks play, or open on youtube.com if the page does not allow embedded video."*
   - *"News are loaded as plain text from https://… every 6 hours; no user data is sent. News can be turned off in Options."*
 - When the feed domain is chosen, add it to the permission justification in `CLAUDE.md` and the other agent instruction files.
 
@@ -352,8 +387,9 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 
 - Unit (`newsCore`): `validateFeed` (valid, missing fields, bad URL scheme, unknown schema, oversize text), `selectVisible` (expiry, min version, `surfaces`, sort, limit), `unreadItems`, `isUnreadSignal` (regular vs trending; `hours` from first shown; `until`; both → earliest; window over → quiet but not read; window extended → unread again), `validateFeed` trending rules (`{}`, out-of-range hours, `until` after `expiresAt`, trending + critical), `shouldShowDot` (noticed, 7-day and 10-load decay for regular items only), `validateFeed` media rules (image host not the feed host, missing `alt`, bad `videoId`, full YouTube URL instead of id, two media blocks), `shouldPeek` (critical only, once per item, once per day, not on configuration).
 - Unit (`newsStore`): read state pruning, `onChanged` re-render.
+- Unit (`videoDialog`): fallback chain (CSP violation → step 2; `onError` 153 → step 3; 150 → step 3; timeout), remembered mode per origin, iframe removed on close, focus returns to the poster.
 - Unit (`background` media handler): allowlist, wrong `Content-Type`, oversize image, cache hit, cache pruning.
-- E2E (mock, feed served by `tests/e2e/server.js`): login strip four states, expand/collapse, mark all as read, persistence across reload; Shell dot appears and clears on menu open, `What's new` row opens the flyout, closing marks read, peek shows once and not again after reload; reading on login clears the Shell dot; a trending item with an ended window shows no counter, chip or dot (clock mocked with `page.clock`); media: no image request before the panel opens, image shown after, broken image falls back to text, YouTube card opens `youtube.com/watch?v=<id>` in a new tab; toggle off in Options removes both.
+- E2E (mock, feed served by `tests/e2e/server.js`): login strip four states, expand/collapse, mark all as read, persistence across reload; Shell dot appears and clears on menu open, `What's new` row opens the flyout, closing marks read, peek shows once and not again after reload; reading on login clears the Shell dot; a trending item with an ended window shows no counter, chip or dot (clock mocked with `page.clock`); media: no image request before the panel opens, image shown after, broken image falls back to text, YouTube `embed` card opens the dialog with a `youtube-nocookie` iframe (network stubbed), Esc closes it and removes the iframe, a page served with `frame-src 'self'` falls back to the extension player frame, `player: "link"` opens a new tab; toggle off in Options removes both.
 
 ## Research
 
@@ -389,15 +425,12 @@ Sources:
 
 ## Open questions
 
-- Media hosting: images in the same repository as `news.json` (simplest, reviewed in the same PR) or a separate CDN?
-- Do we want an embedded YouTube player in a modal later, or is link-out enough?
+- Storage and publishing: see [`developer-news-hosting.md`](developer-news-hosting.md) (recommended: git repo + CI + GitHub Pages behind an own domain, Pages CMS later).
 
 - Trending window per user (`hours`) needs `newsFirstShown` in `storage.sync`. With ~5 active items this is far below the sync quota, but should we cap it (e.g. prune ids no longer in the feed)? Current plan: prune on every feed refresh.
 
 - Should the Shell dot be shown on the Configuration page too, or only in Shell?
 - Is a 7-day / 10-load decay right for the dot, or should normal news never show a dot at all (row only)?
 
-- Feed host: GitHub Pages in a separate repo, or an internal server?
-- Who can publish news (repo maintainers, reviewers)?
-- Full changelog page for `All news →`: a GitHub Pages page next to the feed?
+- Which domain hosts the feed, and who are the first CODEOWNERS (see hosting doc)?
 - Do we need per-host targeting (e.g. only for `*.krylov.cloud` stands)?
