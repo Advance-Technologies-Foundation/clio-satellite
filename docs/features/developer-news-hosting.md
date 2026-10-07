@@ -4,9 +4,9 @@
 
 ## Decision (2026-10-07)
 
-- News live in a **separate repository** `Advance-Technologies-Foundation/clio-satellite-news`, not in `clio-satellite`. News get their own history, reviewers and CI, and publishing a news item never touches the extension repo or its release workflow.
+- News live in a **separate repository** `Advance-Technologies-Foundation/clio-news`, not in `clio-satellite`. It holds news for the whole clio tool family (clio CLI, Clio Satellite, future tools); each tool is a channel with its own feed. News get their own history, reviewers and CI, and publishing a news item never touches the extension repo or its release workflow. Structure and authoring rules: [`clio-news-repository.md`](clio-news-repository.md).
 - **For now the feed is served straight from that repository** with GitHub Pages, without a custom domain:
-  `https://advance-technologies-foundation.github.io/clio-satellite-news/v1/news.json`
+  `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json`
 - A custom domain is postponed. To keep the option open without stranding old extension versions on the `github.io` URL, the feed carries a `movedTo` field (see "Moving the feed later").
 - Authoring starts with option A (pull requests). Pages CMS can be added on top of the same repository later.
 
@@ -32,17 +32,17 @@ News must be published, edited, scheduled and withdrawn without an extension rel
 ## Key decision: split delivery from authoring
 
 ```
-          AUTHORING (replaceable)                      DELIVERY (stable contract)
-  ┌──────────────────────────────────┐        ┌──────────────────────────────────────┐
-  │ git repo  clio-satellite-news    │        │ https://<feed-host>/v1/news.json   │
-  │   items/*.json   media/*         │  CI    │ https://<feed-host>/v1/media/*     │
-  │ editors: PR in GitHub, or        │ ─────► │ https://<feed-host>/                │  ◄── extension (fetch every ≤ 6 h)
-  │          Pages CMS web UI        │ build  │      (archive page, HTML)            │
-  │ CODEOWNERS review                │        │ https://<feed-host>/v1/staging.json│  ◄── admins with preview switch
-  └──────────────────────────────────┘        └──────────────────────────────────────┘
+        AUTHORING (replaceable)                       DELIVERY (stable contract)
+  +------------------------------------+       +------------------------------------------+
+  | git repo  clio-news                |       | <feed-host>/v1/feeds/<channel>.json      | <- clients (every <= 6 h)
+  |   news/YYYY/MM/*.yml   media/*     |  CI   | <feed-host>/v1/feeds/<channel>.staging.json | <- admins, preview
+  | editors: PR in GitHub, or          | ----> | <feed-host>/v1/media/*                   |
+  |          Pages CMS web UI          | build | <feed-host>/ (archive)  /feed.xml (RSS)  |
+  | CODEOWNERS review per channel      |       |                                          |
+  +------------------------------------+       +------------------------------------------+
 ```
 
-- **Delivery** is static files on a CDN behind a **custom domain we own** (R1, R2). The extension only knows this URL and the feed schema version in the path (`/v1/`). A breaking schema change publishes `/v2/news.json` side by side; old extension versions keep reading `/v1/`.
+- **Delivery** is static files on a CDN (GitHub Pages now, a custom domain later via `movedTo`) (R1, R2). The extension only knows this URL and the feed schema version in the path (`/v1/`). A breaking schema change publishes `/v2/feeds/...` side by side; old extension versions keep reading `/v1/`.
 - **Authoring** is whatever produces those files. It can change (git only → web CMS → Creatio app) without touching the extension.
 
 ## Options compared
@@ -60,50 +60,32 @@ C, D and E all still publish into the same delivery layer if chosen later, so st
 
 ## Recommended setup (option A, ready for B)
 
-### Repository `clio-satellite-news`
+### Repository `clio-news`
 
-```
-items/
-  2026-10-clio-8-1.json          one file per news item (no merge conflicts)
-  2026-10-webinar-composable.json
-media/
-  clio-8-1.webp                  images and video posters, ≤ 300 KB
-schema/
-  news-item.schema.json          JSON Schema, same rules as validateFeed in the extension
-scripts/
-  build.mjs                      items/*.json → dist/v1/news.json, staging.json, archive index.html
-  validate.mjs                   schema + extra rules, run in CI and locally
-.pages.yml                       Pages CMS config (option B), fields mirror the schema
-CODEOWNERS                       who must approve news
-.github/workflows/publish.yml    validate on PR, build + deploy on merge and hourly
-```
-
-- **One file per item.** Authors never edit a shared array, so two PRs never conflict, and `git log items/<id>.json` is the full history of one item.
-- **Item file = feed item** plus authoring-only fields that the build strips: `status` (`draft` | `published` | `withdrawn`), `publishAt`, `owner`.
-- **The schema is shared.** `schema/news-item.schema.json` is the source of truth; the extension's `validateFeed` unit tests run against example files from the schema so both sides agree.
+Layout, item file format, channels and the authoring guide are in [`clio-news-repository.md`](clio-news-repository.md). Key points: one YAML file per item (`news/YYYY/MM/YYYY-MM-DD-<slug>.yml`, file name = id), media next to it, `channels.yml` as the registry of consumers, one built feed per channel under `v1/feeds/`.
 
 ### CI pipeline
 
 | Trigger | Steps |
 |---|---|
 | Pull request | `validate.mjs` (schema; title ≤ 60, body ≤ 140; CTA host allowlist; image exists, ≤ 300 KB, webp/png/jpg; YouTube `videoId` format and, with a network call, that the video exists and allows embedding; trending rules; max 5 active, max 1 critical after merge) → comment with a rendered preview of the card |
-| Merge to `main` | build → deploy `news.json`, `staging.json`, media, archive page |
-| Hourly cron | rebuild so `publishAt` items go live and expired items leave `news.json` without anyone merging |
+| Merge to `main` | build → deploy channel feeds, staging feeds, media, archive page, RSS |
+| Hourly cron | rebuild so `publishAt` items go live and expired items leave channel feeds without anyone merging |
 | Manual "withdraw" workflow | sets `status: withdrawn` on one id and deploys immediately (R10) |
 
 ### Scheduling and embargo
 
-- `publishAt` is applied **by the build**, not by the client: an item is not in `news.json` before its time, so embargoed news are never visible in the public file. The hourly cron gives ≤ 1 h precision, which is enough for news.
+- `publishAt` is applied **by the build**, not by the client: an item is not in channel feeds before its time, so embargoed news are never visible in the public file. The hourly cron gives ≤ 1 h precision, which is enough for news.
 - `expiresAt` and `trending.until` are applied **by the client** (they are already in the feed format) and also by the build, so expired items disappear from the file and move to the archive.
 
 ### Preview
 
-- `staging.json` contains `draft` items plus everything published. In the extension Options, a hidden admin switch (`Show staging news`, enabled by typing a code or by an `isNewsAdmin` flag in `storage.sync`) points the client to `staging.json`. Authors see their draft in the real login page and Shell before publishing.
+- `clio-satellite.staging.json` contains `draft` items plus everything published. In the extension Options, a hidden admin switch (`Show staging news`, enabled by typing a code or by an `isNewsAdmin` flag in `storage.sync`) points the client to `clio-satellite.staging.json`. Authors see their draft in the real login page and Shell before publishing.
 - The PR comment preview covers authors who don't have the extension installed.
 
 ### Hosting and domain
 
-- Now: GitHub Pages of the `clio-satellite-news` repository at its default `github.io` address (see Decision). GitHub Pages serves with HTTPS, a CDN and `ETag`, so the extension's conditional requests cost almost nothing.
+- Now: GitHub Pages of the `clio-news` repository at its default `github.io` address (see Decision). GitHub Pages serves with HTTPS, a CDN and `ETag`, so the extension's conditional requests cost almost nothing.
 - Later: the same Pages site behind a custom domain, using `movedTo` below.
 - If Pages limits are ever a problem, or the repo must be private: move the same `dist/` to Azure Static Web Apps / Cloudflare Pages / S3 + CloudFront. Only DNS changes; the extension is untouched (R2).
 - Never use `raw.githubusercontent.com`: it is not a CDN, has no stable caching and is rate-limited.
@@ -113,7 +95,7 @@ CODEOWNERS                       who must approve news
 The `github.io` URL is compiled into every extension version released now. To move without a forced update:
 
 1. Publish the feed at the new URL as well (same content).
-2. Add `"movedTo": "https://<new-url>/v1/news.json"` to the feed at the old URL.
+2. Add `"movedTo": "https://<new-url>/v1/feeds/clio-satellite.json"` to the feed at the old URL.
 3. The extension reads `movedTo`, checks it against a short allowlist compiled into the extension (`https://` + hosts the team controls), stores it as `newsFeedUrl` in `storage.local`, and fetches from there from then on. If the new URL fails three refreshes in a row, it falls back to the compiled URL.
 4. Keep the old URL alive with `movedTo` for at least six months, until old extension versions are gone from the Chrome Web Store statistics.
 
@@ -123,11 +105,11 @@ The `github.io` URL is compiled into every extension version released now. To mo
 
 - Client TTL is 6 h by default. The feed may carry `"refreshHours": 1–24` so the team can temporarily speed up refreshes (e.g. during a release week) without an extension release.
 - Withdrawal path: run the withdraw workflow → deploy in ~2 min → clients pick it up on their next refresh (≤ `refreshHours`). For a harmful link, also temporarily set `refreshHours: 1`.
-- CDN cache: `Cache-Control: max-age=300` on `news.json` (Pages default is 600 s; acceptable).
+- CDN cache: `Cache-Control: max-age=300` on channel feeds (Pages default is 600 s; acceptable).
 
 ### Integrity (phase 2)
 
-The CTA host allowlist in the extension already limits what a compromised feed can do. For stronger protection the build can sign `news.json` with an Ed25519 key kept in CI secrets and publish `news.json.sig`; the extension ships the public key and drops a feed whose signature does not match. Cost: one secret, ~30 lines of code on each side, key rotation through an extension release. Worth doing once more than a handful of people can merge.
+The CTA host allowlist in the extension already limits what a compromised feed can do. For stronger protection the build can sign each channel feed with an Ed25519 key kept in CI secrets and publish `<channel>.json.sig`; the extension ships the public key and drops a feed whose signature does not match. Cost: one secret, ~30 lines of code on each side, key rotation through an extension release. Worth doing once more than a handful of people can merge.
 
 ### Roles
 
@@ -147,7 +129,7 @@ The CTA host allowlist in the extension already limits what a compromised feed c
 
 ## Impact on the extension
 
-- Feed URL constant: `https://advance-technologies-foundation.github.io/clio-satellite-news/v1/news.json`; staging: `.../v1/staging.json`.
+- Feed URL constant: `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json`; staging: `.../v1/feeds/clio-satellite.staging.json`.
 - `movedTo` handling and the `newsFeedUrl` override (see Moving the feed later).
 - Media allowlist = the feed host (`advance-technologies-foundation.github.io` now) (plus `i.ytimg.com` for fallback posters).
 - New optional feed field `refreshHours` (1–24, default 6).
