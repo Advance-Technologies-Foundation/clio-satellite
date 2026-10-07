@@ -222,6 +222,19 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 .vd-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; font-size: 12px; color: #a3a9b4; }
 .vd-foot a { color: #ff7043; text-decoration: none; font-weight: 600; }
 .vd-mode { font-family: var(--font-mono); font-size: 10.5px; }
+
+/* card footer: CTA left, like right */
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.foot .cta { margin-top: 0; }
+.like { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: none; color: var(--m-muted); font: inherit; font-size: 11.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.like:hover { background: var(--m-field); color: var(--m-fg); }
+.like:focus-visible { outline: 2px solid var(--m-news); outline-offset: 1px; }
+.like svg { width: 14px; height: 14px; }
+.like[aria-pressed="true"] { color: var(--m-news); }
+.like[aria-pressed="true"] svg path { fill: currentColor; }
+.like.pop svg { animation: pop .15s ease-out; }
+@keyframes pop { 50% { transform: scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .like.pop svg { animation: none; } }
 </style>
 </head>
 <body>
@@ -284,6 +297,13 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
         <label><input type="radio" name="scn" id="scn-empty" value="empty"> <span>No feed<small>Server down or no items: nothing is rendered</small></span></label>
       </fieldset>
       <fieldset>
+        <legend>Options · show news for</legend>
+        <label><input type="checkbox" name="aud" id="aud-admin" value="admin" checked><span>Administration</span></label>
+        <label><input type="checkbox" name="aud" id="aud-dev" value="developer" checked><span>Development</span></label>
+        <label><input type="checkbox" name="aud" id="aud-other" value="other" checked><span>Other</span></label>
+        <small style="color: var(--muted); font-size: 12px;">All on by default. Critical items are always shown.</small>
+      </fieldset>
+      <fieldset>
         <legend>Video player</legend>
         <label><input type="radio" name="pm" id="pm-direct" value="direct" checked><span>Direct embed<small>Host CSP allows YouTube frames</small></span></label>
         <label><input type="radio" name="pm" id="pm-ext" value="ext"><span>Extension frame<small>Host CSP blocks YouTube; extension page hosts the player</small></span></label>
@@ -311,10 +331,10 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
 <script>
 (function () {
   var base = [
-    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes', trending: true, media: { type: 'image', alt: 'Terminal output of clio pushw showing two changed packages' } },
-    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', cta: 'See the guide' },
-    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team. Recording sent to everyone registered.', cta: 'Register', trending: true, media: { type: 'youtube', title: 'Composable apps for Freedom UI', duration: '1:02:15' } },
-    { id: 'd', type: 'tip', tag: 'Tip', date: 'Sep 24', title: 'Profile aliases now sync across your machines', body: 'Name profiles in Options to tell environments apart at a glance.', cta: 'Open options' }
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes', aud: ['developer'], likes: 14, trending: true, media: { type: 'image', alt: 'Terminal output of clio pushw showing two changed packages' } },
+    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', aud: ['admin'], likes: 2, cta: 'See the guide' },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team. Recording sent to everyone registered.', cta: 'Register', likes: 7, trending: true, media: { type: 'youtube', title: 'Composable apps for Freedom UI', duration: '1:02:15' } },
+    { id: 'd', type: 'tip', tag: 'Tip', date: 'Sep 24', title: 'Profile aliases now sync across your machines', body: 'Name profiles in Options to tell environments apart at a glance.', aud: ['other'], cta: 'Open options' }
   ];
   var critical = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments. Run dotnet tool update clio -g.', cta: 'See migration steps', crit: true };
 
@@ -330,7 +350,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
   function trendingNow(i) { return i.trending && !state.ended[i.id]; }
   function unread() { return sorted().filter(signal); }
   // Trending items inside their window go first, then the rest in feed order
-  function sorted() { return state.items.slice().sort(function (a, b) { return (trendingNow(b) ? 1 : 0) - (trendingNow(a) ? 1 : 0); }); }
+  function sorted() { return visibleItems(state.items).sort(function (a, b) { return (trendingNow(b) ? 1 : 0) - (trendingNow(a) ? 1 : 0); }); }
 
 
   // Optional media. The real build shows a poster image fetched by the service worker; video always opens on youtube.com
@@ -398,8 +418,43 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && vdBack) { e.stopPropagation(); closeVideo(); } }, true);
   document.querySelectorAll('input[name="pm"]').forEach(function (r) { r.addEventListener('change', function () { playerMode = r.value; }); });
 
+
+  // Audiences: what the user chose in Options (all on by default). Critical items ignore the filter.
+  var aud = { admin: true, developer: true, other: true };
+  function visibleItems(list) { return list.filter(function (i) { return i.crit || (i.aud || ['admin', 'developer', 'other']).some(function (a) { return aud[a]; }); }); }
+  document.querySelectorAll('input[name="aud"]').forEach(function (c) {
+    c.addEventListener('change', function () {
+      aud[c.value] = c.checked;
+      if (!aud.admin && !aud.developer && !aud.other) { aud[c.value] = true; c.checked = true; }  // at least one role stays on
+      render();
+    });
+  });
+
+  // Likes: local-first toggle; the number shows from 3 likes (showLikesFrom)
+  var liked = {};
+  function likeEl(i) {
+    if (i.crit) return null;   // no reactions on breaking changes
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'like';
+    var n = (i.likes || 0) + (liked[i.id] ? 1 : 0);
+    b.setAttribute('aria-pressed', liked[i.id] ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Like this news' + (n ? ', ' + n + ' likes' : ''));
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 7v7H2.5V7H5zm0 0l2.6-4.6c.3-.5 1-.6 1.4-.2.3.3.4.7.3 1.1L8.8 6H13c.8 0 1.4.7 1.2 1.5l-1.1 5.3c-.1.7-.7 1.2-1.4 1.2H5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+    if (n >= 3) b.appendChild(document.createTextNode(String(n)));
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      liked[i.id] = !liked[i.id];
+      state.seen[i.id] = true;
+      render();
+      var again = document.querySelector('.like[data-id="' + i.id + '"]');
+      if (again && liked[i.id]) again.classList.add('pop');
+    });
+    b.setAttribute('data-id', i.id);
+    return b;
+  }
+
   function render() {
-    news.hidden = state.items.length === 0;
+    news.hidden = sorted().length === 0;
     var u = unread();
     var hasCrit = u.some(function (i) { return i.crit; });
     news.classList.toggle('unread', u.length > 0);
@@ -431,7 +486,10 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
       var md = mediaEl(i);
       body.append(meta, h);
       if (md) body.appendChild(md);
-      body.append(p, a);
+      var foot = document.createElement('div'); foot.className = 'foot';
+      foot.appendChild(a);
+      var lk = likeEl(i); if (lk) foot.appendChild(lk);
+      body.append(p, foot);
       li.append(dot, body);
       list.appendChild(li);
     });

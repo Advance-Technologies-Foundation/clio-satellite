@@ -40,7 +40,7 @@ Attached under the strip (no gap, shared border).
 - Header: `Dev tools news` + `Mark all as read`.
 - Item list: up to 3 cards visible (max-height 252 px), the rest scrolls. Max 5 active items.
 - Card: unread dot · type tag · date · title (1–2 lines) · body (clamped to 2 lines) · one CTA link `<label> →`.
-- Footer: `All news →` (full changelog page) and `Turn off in options`.
+- Footer: `All news →` (full changelog page) and `Choose topics` (Options → Developer news).
 
 ### States
 
@@ -105,9 +105,44 @@ One store for both surfaces, so reading news on the login page clears the dot in
 | `newsAutoOpened` | `sync` | ids of critical items already auto-expanded or peeked, plus `lastPeekAt` |
 | `newsMediaCache` | `local` | `{ [url]: { dataUrl, fetchedAt } }` — images and posters, ≤ 2 MB total, pruned with the feed |
 | `newsEnabled` | `sync` | boolean, default `true` |
+| `newsAudiences` | `sync` | `["admin", "developer", "other"]` by default; at least one |
 
 - `read` is global (sync), `noticed` is per device (local): a dot on a second laptop is fine, a re-appearing unread item is not.
 - All open tabs react to `chrome.storage.onChanged`, so reading in one tab clears the dot in others without a reload.
+
+## Audiences (roles)
+
+Users choose which kinds of news they want: **Administration**, **Development**, **Other**, or any combination. All three are on by default, so a new user sees everything.
+
+### Where the user sets it
+
+Options page, section **Developer news**:
+
+```
+Developer news
+[x] Show developer news                      (master switch, newsEnabled)
+    Show news for:
+    [x] Administration   system settings, users, licences, environments, deployment
+    [x] Development      packages, schemas, clio commands, debugging
+    [x] Other            events, community, general news
+```
+
+- Stored as `newsAudiences` in `chrome.storage.sync` (default `["admin", "developer", "other"]`), so the choice follows the user's Chrome profile.
+- At least one role must stay checked; to see nothing, the user turns off the master switch. This keeps "I unchecked everything" from looking like a broken feed.
+- The panel footer link `Turn off in options` becomes `Choose topics` and opens this section.
+
+### How it filters
+
+- Every feed item carries an explicit `audiences` list (the `clio-news` build fills in all roles when the author did not narrow it).
+- An item is shown when its `audiences` and the user's `newsAudiences` intersect.
+- **Critical items ignore the filter.** A breaking change that stops deployments must reach everyone who has news on, the same way OS security notices cannot be muted per topic.
+- Filtering happens before everything else: hidden items do not count in `N new`, do not light the Shell dot and do not trigger a peek.
+- Changing the selection re-renders open tabs through `storage.onChanged`.
+- Read state is kept for hidden items, so turning a role back on does not resurface items the user already read.
+
+### Authoring side
+
+`audiences` in a `clio-news` item, keys defined in `channels.yml` (`admin`, `developer`, `other`). Omitted = everyone. Guidance on choosing is in the `clio-news` CONTRIBUTING.
 
 ## Trending news
 
@@ -332,6 +367,8 @@ Static JSON served over HTTPS at `https://advance-technologies-foundation.github
 | `minExtensionVersion` | no | Item hidden on older extension versions |
 | `trending` | no | `true` (uses `defaults.trendingHours`) or `{ "hours"?: 1–720, "until"?: ISO UTC }`; not allowed with `priority: "critical"` |
 | `media` | no | One of: `{ "type": "image", "url", "alt" }` or `{ "type": "youtube", "videoId", "title", "poster"?, "player"?, "start"? }` (see Media) |
+| `audiences` | always (filled by the build) | Subset of `admin`, `developer`, `other` |
+| `likes` | no | Like count (see [`developer-news-reactions.md`](developer-news-reactions.md)) |
 | `surfaces` | no | `["login", "shell"]` (default both). Use `["login"]` for news that are not worth a dot inside Creatio |
 
 Feed-level `defaults.trendingHours` (optional, 1–720, default 72) is used for `"trending": true`.
@@ -435,6 +472,8 @@ Sources:
 - [Chrome Web Store — MV3 requirements](https://developer.chrome.com/docs/webstore/program-policies/mv3-requirements)
 
 ## Open questions
+
+- Reactions (thumbs up): design in [`developer-news-reactions.md`](developer-news-reactions.md); needs a decision on the API host.
 
 - Storage and publishing: decided — separate repository `clio-news` served with GitHub Pages; see [`developer-news-hosting.md`](developer-news-hosting.md).
 
