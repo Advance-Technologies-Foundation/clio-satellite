@@ -1,6 +1,6 @@
 # clio-news — Repository Structure and Authoring Guide
 
-**Status:** design, repository not created yet. Target: `Advance-Technologies-Foundation/clio-news`.
+**Status:** set up in `Advance-Technologies-Foundation/clio-news` (private) with the public output in `Advance-Technologies-Foundation/clio-news-feed`. The repository's own README and CONTRIBUTING are the living version of this document.
 Related: [`developer-news-hosting.md`](developer-news-hosting.md) (why a static feed and how it is delivered), [`developer-news.md`](developer-news.md) (how Clio Satellite shows news).
 
 `clio-news` holds **all news about the clio tool family**: the clio CLI, Clio Satellite, and any future clio tooling. Each place that shows news is a **channel** and gets its own feed built from the same pool of news items. Today there are two channels: `clio-satellite` (the Chrome extension) and `web` (archive site and RSS). The clio CLI does not get its own news command; news about clio reach users through these channels. A new channel can be added later without touching existing items.
@@ -17,7 +17,7 @@ The sections "Writing news" and later are meant to become `CONTRIBUTING.md` of t
 | **Product** | What the item is *about*: `clio`, `clio-satellite`, `creatio-dev-tools`, … Used for tags and the archive filter |
 | **Channel** | Who *shows* the item: `clio-satellite` (extension), `web` (archive site and RSS). Defined in `channels.yml` |
 | **Feed** | Built JSON file per channel, `v1/feeds/<channel>.json`. Clients read only their own feed |
-| **Status** | `draft` (staging only), `published`, `withdrawn` |
+| **Status** | `draft` (local preview and PR artifact only), `published`, `withdrawn` |
 
 ## Repository layout
 
@@ -69,20 +69,19 @@ Rules behind the layout:
 ## Published output (GitHub Pages)
 
 ```
-https://advance-technologies-foundation.github.io/clio-news/
+https://advance-technologies-foundation.github.io/clio-news-feed/
 ├── index.html                         archive: all items, filter by product and type
 ├── feed.xml                           RSS/Atom of channel `web`, for humans and Teams/Slack bots
 └── v1/
     ├── feeds/
     │   ├── clio-satellite.json        read by the extension
-    │   ├── clio-satellite.staging.json  drafts + published, for preview
     │   └── all.json                   every published item, all channels
     └── media/2026/10/clio-8-1-pushw.webp
 ```
 
 - `v1` is the feed format version (`feed-v1.schema.json`). A breaking format change is published as `v2/` next to `v1/`; old clients keep working.
 - Each channel feed contains only items that list that channel, are `published`, have reached `publishAt` and have not passed `expiresAt`. Channel-specific options are flattened into the item (see `channelOptions`).
-- Clio Satellite reads `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json`.
+- Clio Satellite reads `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json`.
 
 ## `channels.yml`
 
@@ -131,7 +130,7 @@ Ask yourself: **would a clio user lose something by not knowing this in the next
 4. Run `npm run validate` and `npm run preview`, check the card in every channel you target.
 5. Open a PR. CI validates again and comments with a preview of the card per channel.
 6. A CODEOWNER of each targeted channel approves. Merge = publish (or schedule, if `publishAt` is in the future).
-7. Optional: set `status: draft` and merge to see the item in the staging feed first (Clio Satellite: Options → hidden `Show staging news` switch).
+7. Drafts (`status: draft`) can be merged safely: they are never published. Preview them with `npm run preview` (local server at `http://localhost:4300`); Clio Satellite can point its admin preview switch at that address.
 
 Without git: open the repository in Pages CMS, choose **News → New**, fill the form; it creates the same file and a PR.
 
@@ -176,7 +175,7 @@ owner: "@v.nikonov"          # who to ask about this item; not published
 
 | Field | Required | Notes |
 |---|---|---|
-| `status` | yes | `draft` goes only to `*.staging.json`; `withdrawn` removes it everywhere on the next build |
+| `status` | yes | `draft` is never published (local preview and PR artifact only); `withdrawn` removes it everywhere on the next build |
 | `type` | yes | Sets the tag and colour in clients |
 | `product` | yes | One value; drives the archive filter |
 | `channels` | yes | At least one; each must exist in `channels.yml` |
@@ -266,12 +265,11 @@ owner: "@v.nikonov"          # who to ask about this item; not published
 
 1. Read all `news/**/*.yml`, validate, derive `id` from the file name.
 2. For each channel: keep items that list it, are `published`, `publishAt ≤ now < expiresAt`; flatten `channelOptions[channel]` into the item; apply `minVersions[channel]` as `minExtensionVersion`/`minVersion`; drop media types the channel does not allow; turn `media.src` into an absolute URL; strip `owner`, `status`, `channels`, `channelOptions`.
-3. Write `v1/feeds/<channel>.json` and `<channel>.staging.json` (with drafts), `v1/feeds/all.json`, copy `media/`, render `index.html` and `feed.xml`.
+3. Write `v1/feeds/<channel>.json` and `v1/feeds/all.json`, copy only the media referenced by live items, render `index.html` and `feed.xml`. Drafts and future items exist only in the preview build, which is never deployed.
 4. Write `Cache-Control`-friendly files (stable order, no timestamps inside unless content changed) so `ETag` changes only when news change.
 
 ---
 
 ## Open questions
 
-- Public or private repository? Public is simpler: free Pages, and the built site is public anyway.
 - First CODEOWNERS per channel (`clio-satellite`, `web`).

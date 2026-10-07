@@ -184,7 +184,7 @@ Any item may carry **one** optional `media` block: an image or a YouTube video. 
 ### Image
 
 ```json
-"media": { "type": "image", "url": "https://advance-technologies-foundation.github.io/clio-news/v1/media/2026/10/clio-8-1.webp", "alt": "Terminal output of clio pushw showing two changed packages" }
+"media": { "type": "image", "url": "https://advance-technologies-foundation.github.io/clio-news-feed/v1/media/2026/10/clio-8-1.webp", "alt": "Terminal output of clio pushw showing two changed packages" }
 ```
 
 - `url`: `https://`, on the feed host (same origin as the feed), `png`, `jpg` or `webp`, ≤ 300 KB, recommended 640×360.
@@ -194,7 +194,7 @@ Any item may carry **one** optional `media` block: an image or a YouTube video. 
 ### YouTube video
 
 ```json
-"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://advance-technologies-foundation.github.io/clio-news/v1/media/2026/10/webinar.webp", "player": "embed", "start": 95 }
+"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://advance-technologies-foundation.github.io/clio-news-feed/v1/media/2026/10/webinar.webp", "player": "embed", "start": 95 }
 ```
 
 | Field | Required | Rules |
@@ -285,7 +285,7 @@ The first mockup used an orange tint and pill for unread news. On a login form n
 
 ## Feed format
 
-Static JSON served over HTTPS at `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json` (channel `clio-satellite` of the shared repository `clio-news`, see [`clio-news-repository.md`](clio-news-repository.md); the build already filters by channel and flattens `channelOptions.clio-satellite` into each item). How it is authored, built, scheduled and hosted is described in [`developer-news-hosting.md`](developer-news-hosting.md). Optional feed-level fields: `refreshHours` (1–24, default 6) overrides the client refresh interval; `movedTo` points clients to a new feed URL on an allowlisted host.
+Static JSON served over HTTPS at `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json` (channel `clio-satellite`; sources in the private repository `clio-news`, public output in `clio-news-feed`, see [`clio-news-repository.md`](clio-news-repository.md); the build already filters by channel and flattens `channelOptions.clio-satellite` into each item). How it is authored, built, scheduled and hosted is described in [`developer-news-hosting.md`](developer-news-hosting.md). Optional feed-level fields: `refreshHours` (1–24, default 6) overrides the client refresh interval; `movedTo` points clients to a new feed URL on an allowlisted host.
 
 ```json
 {

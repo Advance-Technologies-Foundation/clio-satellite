@@ -1,12 +1,13 @@
 # Developer News — Storage and Publishing Architecture
 
-**Status:** decision taken 2026-10-07, not implemented. Companion to [`developer-news.md`](developer-news.md) (UI, feed format, client behaviour).
+**Status:** decision taken 2026-10-07; `clio-news` pipeline set up, extension side not implemented. Companion to [`developer-news.md`](developer-news.md) (UI, feed format, client behaviour).
 
-## Decision (2026-10-07)
+## Decision (2026-10-07, updated)
 
-- News live in a **separate repository** `Advance-Technologies-Foundation/clio-news`, not in `clio-satellite`. It holds news for the whole clio tool family (clio CLI, Clio Satellite, future tools); each tool is a channel with its own feed. News get their own history, reviewers and CI, and publishing a news item never touches the extension repo or its release workflow. Structure and authoring rules: [`clio-news-repository.md`](clio-news-repository.md).
-- **For now the feed is served straight from that repository** with GitHub Pages, without a custom domain:
-  `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json`
+- **Two repositories.** `clio-news` is **private**: sources, drafts, scheduled items, images, CI. `clio-news-feed` is **public** and contains only the build output (live items and their images), deployed by CI as a single force-pushed commit. Reason: the organization is on the GitHub Free plan, where Pages cannot publish from a private repository, and the team wants drafts and embargoed news to stay invisible until their time. Even with private Pages the site itself would be public, so the embargo has to be enforced by the build anyway.
+- `clio-news` holds news for the whole clio tool family; each place that shows news is a channel with its own feed (`clio-satellite`, `web`). Publishing a news item never touches the extension repo or its release workflow. Structure and authoring rules: [`clio-news-repository.md`](clio-news-repository.md).
+- Feed URL, served by GitHub Pages of `clio-news-feed` without a custom domain:
+  `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json`
 - A custom domain is postponed. To keep the option open without stranding old extension versions on the `github.io` URL, the feed carries a `movedTo` field (see "Moving the feed later").
 - Authoring starts with option A (pull requests). Pages CMS can be added on top of the same repository later.
 
@@ -35,7 +36,7 @@ News must be published, edited, scheduled and withdrawn without an extension rel
         AUTHORING (replaceable)                       DELIVERY (stable contract)
   +------------------------------------+       +------------------------------------------+
   | git repo  clio-news                |       | <feed-host>/v1/feeds/<channel>.json      | <- clients (every <= 6 h)
-  |   news/YYYY/MM/*.yml   media/*     |  CI   | <feed-host>/v1/feeds/<channel>.staging.json | <- admins, preview
+  |   news/YYYY/MM/*.yml   media/*     |  CI   | (drafts and future items stay private)   |
   | editors: PR in GitHub, or          | ----> | <feed-host>/v1/media/*                   |
   |          Pages CMS web UI          | build | <feed-host>/ (archive)  /feed.xml (RSS)  |
   | CODEOWNERS review per channel      |       |                                          |
@@ -49,7 +50,7 @@ News must be published, edited, scheduled and withdrawn without an extension rel
 
 | Option | How authors publish | R3 review | R6 preview | R9 cost/ops | Verdict |
 |---|---|---|---|---|---|
-| **A. Git repo + CI + GitHub Pages** | PR with a JSON file per item | ✅ PR review, CODEOWNERS, revert | ✅ staging feed + PR preview | ✅ free, no servers | **Recommended start** |
+| **A. Git repo + CI + GitHub Pages** | PR with a JSON file per item | ✅ PR review, CODEOWNERS, revert | ✅ local preview + PR artifact | ✅ free, no servers | **Recommended start** |
 | B. A + Pages CMS (web UI over the same repo) | Form in a browser, saves commits/PRs to the repo | ✅ same as A | ✅ same as A | ✅ free, hosted or self-hosted | **Add when non-developers publish** |
 | C. Headless SaaS CMS (Contentful, Sanity, Strapi Cloud) | Web UI | ⚠️ roles, but no git history | ✅ | ❌ paid plan or a server to run | Not needed for ~5 items/month |
 | D. Creatio app as CMS ("Clio News" section) | Creatio form + approval business process; on approval a process exports JSON to the repo/host | ✅ approval process | ⚠️ needs custom preview | ⚠️ needs a Creatio instance and an export process | Good dogfooding story; consider as phase 3 if the team wants it |
@@ -69,7 +70,7 @@ Layout, item file format, channels and the authoring guide are in [`clio-news-re
 | Trigger | Steps |
 |---|---|
 | Pull request | `validate.mjs` (schema; title ≤ 60, body ≤ 140; CTA host allowlist; image exists, ≤ 300 KB, webp/png/jpg; YouTube `videoId` format and, with a network call, that the video exists and allows embedding; trending rules; max 5 active, max 1 critical after merge) → comment with a rendered preview of the card |
-| Merge to `main` | build → deploy channel feeds, staging feeds, media, archive page, RSS |
+| Merge to `main` | build → deploy channel feeds, media of live items, archive page, Atom feed |
 | Hourly cron | rebuild so `publishAt` items go live and expired items leave channel feeds without anyone merging |
 | Manual "withdraw" workflow | sets `status: withdrawn` on one id and deploys immediately (R10) |
 
@@ -80,8 +81,9 @@ Layout, item file format, channels and the authoring guide are in [`clio-news-re
 
 ### Preview
 
-- `clio-satellite.staging.json` contains `draft` items plus everything published. In the extension Options, a hidden admin switch (`Show staging news`, enabled by typing a code or by an `isNewsAdmin` flag in `storage.sync`) points the client to `clio-satellite.staging.json`. Authors see their draft in the real login page and Shell before publishing.
-- The PR comment preview covers authors who don't have the extension installed.
+- Drafts and future items are **never deployed**: there is no public staging feed, because anything on GitHub Pages is public.
+- `npm run preview` in `clio-news` serves feeds with drafts and scheduled items at `http://localhost:4300`. A hidden admin switch in Clio Satellite Options can read the feed from there, so authors see their draft on a real login page and in Shell.
+- Every PR gets a `news-preview` artifact (feeds and archive page with drafts) for reviewers without a local checkout.
 
 ### Hosting and domain
 
@@ -123,24 +125,23 @@ The CTA host allowlist in the extension already limits what a compromised feed c
 
 | Phase | Scope | Unlocks |
 |---|---|---|
-| 1 | Repo, schema, validate + build + deploy, custom domain, staging feed, archive page | Extension v1 of the news feature |
+| 1 | Repo, schema, validate + build + deploy, custom domain, local preview, archive page | Extension v1 of the news feature |
 | 2 | Pages CMS config, PR preview comment, feed signing | Non-developer authors, stronger integrity |
 | 3 (optional) | Creatio "Clio News" app exporting to the repo through the GitHub API | Authoring inside Creatio with approval processes |
 
 ## Impact on the extension
 
-- Feed URL constant: `https://advance-technologies-foundation.github.io/clio-news/v1/feeds/clio-satellite.json`; staging: `.../v1/feeds/clio-satellite.staging.json`.
+- Feed URL constant: `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json`.
 - `movedTo` handling and the `newsFeedUrl` override (see Moving the feed later).
 - Media allowlist = the feed host (`advance-technologies-foundation.github.io` now) (plus `i.ytimg.com` for fallback posters).
 - New optional feed field `refreshHours` (1–24, default 6).
-- Options: hidden `Show staging news` switch for admins.
+- Options: hidden admin switch to read a preview feed from `http://localhost:4300` (the `npm run preview` server of `clio-news`).
 - `CLAUDE.md` and the other agent instruction files: justify the news domain under the permissions section once it is chosen.
 
 ## Open questions
 
 - Custom domain: which one, and when (not blocking; `movedTo` covers the switch)?
 - Who are the first `CODEOWNERS`?
-- Public or private news repo? Public is simpler (Pages free tier, transparent for users); private needs a GitHub plan with private Pages, and the published site is still public.
 
 ## Sources
 
