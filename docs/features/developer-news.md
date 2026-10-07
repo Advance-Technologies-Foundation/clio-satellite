@@ -184,7 +184,7 @@ Any item may carry **one** optional `media` block: an image or a YouTube video. 
 ### Image
 
 ```json
-"media": { "type": "image", "url": "https://news.example.com/img/clio-8-1.webp", "alt": "Terminal output of clio pushw showing two changed packages" }
+"media": { "type": "image", "url": "https://advance-technologies-foundation.github.io/clio-satellite-news/v1/media/clio-8-1.webp", "alt": "Terminal output of clio pushw showing two changed packages" }
 ```
 
 - `url`: `https://`, on the feed host (same origin as `news.json`), `png`, `jpg` or `webp`, ≤ 300 KB, recommended 640×360.
@@ -194,7 +194,7 @@ Any item may carry **one** optional `media` block: an image or a YouTube video. 
 ### YouTube video
 
 ```json
-"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://news.example.com/v1/media/webinar.webp", "player": "embed", "start": 95 }
+"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://advance-technologies-foundation.github.io/clio-satellite-news/v1/media/webinar.webp", "player": "embed", "start": 95 }
 ```
 
 | Field | Required | Rules |
@@ -274,7 +274,7 @@ This avoids the page's `img-src` CSP, which on some self-hosted Creatio instance
 
 ## Feed format
 
-Static JSON served over HTTPS at `https://<news-domain>/v1/news.json`. How it is authored, built, scheduled and hosted is described in [`developer-news-hosting.md`](developer-news-hosting.md). Optional feed-level `refreshHours` (1–24, default 6) overrides the client refresh interval.
+Static JSON served over HTTPS at `https://advance-technologies-foundation.github.io/clio-satellite-news/v1/news.json` (separate repository `clio-satellite-news`). How it is authored, built, scheduled and hosted is described in [`developer-news-hosting.md`](developer-news-hosting.md). Optional feed-level fields: `refreshHours` (1–24, default 6) overrides the client refresh interval; `movedTo` points clients to a new feed URL on an allowlisted host.
 
 ```json
 {
@@ -425,12 +425,12 @@ Sources:
 
 ## Open questions
 
-- Storage and publishing: see [`developer-news-hosting.md`](developer-news-hosting.md) (recommended: git repo + CI + GitHub Pages behind an own domain, Pages CMS later).
+- Storage and publishing: decided — separate repository `clio-satellite-news` served with GitHub Pages; see [`developer-news-hosting.md`](developer-news-hosting.md).
 
 - Trending window per user (`hours`) needs `newsFirstShown` in `storage.sync`. With ~5 active items this is far below the sync quota, but should we cap it (e.g. prune ids no longer in the feed)? Current plan: prune on every feed refresh.
 
 - Should the Shell dot be shown on the Configuration page too, or only in Shell?
 - Is a 7-day / 10-load decay right for the dot, or should normal news never show a dot at all (row only)?
 
-- Which domain hosts the feed, and who are the first CODEOWNERS (see hosting doc)?
+- Who are the first CODEOWNERS of `clio-satellite-news`?
 - Do we need per-host targeting (e.g. only for `*.krylov.cloud` stands)?

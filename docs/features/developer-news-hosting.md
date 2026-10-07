@@ -1,6 +1,14 @@
 # Developer News — Storage and Publishing Architecture
 
-**Status:** proposal, not implemented. Companion to [`developer-news.md`](developer-news.md) (UI, feed format, client behaviour).
+**Status:** decision taken 2026-10-07, not implemented. Companion to [`developer-news.md`](developer-news.md) (UI, feed format, client behaviour).
+
+## Decision (2026-10-07)
+
+- News live in a **separate repository** `Advance-Technologies-Foundation/clio-satellite-news`, not in `clio-satellite`. News get their own history, reviewers and CI, and publishing a news item never touches the extension repo or its release workflow.
+- **For now the feed is served straight from that repository** with GitHub Pages, without a custom domain:
+  `https://advance-technologies-foundation.github.io/clio-satellite-news/v1/news.json`
+- A custom domain is postponed. To keep the option open without stranding old extension versions on the `github.io` URL, the feed carries a `movedTo` field (see "Moving the feed later").
+- Authoring starts with option A (pull requests). Pages CMS can be added on top of the same repository later.
 
 ## Problem
 
@@ -26,11 +34,11 @@ News must be published, edited, scheduled and withdrawn without an extension rel
 ```
           AUTHORING (replaceable)                      DELIVERY (stable contract)
   ┌──────────────────────────────────┐        ┌──────────────────────────────────────┐
-  │ git repo  clio-satellite-news    │        │ https://<news-domain>/v1/news.json   │
-  │   items/*.json   media/*         │  CI    │ https://<news-domain>/v1/media/*     │
-  │ editors: PR in GitHub, or        │ ─────► │ https://<news-domain>/                │  ◄── extension (fetch every ≤ 6 h)
+  │ git repo  clio-satellite-news    │        │ https://<feed-host>/v1/news.json   │
+  │   items/*.json   media/*         │  CI    │ https://<feed-host>/v1/media/*     │
+  │ editors: PR in GitHub, or        │ ─────► │ https://<feed-host>/                │  ◄── extension (fetch every ≤ 6 h)
   │          Pages CMS web UI        │ build  │      (archive page, HTML)            │
-  │ CODEOWNERS review                │        │ https://<news-domain>/v1/staging.json│  ◄── admins with preview switch
+  │ CODEOWNERS review                │        │ https://<feed-host>/v1/staging.json│  ◄── admins with preview switch
   └──────────────────────────────────┘        └──────────────────────────────────────┘
 ```
 
@@ -95,9 +103,21 @@ CODEOWNERS                       who must approve news
 
 ### Hosting and domain
 
-- Start: GitHub Pages of the `clio-satellite-news` repository behind a **custom domain** (subdomain of a domain the team controls). GitHub Pages serves with HTTPS, a CDN and `ETag`, so the extension's conditional requests cost almost nothing.
+- Now: GitHub Pages of the `clio-satellite-news` repository at its default `github.io` address (see Decision). GitHub Pages serves with HTTPS, a CDN and `ETag`, so the extension's conditional requests cost almost nothing.
+- Later: the same Pages site behind a custom domain, using `movedTo` below.
 - If Pages limits are ever a problem, or the repo must be private: move the same `dist/` to Azure Static Web Apps / Cloudflare Pages / S3 + CloudFront. Only DNS changes; the extension is untouched (R2).
-- Never use `raw.githubusercontent.com` or `*.github.io` directly in the extension: those URLs tie the extension to GitHub forever.
+- Never use `raw.githubusercontent.com`: it is not a CDN, has no stable caching and is rate-limited.
+
+### Moving the feed later
+
+The `github.io` URL is compiled into every extension version released now. To move without a forced update:
+
+1. Publish the feed at the new URL as well (same content).
+2. Add `"movedTo": "https://<new-url>/v1/news.json"` to the feed at the old URL.
+3. The extension reads `movedTo`, checks it against a short allowlist compiled into the extension (`https://` + hosts the team controls), stores it as `newsFeedUrl` in `storage.local`, and fetches from there from then on. If the new URL fails three refreshes in a row, it falls back to the compiled URL.
+4. Keep the old URL alive with `movedTo` for at least six months, until old extension versions are gone from the Chrome Web Store statistics.
+
+`movedTo` only changes where the feed is read from; it can never point to a host outside the compiled allowlist, so a compromised feed cannot redirect clients to an arbitrary server.
 
 ### Freshness and emergency withdrawal
 
@@ -127,17 +147,18 @@ The CTA host allowlist in the extension already limits what a compromised feed c
 
 ## Impact on the extension
 
-- Feed URL constant: `https://<news-domain>/v1/news.json`; staging: `.../v1/staging.json`.
-- Media allowlist = the news domain (plus `i.ytimg.com` for fallback posters).
+- Feed URL constant: `https://advance-technologies-foundation.github.io/clio-satellite-news/v1/news.json`; staging: `.../v1/staging.json`.
+- `movedTo` handling and the `newsFeedUrl` override (see Moving the feed later).
+- Media allowlist = the feed host (`advance-technologies-foundation.github.io` now) (plus `i.ytimg.com` for fallback posters).
 - New optional feed field `refreshHours` (1–24, default 6).
 - Options: hidden `Show staging news` switch for admins.
 - `CLAUDE.md` and the other agent instruction files: justify the news domain under the permissions section once it is chosen.
 
 ## Open questions
 
-- Which domain do we own and can point at GitHub Pages?
+- Custom domain: which one, and when (not blocking; `movedTo` covers the switch)?
 - Who are the first `CODEOWNERS`?
-- Public or private news repo? Public is simpler (Pages free tier, transparent for users); private needs a paid Pages plan or another host.
+- Public or private news repo? Public is simpler (Pages free tier, transparent for users); private needs a GitHub plan with private Pages, and the published site is still public.
 
 ## Sources
 
