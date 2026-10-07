@@ -13,13 +13,13 @@
     {
       "matches": ["*://*/*shell/", "*://*/*Shell/", "*://*/*SHELL/", "*://*/*sHELL/"],
       "exclude_matches": ["*://*.work.creatio.com/*"],
-      "css": ["styles/shell.css", "menu-item.css"],
+      "css": ["styles/shell.css", "menu-item.css", "styles/news.css"],
       "js": ["content.js"]
     },
     {
       "matches": ["<all_urls>"],
       "exclude_matches": ["*://*.work.creatio.com/*", "*://*/*shell/", "*://*/*Shell/", "*://*/*SHELL/", "*://*/*sHELL/"],
-      "css": ["styles/login.css", "menu-item.css"],
+      "css": ["styles/login.css", "menu-item.css", "styles/news.css"],
       "js": ["login/login-events.js", "login/login.js", "content.js"]
     }
   ],

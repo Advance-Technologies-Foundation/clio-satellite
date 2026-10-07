@@ -433,8 +433,42 @@ function initializeDefaultProfilesIfNeeded() {
   });
 }
 
+// ── Developer news settings ──────────────────────────────────────────────────
+
+const NEWS_AUDIENCES = ['admin', 'developer', 'other'];
+
+function initNewsSettings() {
+  const enabled = document.getElementById('news-enabled');
+  const fieldset = document.getElementById('news-audiences');
+  const boxes = [...document.querySelectorAll('input[name="news-audience"]')];
+  if (!enabled || !fieldset) return;
+
+  chrome.storage.sync.get({ newsEnabled: true, newsAudiences: NEWS_AUDIENCES }, (data) => {
+    enabled.checked = data.newsEnabled !== false;
+    const chosen = Array.isArray(data.newsAudiences) && data.newsAudiences.length ? data.newsAudiences : NEWS_AUDIENCES;
+    boxes.forEach(box => { box.checked = chosen.includes(box.value); });
+    fieldset.disabled = !enabled.checked;
+  });
+
+  enabled.addEventListener('change', () => {
+    fieldset.disabled = !enabled.checked;
+    chrome.storage.sync.set({ newsEnabled: enabled.checked });
+  });
+
+  document.getElementById('news-open-all')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'openNewsArchive' });
+  });
+
+  boxes.forEach(box => box.addEventListener('change', () => {
+    // At least one role stays on; to see nothing, turn news off above
+    if (!boxes.some(b => b.checked)) box.checked = true;
+    chrome.storage.sync.set({ newsAudiences: boxes.filter(b => b.checked).map(b => b.value) });
+  }));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
+  initNewsSettings();
 
   loadProfiles();
   loadHistory();

@@ -4,6 +4,7 @@ import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
+import { attachShellNews } from './news/shellIndicator.js';
 
 // Guard against "Extension context invalidated" errors that occur when the
 // extension is reloaded while a content script is still alive on the page.
@@ -344,6 +345,7 @@ export function createScriptsMenu() {
 
     state.actionsMenuCreated = true;
     state.menuCreating = false;
+    attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType });
     debugLog('Scripts menu created successfully');
     return true;
   } catch (error) {

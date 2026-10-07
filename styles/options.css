@@ -646,6 +646,46 @@ html[data-theme="system"] .theme-switcher__btn[data-theme-value="system"] {
   color: var(--c-text);
 }
 
+/* ── Developer news ─────────────────────────────────────── */
+.news-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px 18px;
+}
+
+.news-audiences {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 26px;
+  border: 0;
+}
+
+.news-audiences:disabled { opacity: .5; }
+
+.news-audiences__legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+
+.news-audiences__hint {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--c-text-2);
+}
+
+.news-settings__all { align-self: flex-start; padding-left: 0; }
+
+.news-settings__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--c-text-2);
+}
+
 /* ── About blocks ───────────────────────────────────────── */
 .about-row {
   display: flex;

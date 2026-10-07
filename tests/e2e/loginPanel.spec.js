@@ -46,11 +46,11 @@ test.describe('Login page profile panel', () => {
   test('the dropdown lists profiles first, then the extension pages', async ({ page }) => {
     await loadLoginPanel(page);
     const options = await page.locator('.creatio-satelite-login-profile-select option').allTextContents();
-    expect(options).toEqual(['Admin (Supervisor)', 'Manage profiles…', 'Environments…']);
+    expect(options).toEqual(['Admin (Supervisor)', 'Manage profiles…', 'Environments…', 'All developer news…']);
     await expect(page.locator('.creatio-satelite-login-profile-select optgroup')).toHaveAttribute('label', 'Clio satellite');
   });
 
-  for (const [text, action] of [['Manage profiles…', 'openOptionsPage'], ['Environments…', 'openEnvironmentsPage']]) {
+  for (const [text, action] of [['Manage profiles…', 'openOptionsPage'], ['Environments…', 'openEnvironmentsPage'], ['All developer news…', 'openNewsArchive']]) {
     test(`choosing "${text}" opens the page and keeps the profile selected`, async ({ page }) => {
       await loadLoginPanel(page);
       await page.evaluate(() => {
@@ -69,7 +69,7 @@ test.describe('Login page profile panel', () => {
     const select = page.locator('.creatio-satelite-login-profile-select');
     await expect(select).toHaveCSS('appearance', 'base-select');
     await expect(select.locator('optgroup legend')).toHaveText('Clio satellite');
-    await expect(select.locator('.creatio-satelite-login-menu-option svg')).toHaveCount(2);
+    await expect(select.locator('.creatio-satelite-login-menu-option svg')).toHaveCount(3);
 
     await select.click();
     await expect(select.locator('option').first()).toBeVisible();

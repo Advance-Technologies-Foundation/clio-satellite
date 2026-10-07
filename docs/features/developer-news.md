@@ -1,6 +1,6 @@
 # Developer News
 
-**Status:** design in progress (v1 mockups), not implemented yet.
+**Status:** implemented in branch `feature/developer-news-strip` (not merged). Code map: [`docs/architecture/news.md`](../architecture/news.md). Not implemented yet: the extension-page player fallback (step 2 of the player chain) and reactions.
 **Mockups** (open in a browser, no build step):
 - [`mockup.html`](../design/developer-news/mockup.html) — login page strip.
 - [`shell-mockup.html`](../design/developer-news/shell-mockup.html) — indicator inside Creatio (Clio satellite button, menu row, flyout, peek card).
@@ -92,6 +92,28 @@ Inside Creatio the user is in the middle of a task. The rule here: **inform, nev
 - Auto-hides after 10 s; the timer pauses on hover and restarts with 3 s on mouse leave. `Dismiss` hides it; the red dot stays until the menu is opened.
 - Not shown on the Configuration page while a schema designer is open (`pageType === "configuration"`), only on Shell.
 
+## First run of a new user
+
+A new user should not be greeted by the whole backlog. The first time a browser profile receives the feed (`newsOnboardedAt` not set):
+
+- Only the **3 newest items published in the last 30 days** stay; every other live item is remembered in `newsSkipped` and never shown to this profile.
+- Critical items are never skipped: a breaking change must reach everyone.
+- Items published after the first run are not affected; they appear as usual.
+- `newsOnboardedAt` is stored in `chrome.storage.sync`, so a second machine with the same Chrome profile does not repeat it.
+
+## The full feed is always one click away
+
+Everything ever published stays readable on the public feed site (archive page of `clio-news-feed`), outside the extension, in a new tab. Entry points that are always present, even when the strip is hidden or nothing is new:
+
+| Where | Entry |
+|---|---|
+| Login page | Profile dropdown → *Clio satellite* group → **All developer news…** |
+| Shell / Configuration | Clio satellite menu → **All developer news ↗** (last item) |
+| Options | Developer news → **Open all developer news ↗** |
+| News panel / flyout | Footer link **All news →** |
+
+All of them open `https://advance-technologies-foundation.github.io/clio-news-feed/` in a new tab (`openNewsArchive` message → `chrome.tabs.create`, or a `target="_blank"` link).
+
 ## Shared state model
 
 One store for both surfaces, so reading news on the login page clears the dot inside Creatio and vice versa.
@@ -104,6 +126,8 @@ One store for both surfaces, so reading news on the login page clears the dot in
 | `newsNoticed` | `local` | `{ [id]: { noticedAt, shellLoads } }` — for the Shell dot and its decay |
 | `newsAutoOpened` | `sync` | ids of critical items already auto-expanded or peeked, plus `lastPeekAt` |
 | `newsMediaCache` | `local` | `{ [url]: { dataUrl, fetchedAt } }` — images and posters, ≤ 2 MB total, pruned with the feed |
+| `newsSkipped` | `sync` | `{ [id]: ts }` — backlog skipped at the first run |
+| `newsOnboardedAt` | `sync` | timestamp of the first run; `0` = not yet |
 | `newsEnabled` | `sync` | boolean, default `true` |
 | `newsAudiences` | `sync` | `["admin", "developer", "other"]` by default; at least one |
 
