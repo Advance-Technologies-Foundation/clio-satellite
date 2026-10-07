@@ -97,7 +97,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .fly-head strong { font-size: 13px; }
 .lb { background: none; border: 0; padding: 0; color: var(--c-muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .lb:hover { color: var(--c-fg); }
-.list { list-style: none; margin: 0; padding: 4px 0; max-height: 300px; overflow-y: auto; }
+.list { list-style: none; margin: 0; padding: 4px 0; max-height: 360px; overflow-y: auto; }
 .card { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 9px 12px 9px 10px; }
 .card + .card { border-top: 1px solid var(--c-glass-line); }
 .card .d { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; }
@@ -105,6 +105,8 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .card.crit .d { background: var(--c-crit); }
 .meta { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: var(--c-muted); }
 .tag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,.08); }
+.trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--c-accent-2); }
+.trend svg { width: 10px; height: 10px; }
 .tag.release { color: var(--c-release); } .tag.tip { color: var(--c-tip); } .tag.event { color: var(--c-event); } .tag.breaking { color: var(--c-crit); }
 .card h4 { margin: 2px 0 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
 .card p { font-size: 12px; color: var(--c-muted); margin-top: 2px; }
@@ -138,6 +140,21 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
 .step .lvl { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
 .step p { font-size: 14px; color: var(--muted); }
+
+/* optional media: shown only in the expanded panel; placeholders stand in for the real image / YouTube poster */
+.media { position: relative; display: block; margin-top: 6px; width: 100%; max-width: 100%; height: 120px; border-radius: 4px; overflow: hidden; text-decoration: none; }
+.media.img { background: linear-gradient(135deg, #1f2329 0%, #2e3440 100%); }
+.media.img i { position: absolute; left: 10%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.28); }
+.media.img i:nth-child(1) { top: 22%; width: 46%; background: rgba(255,112,67,.85); }
+.media.img i:nth-child(2) { top: 38%; width: 70%; }
+.media.img i:nth-child(3) { top: 54%; width: 58%; }
+.media.img i:nth-child(4) { top: 70%; width: 34%; background: rgba(95,197,143,.8); }
+.media.yt { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.media.yt .play { position: absolute; left: 50%; top: 50%; width: 44px; height: 30px; margin: -15px 0 0 -22px; border-radius: 8px; background: #e62117; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.media.yt .play::after { content: ""; border-left: 11px solid #fff; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px; }
+.media.yt .dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 5px; border-radius: 3px; background: rgba(0,0,0,.75); color: #fff; font-size: 10.5px; font-family: var(--font-mono); }
+.media.yt .src { position: absolute; left: 8px; top: 6px; color: rgba(255,255,255,.85); font-size: 10.5px; font-weight: 600; }
+.media:focus-visible { outline: 2px solid #ff7043; outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -209,6 +226,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
         <label><input type="radio" name="scn" id="s-new" value="new" checked><span>Unread items<small>Dot on the button, What's new row with count</small></span></label>
         <label><input type="radio" name="scn" id="s-noticed" value="noticed"><span>Noticed, not read<small>Menu was opened earlier: dot gone, count stays in the row</small></span></label>
         <label><input type="radio" name="scn" id="s-crit" value="crit"><span>Critical item<small>Red dot + one-time peek card, 10 s, pauses on hover</small></span></label>
+        <label><input type="radio" name="scn" id="s-ended" value="ended"><span>Trending windows over<small>Unread but out of window: no dot, no row, no chip</small></span></label>
         <label><input type="radio" name="scn" id="s-read" value="read"><span>All read<small>No dot; What's new row hidden, news reachable from Options</small></span></label>
       </fieldset>
       <fieldset>
@@ -235,8 +253,8 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 <script>
 (function () {
   var items = [
-    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes' },
-    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team.', cta: 'Register' },
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes', trending: true, media: { type: 'image', alt: 'Terminal output of clio pushw showing two changed packages' } },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team.', cta: 'Register', trending: true, media: { type: 'youtube', title: 'Composable apps for Freedom UI', duration: '1:02:15' } },
     { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', cta: 'See the guide' }
   ];
   var crit = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments.', cta: 'See migration steps', crit: true };
@@ -244,7 +262,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 
   var $ = function (id) { return document.getElementById(id); };
   var sat = $('sat'), btn = $('satBtn'), menu = $('menu'), fly = $('fly'), peek = $('peek'), log = $('log');
-  var st = { feed: [], read: {}, noticed: false, peekShown: false };
+  var st = { feed: [], read: {}, ended: {}, noticed: false, peekShown: false };
   var peekTimer = null;
 
   labels.forEach(function (l) {
@@ -258,7 +276,30 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
   var s = document.createElement('button'); s.className = 'mi'; s.type = 'button'; s.textContent = 'Settings'; $('menuItems').appendChild(s);
 
   function note(t) { log.textContent = t + '\n' + (log.textContent === '—' ? '' : log.textContent).split('\n').slice(0, 4).join('\n'); }
-  function unread() { return st.feed.filter(function (i) { return !st.read[i.id]; }); }
+  // Unread signal: not read and, for trending items, still inside the trending window
+  function signal(i) { return !st.read[i.id] && !st.ended[i.id]; }
+  function trendingNow(i) { return i.trending && !st.ended[i.id]; }
+  function sorted() { return st.feed.slice().sort(function (a, b) { return (trendingNow(b) ? 1 : 0) - (trendingNow(a) ? 1 : 0); }); }
+  function unread() { return sorted().filter(signal); }
+
+
+  // Optional media. The real build shows a poster image fetched by the service worker; video always opens on youtube.com
+  function mediaEl(i) {
+    if (!i.media) return null;
+    var el = document.createElement('a');
+    el.href = '#media'; el.className = 'media ' + (i.media.type === 'youtube' ? 'yt' : 'img');
+    el.setAttribute('aria-label', i.media.type === 'youtube' ? 'Watch on YouTube: ' + i.media.title : i.media.alt);
+    if (i.media.type === 'youtube') {
+      var s = document.createElement('span'); s.className = 'src'; s.textContent = 'YouTube';
+      var pl = document.createElement('span'); pl.className = 'play';
+      var du = document.createElement('span'); du.className = 'dur'; du.textContent = i.media.duration;
+      el.append(s, pl, du);
+    } else {
+      for (var k = 0; k < 4; k++) el.appendChild(document.createElement('i'));
+    }
+    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+    return el;
+  }
 
   function render() {
     var u = unread();
@@ -272,19 +313,28 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
     $('wnPill').classList.toggle('crit', hasCrit);
     $('wnPrev').textContent = u[0] ? u[0].title : '';
     var list = $('list'); list.textContent = '';
-    st.feed.forEach(function (i) {
+    sorted().forEach(function (i) {
       var li = document.createElement('li');
-      li.className = 'card' + (st.read[i.id] ? '' : (i.crit ? ' new crit' : ' new'));
+      li.className = 'card' + (!signal(i) ? '' : (i.crit ? ' new crit' : ' new'));
       var d = document.createElement('span'); d.className = 'd';
       var w = document.createElement('div');
       var m = document.createElement('div'); m.className = 'meta';
       var tg = document.createElement('span'); tg.className = 'tag ' + i.type; tg.textContent = i.tag;
       var dt = document.createElement('span'); dt.textContent = i.date;
       m.append(tg, dt);
+      if (trendingNow(i)) {
+        var tr = document.createElement('span'); tr.className = 'trend';
+        tr.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1.5 8.5l3-3 2 2 4-4M7.5 3.5h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        tr.appendChild(document.createTextNode('Trending'));
+        m.appendChild(tr);
+      }
       var h = document.createElement('h4'); h.textContent = i.title;
       var p = document.createElement('p'); p.textContent = i.body;
       var a = document.createElement('a'); a.href = '#news'; a.textContent = i.cta + ' →';
-      w.append(m, h, p, a); li.append(d, w); list.appendChild(li);
+      var md = mediaEl(i);
+      w.append(m, h);
+      if (md) w.appendChild(md);
+      w.append(p, a); li.append(d, w); list.appendChild(li);
     });
   }
 
@@ -337,10 +387,11 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
   });
 
   function scenario(v) {
-    closeAll(); hidePeek(); st.read = {}; st.noticed = false; log.textContent = '—';
+    closeAll(); hidePeek(); st.read = {}; st.ended = {}; st.noticed = false; log.textContent = '—';
     st.feed = items.slice();
     if (v === 'noticed') st.noticed = true;
     if (v === 'read') st.feed.forEach(function (i) { st.read[i.id] = true; });
+    if (v === 'ended') { st.ended.a = true; st.ended.c = true; st.read.b = true; }
     if (v === 'crit') { st.feed = [crit].concat(items); st.read.b = true; }
     render();
     if (v === 'crit') setTimeout(function () { showPeek(crit); }, 400);

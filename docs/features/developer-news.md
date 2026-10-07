@@ -100,12 +100,125 @@ One store for both surfaces, so reading news on the login page clears the dot in
 |---|---|---|
 | `newsFeedCache` | `local` | `{ fetchedAt, etag, raw }` — last valid feed as text, max 64 KB |
 | `newsRead` | `sync` | `{ [id]: readAt }` — pruned to ids present in the feed |
-| `newsNoticed` | `local` | `{ [id]: { firstShownAt, shellLoads } }` — for the dot and its decay |
+| `newsFirstShown` | `sync` | `{ [id]: firstShownAt }` — when this user first saw the item on any surface; drives the trending window |
+| `newsNoticed` | `local` | `{ [id]: { noticedAt, shellLoads } }` — for the Shell dot and its decay |
 | `newsAutoOpened` | `sync` | ids of critical items already auto-expanded or peeked, plus `lastPeekAt` |
+| `newsMediaCache` | `local` | `{ [url]: { dataUrl, fetchedAt } }` — images and posters, ≤ 2 MB total, pruned with the feed |
 | `newsEnabled` | `sync` | boolean, default `true` |
 
 - `read` is global (sync), `noticed` is per device (local): a dot on a second laptop is fine, a re-appearing unread item is not.
 - All open tabs react to `chrome.storage.onChanged`, so reading in one tab clears the dot in others without a reload.
+
+## Trending news
+
+The news administrator can mark an item as **trending**: it is shown as unread (counter, tint, dot, `What's new` row, unread dot on the card) only during a time window the administrator sets. When the window ends the item goes quiet by itself: it stays in the list until `expiresAt`, but looks read and no longer counts anywhere, even if the user never opened it.
+
+This exists because some news are only worth attention for a short time (a webinar next week, a release in its first days), and an unread marker that outlives the moment teaches people to ignore markers.
+
+### Item kinds
+
+| Kind | Unread signal shown | Ends when |
+|---|---|---|
+| Regular (no `trending`) | Until the user reads it | Read, or `expiresAt` |
+| Trending | Only inside the trending window | Read, window over, or `expiresAt` — whichever comes first |
+
+### How the administrator sets the window
+
+`trending` is an object with one or both fields:
+
+| Field | Meaning | Use for |
+|---|---|---|
+| `until` | Absolute end, ISO date-time in UTC. Same moment for everybody | Things tied to a date: a webinar (until it starts), a migration deadline, a promo |
+| `hours` | Relative length, counted per user from the moment **that user** first saw the item (`newsFirstShown`) | Releases and tips: someone who logs in once a week still gets the full window |
+
+- Both set: the window ends at whichever comes first.
+- `trending: {}` or a window that already ended at publish time is a validation error for that item (dropped, logged in the feed CI).
+- Limits enforced by the client: `hours` 1–720 (30 days); `until` not later than `expiresAt`.
+- Feed-level default: `defaults.trendingHours` applies when an item has `"trending": true` instead of an object, so the administrator can mark items trending with one word and tune the length in one place.
+
+Suggested windows (guidance for administrators, not enforced):
+
+| Item | Window |
+|---|---|
+| Release | `hours: 72`–`168` |
+| Tip | `hours: 48` |
+| Webinar / event | `until` = event start |
+| Breaking change | Do not use trending; critical items stay unread until read |
+
+`priority: "critical"` and `trending` are mutually exclusive: a breaking change must not go quiet on its own. The validator rejects items with both.
+
+### How it looks
+
+- While trending, the card shows a small `Trending` chip (arrow-up icon) next to the type tag, and trending items sort above regular ones, newest first. The collapsed login strip and the Shell `What's new` row use the newest trending item as their headline when there is one.
+- No countdown is shown to the user. The window is an editorial tool, not urgency marketing.
+- After the window: no chip, no unread dot, normal sort by date, not counted in `N new`, no Shell dot. The item is **not** written to `newsRead`; if the administrator extends the window, it becomes unread again for users who never read it.
+- The Shell dot decay (7 days / 10 loads) applies only to regular items. For trending items the trending window is the decay.
+
+### Evaluation
+
+`newsCore.isUnreadSignal(item, { now, read, firstShown })`:
+
+```
+if read[item.id]                      → false
+if item.trending is absent            → true
+start = firstShown[item.id] ?? now    // first render records firstShown
+end   = min(item.trending.until, start + item.trending.hours)
+return now < end
+```
+
+- `now` is the local clock. `until` is absolute UTC, so a skewed client clock shifts the end by the skew. This is accepted: windows are hours or days long.
+- `firstShown` is recorded the first time an item is rendered on any surface (strip, row or flyout), not when the feed is fetched, so the relative window starts when the user could actually see it.
+- The surfaces re-evaluate on render and every 10 minutes while a page is open, so a window that ends while Creatio is open clears the dot without a reload.
+
+## Media: images and YouTube videos
+
+Any item may carry **one** optional `media` block: an image or a YouTube video. Most items will have none, and the card then looks exactly as described above.
+
+### Where media appears
+
+- Only in the expanded login panel and in the Shell flyout. Never in the collapsed strip, the `What's new` row or the peek card: those stay one line of text.
+- Under the title, above the body, full card width, 120 px high, image cropped to fill (`object-fit: cover`, source 16:9), 4 px radius.
+- Nothing is downloaded until the panel or flyout is opened for the first time, so the login page and Shell load exactly as fast as without news.
+- If the media fails to load, it is left out silently; the card falls back to text only.
+
+### Image
+
+```json
+"media": { "type": "image", "url": "https://news.example.com/img/clio-8-1.webp", "alt": "Terminal output of clio pushw showing two changed packages" }
+```
+
+- `url`: `https://`, on the feed host (same origin as `news.json`), `png`, `jpg` or `webp`, ≤ 300 KB, recommended 640×360.
+- `alt` is required (≤ 120 chars); it is the accessible name and the fallback text.
+- Clicking the image opens the item CTA when there is one; otherwise it does nothing (no lightbox in v1).
+
+### YouTube video
+
+```json
+"media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI", "poster": "https://news.example.com/img/webinar.webp" }
+```
+
+- `videoId`: exactly 11 characters `[A-Za-z0-9_-]`. The client builds the link itself (`https://www.youtube.com/watch?v=<id>`); full URLs from the feed are not accepted, so a video entry cannot point anywhere else.
+- `title` is required; `poster` is optional (same rules as an image `url`).
+- The card shows a **poster with a play button**, not an embedded player. Click opens the video on youtube.com in a new tab.
+- Poster source: `poster` if set, otherwise `https://i.ytimg.com/vi/<id>/hqdefault.jpg`. Administrators should prefer their own `poster`, because the fallback sends a request to Google when the panel opens.
+
+Why no embedded player: an `<iframe>` inside the Creatio page depends on the host's `frame-src` CSP (self-hosted instances differ), loads several MB and third-party cookies into a CRM page, and plays video in a 300 px panel where nobody wants to watch a webinar. Linking out is lighter, works everywhere and is what Google, X and LinkedIn do for compact cards. An embedded player (`youtube-nocookie.com` in a modal) can be reconsidered later.
+
+### How media is loaded
+
+Images are fetched by the **service worker**, not by an `<img src>` in the page:
+
+1. The surface asks the background `getNewsMedia(itemId)` when the panel opens.
+2. The worker checks the URL against the allowlist (feed host, `i.ytimg.com`), fetches it, checks `Content-Type` and size, and returns a `data:` URL.
+3. The result is cached in `chrome.storage.local` (`newsMediaCache`, keyed by URL, pruned with the feed; total ≤ 2 MB).
+
+This avoids the page's `img-src` CSP, which on some self-hosted Creatio instances blocks external images, and keeps the page from learning the feed host.
+
+### Content guidelines for media
+
+- Use media only when it explains something faster than text: a screenshot of new UI, a terminal output, a recorded webinar.
+- At most two items with media at a time, so the panel stays scannable.
+- No text baked into images that is needed to understand the news; the title and body must work alone.
 
 ### Item types
 
@@ -124,6 +237,7 @@ One store for both surfaces, so reading news on the login page clears the dot in
 - **No images.** The login page is a task screen.
 - **Max 5 active items, max 1 critical.** Prefer one useful item per week over several per day.
 - **Always set `expiresAt`** (default 30 days); expired items are dropped by the client.
+- **Use `trending` for anything whose value fades fast** (see Trending news). Prefer `hours` for releases and tips, `until` for dated events.
 
 ## Feed format
 
@@ -143,9 +257,21 @@ Static JSON served over HTTPS. Recommended host: a separate repository published
       "publishedAt": "2026-10-06",
       "expiresAt": "2026-11-06",
       "minExtensionVersion": "2.7",
-      "surfaces": ["login", "shell"]
+      "surfaces": ["login", "shell"],
+      "trending": { "hours": 72 }
+    },
+    {
+      "id": "2026-10-webinar-composable",
+      "type": "event",
+      "title": "Live: building composable apps for Freedom UI",
+      "cta": { "label": "Register", "url": "https://example.com/webinar" },
+      "publishedAt": "2026-10-07",
+      "expiresAt": "2026-10-22",
+      "trending": { "until": "2026-10-21T14:00:00Z" },
+      "media": { "type": "youtube", "videoId": "dQw4w9WgXcQ", "title": "Composable apps for Freedom UI" }
     }
-  ]
+  ],
+  "defaults": { "trendingHours": 72 }
 }
 ```
 
@@ -160,7 +286,11 @@ Static JSON served over HTTPS. Recommended host: a separate repository published
 | `publishedAt` | yes | ISO date; items sorted newest first |
 | `expiresAt` | no | ISO date; item hidden after it |
 | `minExtensionVersion` | no | Item hidden on older extension versions |
+| `trending` | no | `true` (uses `defaults.trendingHours`) or `{ "hours"?: 1–720, "until"?: ISO UTC }`; not allowed with `priority: "critical"` |
+| `media` | no | One of: `{ "type": "image", "url", "alt" }` or `{ "type": "youtube", "videoId", "title", "poster"? }` (see Media) |
 | `surfaces` | no | `["login", "shell"]` (default both). Use `["login"]` for news that are not worth a dot inside Creatio |
+
+Feed-level `defaults.trendingHours` (optional, 1–720, default 72) is used for `"trending": true`.
 
 Unknown fields are ignored. Items failing validation are dropped individually; a feed with an unknown `schemaVersion` is ignored as a whole.
 
@@ -178,17 +308,19 @@ Unknown fields are ignored. Items failing validation are dropped individually; a
 news.json (GitHub Pages)
    │  GET, no params, no cookies, If-None-Match
    ▼
-background.js  "getNews" handler
+background.js  "getNews" and "getNewsMedia" handlers
    TTL 6 h → fetch → size check (≤ 64 KB) → JSON.parse → store raw in newsFeedCache
    on error: keep last cache
    │
    ▼  chrome.runtime.sendMessage / storage.onChanged
-src/news/newsCore.js        pure: validateFeed, selectVisible, unreadItems,
-                            shouldShowDot, shouldPeek, markRead, markNoticed
+src/news/newsCore.js        pure: validateFeed, selectVisible, isUnreadSignal,
+                            unreadItems, shouldShowDot, shouldPeek,
+                            markRead, markNoticed, markFirstShown
 src/news/newsStore.js       chrome.storage wrapper, onChanged subscription
 src/news/loginStrip.js      login surface: waits for .creatio-satelite-login-profiles-container
 src/news/shellIndicator.js  shell surface: dot, What's new row, flyout, peek
-src/news/newsCards.js       shared card renderer (textContent only), light/dark variants
+src/news/newsCards.js       shared card renderer (textContent only), light/dark variants,
+                            media block (poster + play button, lazy on first open)
 ```
 
 - **One bundle, two surfaces.** The news code lives in `src/news/` and ships inside `content.js`. `src/index.js` mounts `loginStrip` on login pages (instead of returning immediately) and `shellIndicator` from `menuBuilder` when the button group is built. `login/login.js` stays as is; the strip attaches under its container. This avoids duplicating validation and state logic in a non-bundled script.
@@ -196,6 +328,7 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 - **Background stores raw text; content validates.** Validation lives only in `newsCore.js` (unit-tested once). The worker checks size and JSON syntax only. This keeps `background.js` free of a bundling step.
 - **Refresh by TTL when a Creatio page opens** (cache older than 6 h → refetch). No `alarms` permission needed.
 - **Render with `textContent` only.** No HTML from the feed; CTA links must be `https://` and on the allowlist in `newsCore.js`.
+- **Media through the worker.** Images and posters are returned as `data:` URLs by `getNewsMedia`; YouTube links are built from a validated `videoId`. No `<iframe>`.
 - **Cross-tab sync** through `chrome.storage.onChanged`; both surfaces re-render from the store.
 - **Shell integration points:** the dot is a child of `.scripts-menu-button`; the `What's new` row is prepended in `buildNavMenu()`; the flyout is a sibling of `.scripts-menu-container` positioned with `adjustMenuPosition`. `monitorButtons` re-creates the button group, so the indicator must re-mount idempotently.
 - **Options page:** toggle `Show developer news` (`newsEnabled`, default on). When off, no request is made and nothing renders on either surface.
@@ -204,19 +337,23 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 ## Chrome Web Store
 
 - Allowed: MV3 policy forbids remote **code**, but allows fetching remote configuration/data when all logic ships in the package. The feed is plain-text data.
-- No new permissions: `host_permissions: <all_urls>` already covers the fetch, `storage` is already declared.
+- No new permissions: `host_permissions: <all_urls>` already covers the fetch (feed, images, `i.ytimg.com` posters), `storage` is already declared.
+- Images are explicitly allowed remote resources under MV3 ("remote resources that are not used to evaluate logic, such as images"). YouTube videos are links, not embedded code.
+- Privacy policy must mention: images are loaded from the news host only when the news panel is opened; YouTube posters may be loaded from `i.ytimg.com` (Google) unless the item has its own poster; opening a video goes to youtube.com.
 - Must be disclosed in the release notes and the privacy policy (`docs/PRIVACY_POLICY.md`): feed URL, refresh interval, no user data sent, how to turn it off.
 - Draft release-note lines:
   - *"Added a collapsible developer news strip under the login profile selector."*
   - *"Added an unread-news dot to the Clio satellite button and a What's new entry at the top of its menu that opens the news list."*
+  - *"News items can include an image or a link to a YouTube video, shown as a preview in the expanded news list; videos open on youtube.com."*
   - *"News are loaded as plain text from https://… every 6 hours; no user data is sent. News can be turned off in Options."*
 - When the feed domain is chosen, add it to the permission justification in `CLAUDE.md` and the other agent instruction files.
 
 ## Tests (planned)
 
-- Unit (`newsCore`): `validateFeed` (valid, missing fields, bad URL scheme, unknown schema, oversize text), `selectVisible` (expiry, min version, `surfaces`, sort, limit), `unreadItems`, `shouldShowDot` (noticed, 7-day and 10-load decay), `shouldPeek` (critical only, once per item, once per day, not on configuration).
+- Unit (`newsCore`): `validateFeed` (valid, missing fields, bad URL scheme, unknown schema, oversize text), `selectVisible` (expiry, min version, `surfaces`, sort, limit), `unreadItems`, `isUnreadSignal` (regular vs trending; `hours` from first shown; `until`; both → earliest; window over → quiet but not read; window extended → unread again), `validateFeed` trending rules (`{}`, out-of-range hours, `until` after `expiresAt`, trending + critical), `shouldShowDot` (noticed, 7-day and 10-load decay for regular items only), `validateFeed` media rules (image host not the feed host, missing `alt`, bad `videoId`, full YouTube URL instead of id, two media blocks), `shouldPeek` (critical only, once per item, once per day, not on configuration).
 - Unit (`newsStore`): read state pruning, `onChanged` re-render.
-- E2E (mock, feed served by `tests/e2e/server.js`): login strip four states, expand/collapse, mark all as read, persistence across reload; Shell dot appears and clears on menu open, `What's new` row opens the flyout, closing marks read, peek shows once and not again after reload; reading on login clears the Shell dot; toggle off in Options removes both.
+- Unit (`background` media handler): allowlist, wrong `Content-Type`, oversize image, cache hit, cache pruning.
+- E2E (mock, feed served by `tests/e2e/server.js`): login strip four states, expand/collapse, mark all as read, persistence across reload; Shell dot appears and clears on menu open, `What's new` row opens the flyout, closing marks read, peek shows once and not again after reload; reading on login clears the Shell dot; a trending item with an ended window shows no counter, chip or dot (clock mocked with `page.clock`); media: no image request before the panel opens, image shown after, broken image falls back to text, YouTube card opens `youtube.com/watch?v=<id>` in a new tab; toggle off in Options removes both.
 
 ## Research
 
@@ -251,6 +388,11 @@ Sources:
 - [Chrome Web Store — MV3 requirements](https://developer.chrome.com/docs/webstore/program-policies/mv3-requirements)
 
 ## Open questions
+
+- Media hosting: images in the same repository as `news.json` (simplest, reviewed in the same PR) or a separate CDN?
+- Do we want an embedded YouTube player in a modal later, or is link-out enough?
+
+- Trending window per user (`hours`) needs `newsFirstShown` in `storage.sync`. With ~5 active items this is far below the sync quota, but should we cap it (e.g. prune ids no longer in the feed)? Current plan: prune on every feed refresh.
 
 - Should the Shell dot be shown on the Configuration page too, or only in Shell?
 - Is a 7-day / 10-load decay right for the dot, or should normal news never show a dot at all (row only)?
