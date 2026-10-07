@@ -19,6 +19,8 @@
   --c-glass: rgba(24, 24, 24, 0.86); --c-glass-line: rgba(255, 255, 255, 0.1);
   --c-fg: #f3f4f6; --c-muted: #a3a9b4; --c-hover: rgba(255, 255, 255, 0.08);
   --c-accent: #ff5722; --c-accent-2: #ff7043; --c-crit: #ff5b5b;
+  /* news signal: blue on the dark glass; orange stays the brand/action colour */
+  --c-news: #3d8bff; --c-news-2: #7cb2ff;
   --c-tip: #7fb0ff; --c-event: #c1a2ff; --c-release: #ff9a73;
 
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -70,7 +72,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .planet { width: 16px; height: 16px; flex: none; }
 
 /* small badge (Material small badge, 8px + ring in the button colour) */
-.badge-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 0 2px var(--s-bar); display: none; }
+.badge-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-news); box-shadow: 0 0 0 2px var(--s-bar); display: none; }
 .sat.has-badge .badge-dot { display: block; }
 .sat.has-crit .badge-dot { background: var(--c-crit); }
 
@@ -86,10 +88,10 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .wn .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .wn .ttl { display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .wn .prev { color: var(--c-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pill { height: 16px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--c-accent); color: #fff; font-size: 10.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.pill { height: 16px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--c-news); color: #fff; font-size: 10.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
 .pill.crit { background: var(--c-crit); }
 .wn .go { color: var(--c-muted); margin-top: 2px; }
-.wn svg.ico { color: var(--c-accent-2); margin-top: 1px; }
+.wn svg.ico { color: var(--c-news-2); margin-top: 1px; }
 
 /* flyout */
 .fly { position: absolute; top: 40px; left: 256px; width: 320px; border-radius: 10px; background: var(--c-glass); border: 1px solid var(--c-glass-line); backdrop-filter: blur(20px) saturate(160%); box-shadow: 0 8px 24px rgba(0,0,0,.25); color: var(--c-fg); z-index: 6; }
@@ -101,16 +103,16 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
 .card { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 9px 12px 9px 10px; }
 .card + .card { border-top: 1px solid var(--c-glass-line); }
 .card .d { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; }
-.card.new .d { background: var(--c-accent); }
+.card.new .d { background: var(--c-news); }
 .card.crit .d { background: var(--c-crit); }
 .meta { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: var(--c-muted); }
 .tag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,.08); }
-.trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--c-accent-2); }
+.trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--c-news-2); }
 .trend svg { width: 10px; height: 10px; }
 .tag.release { color: var(--c-release); } .tag.tip { color: var(--c-tip); } .tag.event { color: var(--c-event); } .tag.breaking { color: var(--c-crit); }
 .card h4 { margin: 2px 0 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
 .card p { font-size: 12px; color: var(--c-muted); margin-top: 2px; }
-.card a { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--c-accent-2); text-decoration: none; }
+.card a { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--c-news-2); text-decoration: none; }
 .card.crit a { color: var(--c-crit); }
 .fly-foot { display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid var(--c-glass-line); font-size: 12px; }
 .fly-foot a { color: var(--c-muted); text-decoration: none; }
@@ -269,7 +271,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
   <p>Each level is used only if the one before is not enough. Normal news never go above level 2.</p>
   <div class="ladder">
     <div class="step"><span class="lvl">level 0 · nothing new</span><h3>No change</h3><p>The button looks exactly as today.</p></div>
-    <div class="step"><span class="lvl">level 1 · ambient</span><h3>Dot on the button</h3><p>8 px orange dot with a ring, no number. Clears as soon as the menu is opened. Decays after 7 days or 10 Shell loads even if ignored.</p></div>
+    <div class="step"><span class="lvl">level 1 · ambient</span><h3>Dot on the button</h3><p>8 px blue dot with a ring, no number. Clears as soon as the menu is opened. Decays after 7 days or 10 Shell loads even if ignored.</p></div>
     <div class="step"><span class="lvl">level 2 · in context</span><h3>What's new row</h3><p>First row of the menu, two lines: count + newest headline. Click opens the flyout next to the menu; that marks items read.</p></div>
     <div class="step"><span class="lvl">level 3 · critical only</span><h3>Peek card</h3><p>Once per critical item across both surfaces, max one per day. Auto-hides after 10 s, pauses on hover, never steals focus.</p></div>
   </div>

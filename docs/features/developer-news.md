@@ -46,7 +46,7 @@ Attached under the strip (no gap, shared border).
 
 | State | Trigger | Look |
 |---|---|---|
-| `unread` | At least one item not seen | Orange tint (`#fff3ee`, border `#ffd7c7`), orange pill, pulsing icon |
+| `unread` | At least one item not seen | Light blue tint (`#f7faff`, border `#c9dcf7`), blue pill (`#1a6fd6`), newspaper icon that pulses 3 times |
 | `read` | All items seen | White background, grey text, no pill |
 | `critical` | An unseen item with `priority: "critical"` | Red tint, red pill; panel auto-expands **once** for that item |
 | `none` | Feed disabled, empty, invalid or never loaded | Nothing rendered; page looks as today |
@@ -64,7 +64,7 @@ Inside Creatio the user is in the middle of a task. The rule here: **inform, nev
 | Level | When | UI |
 |---|---|---|
 | 0 · nothing new | No unread items | Button looks exactly as today |
-| 1 · ambient | Unread items, menu not opened since they arrived | 8 px dot (10 px with a 2 px ring in the toolbar colour) on the top-right corner of the `Clio satellite` button. No number. Orange; red when a critical item is unread |
+| 1 · ambient | Unread items, menu not opened since they arrived | 8 px dot (10 px with a 2 px ring in the toolbar colour) on the top-right corner of the `Clio satellite` button. No number. Blue (`#3d8bff`); red when a critical item is unread |
 | 2 · in context | Menu opened | First menu row `What's new` with a count pill and the newest headline as a second line; separator under it. Click opens the flyout |
 | 3 · critical only | Unread critical item, peek not shown yet | One-time peek card under the button group |
 
@@ -252,6 +252,17 @@ This avoids the page's `img-src` CSP, which on some self-hosted Creatio instance
 - Use media only when it explains something faster than text: a screenshot of new UI, a terminal output, a recorded webinar.
 - At most two items with media at a time, so the panel stays scannable.
 - No text baked into images that is needed to understand the news; the title and body must work alone.
+
+### Colour language
+
+| Colour | Meaning | Used for |
+|---|---|---|
+| Blue | Something new to read (info) | Unread tint, `N new` pill, unread dots, Shell dot, CTA links, Trending chip |
+| Red | Act now | Critical items only |
+| Orange (Creatio accent) | Actions of the extension | Login button, profile actions — never for news |
+| Neutral grey/white | Nothing new | Read state |
+
+The first mockup used an orange tint and pill for unread news. On a login form next to an orange button it read like a validation error or warning, not like news. Blue is what people associate with "new / info" (Google, GitHub, X) and keeps red free for critical items.
 
 ### Item types
 
