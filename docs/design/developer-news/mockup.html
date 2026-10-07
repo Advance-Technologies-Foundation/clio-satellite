@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer News Strip — Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column for the proposal; the live mock sits in a "browser" frame that always renders Creatio's light login page. */
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --fg: #1d2127;
+  --muted: #5f6672;
+  --line: #e2e3e0;
+  --accent: #e8501c;
+  --accent-soft: #fdeee7;
+  --code-bg: #efefec;
+  --good: #1f7a4d;
+  --warn: #b4540a;
+
+  /* mock: always Creatio light, independent of the viewer theme */
+  --m-bg: #ffffff;
+  --m-fg: #1f2329;
+  --m-muted: #6b7280;
+  --m-border: #d5d9e0;
+  --m-field: #f3f4f6;
+  --m-accent: #ff5722;
+  --m-accent-hover: #f4511e;
+  --m-tint: #fff3ee;
+  --m-tint-line: #ffd7c7;
+  --m-crit: #c62828;
+  --m-crit-tint: #fdecec;
+  --m-crit-line: #f5c2c2;
+  --m-tip: #1e63c4;
+  --m-tip-tint: #e8f0fc;
+  --m-event: #6a3fb5;
+  --m-event-tint: #f0eafb;
+  --m-release-tint: #fff0e9;
+  --m-release: #c8431a;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2;
+    --line: #2e3238; --accent: #ff7a4a; --accent-soft: #3a2219; --code-bg: #262a30;
+    --good: #5fc58f; --warn: #f0a35a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2;
+  --line: #2e3238; --accent: #ff7a4a; --accent-soft: #3a2219; --code-bg: #262a30;
+  --good: #5fc58f; --warn: #f0a35a; color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 920px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.lede { font-size: 17px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+a { color: var(--accent); }
+header { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- live mock ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start; }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.browser { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--m-bg); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); }
+.browser-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--m-field); border-bottom: 1px solid var(--m-border); }
+.browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--m-border); display: block; }
+.browser-bar span { font-family: var(--font-mono); font-size: 11px; color: var(--m-muted); margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page { padding: 40px 20px 56px; display: flex; justify-content: center; color: var(--m-fg); font-size: 14px; line-height: 1.45; min-height: 520px; }
+.form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
+.brand { font-weight: 700; font-size: 22px; color: var(--m-fg); margin-bottom: 12px; letter-spacing: -0.01em; }
+.brand b { color: var(--m-accent); }
+.field { height: 36px; border: 1px solid var(--m-border); border-radius: 4px; background: var(--m-bg); padding: 0 10px; display: flex; align-items: center; color: var(--m-muted); font-size: 13px; }
+.btn-login { height: 36px; border-radius: 4px; background: var(--m-accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+.sat-row { display: flex; gap: 6px; margin-top: 16px; }
+.sat-select { flex: 1; min-width: 0; height: 36px; border: 1px solid var(--m-border); border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 14px; color: var(--m-fg); background: var(--m-bg); }
+.sat-go { width: 36px; height: 36px; border-radius: 4px; background: var(--m-accent); display: grid; place-items: center; flex: none; }
+
+/* the strip: the always-visible 32px line */
+.news { margin-top: 6px; position: relative; }
+.strip { width: 100%; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 6px; border-radius: 4px; border: 1px solid var(--m-border); background: var(--m-bg); color: var(--m-muted); font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
+.strip:hover { border-color: #a9b0bc; }
+.strip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 87, 34, .35); }
+.strip .ic { width: 18px; height: 18px; flex: none; display: grid; place-items: center; color: var(--m-muted); }
+.strip .count { flex: none; height: 18px; padding: 0 7px; border-radius: 9px; background: var(--m-accent); color: #fff; font-size: 11px; font-weight: 600; display: none; align-items: center; letter-spacing: .01em; }
+.strip .headline { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.strip .chev { flex: none; color: var(--m-muted); transition: transform .2s; }
+.news.open .strip .chev { transform: rotate(180deg); }
+.news.open .strip { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+.news.unread .strip { background: var(--m-tint); border-color: var(--m-tint-line); color: var(--m-fg); }
+.news.unread .strip .count { display: inline-flex; }
+.news.unread .strip .ic { color: var(--m-accent); }
+.news.unread .strip .ic::after { content: ""; position: absolute; }
+.news.critical .strip { background: var(--m-crit-tint); border-color: var(--m-crit-line); color: var(--m-fg); }
+.news.critical .strip .count { background: var(--m-crit); }
+.news.critical .strip .ic { color: var(--m-crit); }
+
+.pulse { position: relative; }
+.news.unread .pulse::before { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: currentColor; opacity: .25; animation: ping 1.8s ease-out 3; }
+@keyframes ping { from { transform: scale(.6); opacity: .35; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .news.unread .pulse::before { animation: none; } .strip .chev { transition: none; } }
+
+.panel { display: none; border: 1px solid var(--m-border); border-top: 0; border-radius: 0 0 4px 4px; background: var(--m-bg); box-shadow: 0 6px 16px rgba(17, 24, 39, .08); }
+.news.unread .panel { border-color: var(--m-tint-line); }
+.news.critical .panel { border-color: var(--m-crit-line); }
+.news.open .panel { display: block; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--m-field); font-size: 11.5px; color: var(--m-muted); }
+.panel-head strong { color: var(--m-fg); font-weight: 600; font-size: 12px; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--m-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.linkbtn:hover { color: var(--m-fg); }
+.items { list-style: none; margin: 0; padding: 0; max-height: 252px; overflow-y: auto; }
+.item { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 10px 10px 10px 8px; border-bottom: 1px solid var(--m-field); }
+.item:last-child { border-bottom: 0; }
+.item .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; background: transparent; }
+.item.new .dot { background: var(--m-accent); }
+.item.crit .dot { background: var(--m-crit); }
+.meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--m-muted); margin-bottom: 2px; }
+.tag { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; }
+.tag.release { background: var(--m-release-tint); color: var(--m-release); }
+.tag.tip { background: var(--m-tip-tint); color: var(--m-tip); }
+.tag.event { background: var(--m-event-tint); color: var(--m-event); }
+.tag.breaking { background: var(--m-crit-tint); color: var(--m-crit); }
+.item h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--m-fg); line-height: 1.35; }
+.item p { font-size: 12px; color: var(--m-muted); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item .cta { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--m-accent); text-decoration: none; }
+.item.crit .cta { color: var(--m-crit); }
+.panel-foot { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-top: 1px solid var(--m-field); font-size: 11.5px; }
+.panel-foot a { color: var(--m-muted); text-decoration: none; }
+.panel-foot a:hover { color: var(--m-fg); }
+
+.controls { display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; }
+.controls fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.controls legend { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 4px; }
+.controls label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; line-height: 1.4; }
+.controls input { accent-color: var(--accent); margin-top: 3px; }
+.controls small { color: var(--muted); display: block; font-size: 12px; }
+.measure { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+/* ---------- research table ---------- */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rule p { font-size: 14px; color: var(--muted); }
+.rule .src { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.state { display: flex; flex-direction: column; gap: 6px; }
+.state .label { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
+.state p { font-size: 14px; color: var(--muted); }
+
+pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.flow > div { padding: 14px 16px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.flow > div:last-child { border-right: 0; }
+.flow b { font-size: 14px; }
+.flow span { font-size: 13px; color: var(--muted); }
+.flow .mono { color: var(--accent); font-size: 11px; }
+@media (max-width: 760px) { .flow > div { border-right: 0; border-bottom: 1px solid var(--line); } .flow > div:last-child { border-bottom: 0; } }
+
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.ok { color: var(--good); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+.sources { font-size: 13px; color: var(--muted); }
+.sources a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Clio Satellite · design mockup · v1</div>
+  <h1>Developer news strip on the Creatio login page</h1>
+  <p class="lede">A 32 px line under the profile selector. It cannot be hidden, but it stays quiet until there is something new. Content comes from a remote JSON feed, so publishing news needs no extension release. Spec: <code>docs/features/developer-news.md</code>.</p>
+</header>
+
+<section>
+  <h2>Live mockup</h2>
+  <p>Click the strip to expand the feed. Switch scenarios on the right. News texts are placeholders, not real announcements.</p>
+  <div class="stage">
+    <div class="browser" aria-label="Creatio login page mockup">
+      <div class="browser-bar"><i></i><i></i><i></i><span>https://dev2.krylov.cloud/Login/NuiLogin.aspx</span></div>
+      <div class="page">
+        <div class="form">
+          <div class="brand"><b>●</b> Creatio</div>
+          <div class="field">Login</div>
+          <div class="field">Password</div>
+          <div class="btn-login">Log in</div>
+
+          <div class="sat-row">
+            <div class="sat-select">Classic (Supervisor)
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="sat-go" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M4 12h11"/><path d="M11 8l4 4-4 4"/></svg>
+            </div>
+          </div>
+
+          <div class="news" id="news">
+            <button class="strip" id="strip" type="button" aria-expanded="false" aria-controls="panel">
+              <span class="ic pulse" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a8 8 0 0 1 8-8"/><path d="M4 4v16h16"/><path d="M8 16l4-5 3 3 5-6"/></svg>
+              </span>
+              <span class="count" id="count">3 new</span>
+              <span class="headline" id="headline"></span>
+              <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="panel" id="panel" role="region" aria-label="Developer news">
+              <div class="panel-head"><strong>Dev tools news</strong><button class="linkbtn" id="markall" type="button">Mark all as read</button></div>
+              <ul class="items" id="items"></ul>
+              <div class="panel-foot"><a href="#changelog">All news →</a><a href="#settings">Turn off in options</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Scenario</legend>
+        <label><input type="radio" name="scn" id="scn-new" value="new" checked> <span>Unread items<small>Tint, counter, latest headline</small></span></label>
+        <label><input type="radio" name="scn" id="scn-read" value="read"> <span>All read<small>Neutral strip, no badge</small></span></label>
+        <label><input type="radio" name="scn" id="scn-crit" value="crit"> <span>Critical item<small>Red tone, auto-expanded once</small></span></label>
+        <label><input type="radio" name="scn" id="scn-empty" value="empty"> <span>No feed<small>Server down or no items: nothing is rendered</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Dimensions</legend>
+        <div class="measure">collapsed: 32 px<br>expanded: ≤ 32 + 330 px<br>width: same as the form<br>visible cards: up to 3, then scroll</div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>States</h2>
+  <div class="states">
+    <div class="state"><span class="label">unread</span><h3>New items</h3><p>Orange tint, "3 new" pill, headline of the newest item; the icon pulses three times and stops.</p></div>
+    <div class="state"><span class="label">read</span><h3>All read</h3><p>White strip, grey "What's new · headline". Stays findable without pulling attention.</p></div>
+    <div class="state"><span class="label">critical</span><h3>Breaking change</h3><p>Red tone. Auto-expanded on first display only, then behaves like a normal unread item.</p></div>
+    <div class="state"><span class="label">none</span><h3>No feed</h3><p>No data or feed disabled: the block is not rendered and the page looks as it does today.</p></div>
+  </div>
+</section>
+
+</div>
+<script>
+(function () {
+  var base = [
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes' },
+    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', cta: 'See the guide' },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team. Recording sent to everyone registered.', cta: 'Register' },
+    { id: 'd', type: 'tip', tag: 'Tip', date: 'Sep 24', title: 'Profile aliases now sync across your machines', body: 'Name profiles in Options to tell environments apart at a glance.', cta: 'Open options' }
+  ];
+  var critical = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments. Run dotnet tool update clio -g.', cta: 'See migration steps', crit: true };
+
+  var news = document.getElementById('news');
+  var strip = document.getElementById('strip');
+  var count = document.getElementById('count');
+  var headline = document.getElementById('headline');
+  var list = document.getElementById('items');
+  var state = { items: [], seen: {}, open: false };
+
+  function unread() { return state.items.filter(function (i) { return !state.seen[i.id]; }); }
+
+  function render() {
+    news.hidden = state.items.length === 0;
+    var u = unread();
+    var hasCrit = u.some(function (i) { return i.crit; });
+    news.classList.toggle('unread', u.length > 0);
+    news.classList.toggle('critical', hasCrit);
+    news.classList.toggle('open', state.open);
+    strip.setAttribute('aria-expanded', String(state.open));
+    count.textContent = u.length + ' new';
+    var lead = u[0] || state.items[0];
+    headline.textContent = lead ? (u.length ? lead.title : "What's new · " + lead.title) : '';
+    list.textContent = '';
+    state.items.forEach(function (i) {
+      var li = document.createElement('li');
+      li.className = 'item' + (!state.seen[i.id] ? ' new' : '') + (i.crit && !state.seen[i.id] ? ' crit' : '');
+      var dot = document.createElement('span'); dot.className = 'dot';
+      var body = document.createElement('div');
+      var meta = document.createElement('div'); meta.className = 'meta';
+      var tag = document.createElement('span'); tag.className = 'tag ' + i.type; tag.textContent = i.tag;
+      var d = document.createElement('span'); d.textContent = i.date;
+      meta.append(tag, d);
+      var h = document.createElement('h4'); h.textContent = i.title;
+      var p = document.createElement('p'); p.textContent = i.body;
+      var a = document.createElement('a'); a.className = 'cta'; a.href = '#news'; a.textContent = i.cta + ' →';
+      body.append(meta, h, p, a);
+      li.append(dot, body);
+      list.appendChild(li);
+    });
+  }
+
+  function markAllSeen() { state.items.forEach(function (i) { state.seen[i.id] = true; }); }
+
+  strip.addEventListener('click', function () {
+    var wasOpen = state.open;
+    state.open = !state.open;
+    render();
+    // Facebook-style: the badge clears once the list has been opened, dots fade on close
+    if (wasOpen) { markAllSeen(); render(); }
+  });
+  document.getElementById('markall').addEventListener('click', function () { markAllSeen(); render(); });
+
+  function scenario(v) {
+    state.seen = {};
+    state.open = false;
+    if (v === 'new') { state.items = base.slice(); state.seen.d = true; }
+    if (v === 'read') { state.items = base.slice(); markAllSeen(); }
+    if (v === 'crit') { state.items = [critical].concat(base); state.seen.d = true; state.seen.c = true; state.seen.b = true; state.open = true; }
+    if (v === 'empty') { state.items = []; }
+    render();
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(function (r) {
+    r.addEventListener('change', function () { scenario(r.value); });
+  });
+  scenario('new');
+})();
+</script>
+</body>
+</html>
