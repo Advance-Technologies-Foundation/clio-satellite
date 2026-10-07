@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shell News Indicator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: proposal column; the mock frame always renders Creatio Shell (light app, dark glass menus) regardless of the viewer theme. */
+:root {
+  --bg: #f6f6f4; --surface: #ffffff; --fg: #1d2127; --muted: #5f6672; --line: #e2e3e0;
+  --accent: #e8501c; --code-bg: #efefec;
+
+  /* mock: Creatio Shell */
+  --s-app: #f4f5f8; --s-bar: #ffffff; --s-fg: #1f2329; --s-muted: #6b7280; --s-border: #e3e6ec;
+  --s-search: #f1f3f6; --s-tile: #ffffff;
+  /* mock: Clio satellite (values from menu-item.css) */
+  --c-btn: #1f2329; --c-btn-hover: #2c323b; --c-btn-fg: #f3f4f6;
+  --c-glass: rgba(24, 24, 24, 0.86); --c-glass-line: rgba(255, 255, 255, 0.1);
+  --c-fg: #f3f4f6; --c-muted: #a3a9b4; --c-hover: rgba(255, 255, 255, 0.08);
+  --c-accent: #ff5722; --c-accent-2: #ff7043; --c-crit: #ff5b5b;
+  --c-tip: #7fb0ff; --c-event: #c1a2ff; --c-release: #ff9a73;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2; --line: #2e3238; --accent: #ff7a4a; --code-bg: #262a30; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2; --line: #2e3238; --accent: #ff7a4a; --code-bg: #262a30; color-scheme: dark; }
+
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 48px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+section, header { display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 17px; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+/* ---------- stage ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.browser { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--s-app); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.browser-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e9ebef; border-bottom: 1px solid var(--s-border); }
+.browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced6; display: block; }
+.browser-bar span { font-family: var(--font-mono); font-size: 11px; color: var(--s-muted); margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell { position: relative; min-height: 560px; color: var(--s-fg); font-size: 13px; line-height: 1.4; overflow: hidden; }
+.toolbar { height: 52px; background: var(--s-bar); border-bottom: 1px solid var(--s-border); display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+.logo { font-weight: 700; font-size: 16px; white-space: nowrap; }
+.logo b { color: var(--c-accent); }
+.search { flex: 0 1 300px; min-width: 80px; height: 32px; border-radius: 16px; background: var(--s-search); display: flex; align-items: center; padding: 0 12px; color: var(--s-muted); font-size: 12px; }
+.spacer { flex: 1; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: #d6dae2; flex: none; }
+.content { padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tile { height: 86px; border-radius: 8px; background: var(--s-tile); border: 1px solid var(--s-border); }
+
+/* Clio satellite button group */
+.sat { position: relative; display: flex; flex: none; border-radius: 8px; box-shadow: 0 1px 2px rgba(16,24,40,.12), 0 4px 12px rgba(16,24,40,.14); }
+.sat button { font: inherit; border: 0; cursor: pointer; background: var(--c-btn); color: var(--c-btn-fg); height: 34px; display: flex; align-items: center; gap: 8px; }
+.sat button:hover, .sat button[aria-expanded="true"] { background: var(--c-btn-hover); }
+.sat button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(255,112,67,.7); }
+.sat .main { border-radius: 8px 0 0 8px; padding: 0 12px; font-size: 13px; font-weight: 600; letter-spacing: .01em; position: relative; }
+.sat .act { border-radius: 0 8px 8px 0; border-left: 1px solid rgba(255,255,255,.12); padding: 0 10px; }
+.caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; opacity: .7; }
+.planet { width: 16px; height: 16px; flex: none; }
+
+/* small badge (Material small badge, 8px + ring in the button colour) */
+.badge-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-accent); box-shadow: 0 0 0 2px var(--s-bar); display: none; }
+.sat.has-badge .badge-dot { display: block; }
+.sat.has-crit .badge-dot { background: var(--c-crit); }
+
+/* glass menu */
+.menu { position: absolute; top: 40px; left: 0; width: 248px; padding: 6px; border-radius: 10px; background: var(--c-glass); border: 1px solid var(--c-glass-line); backdrop-filter: blur(20px) saturate(160%); box-shadow: 0 8px 24px rgba(0,0,0,.25); color: var(--c-fg); z-index: 5; }
+.mi { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--c-fg); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.mi:hover, .mi:focus-visible { background: var(--c-hover); outline: none; }
+.mi svg { width: 16px; height: 16px; flex: none; color: var(--c-muted); }
+.sep { height: 1px; margin: 4px 8px; background: var(--c-glass-line); }
+
+/* What's new row: two lines, sits on top of the menu */
+.wn { height: auto; padding: 8px 10px; align-items: flex-start; }
+.wn .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wn .ttl { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.wn .prev { color: var(--c-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { height: 16px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--c-accent); color: #fff; font-size: 10.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.pill.crit { background: var(--c-crit); }
+.wn .go { color: var(--c-muted); margin-top: 2px; }
+.wn svg.ico { color: var(--c-accent-2); margin-top: 1px; }
+
+/* flyout */
+.fly { position: absolute; top: 40px; left: 256px; width: 320px; border-radius: 10px; background: var(--c-glass); border: 1px solid var(--c-glass-line); backdrop-filter: blur(20px) saturate(160%); box-shadow: 0 8px 24px rgba(0,0,0,.25); color: var(--c-fg); z-index: 6; }
+.fly-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--c-glass-line); font-size: 12px; }
+.fly-head strong { font-size: 13px; }
+.lb { background: none; border: 0; padding: 0; color: var(--c-muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.lb:hover { color: var(--c-fg); }
+.list { list-style: none; margin: 0; padding: 4px 0; max-height: 300px; overflow-y: auto; }
+.card { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 9px 12px 9px 10px; }
+.card + .card { border-top: 1px solid var(--c-glass-line); }
+.card .d { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; }
+.card.new .d { background: var(--c-accent); }
+.card.crit .d { background: var(--c-crit); }
+.meta { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: var(--c-muted); }
+.tag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,.08); }
+.tag.release { color: var(--c-release); } .tag.tip { color: var(--c-tip); } .tag.event { color: var(--c-event); } .tag.breaking { color: var(--c-crit); }
+.card h4 { margin: 2px 0 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
+.card p { font-size: 12px; color: var(--c-muted); margin-top: 2px; }
+.card a { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--c-accent-2); text-decoration: none; }
+.card.crit a { color: var(--c-crit); }
+.fly-foot { display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid var(--c-glass-line); font-size: 12px; }
+.fly-foot a { color: var(--c-muted); text-decoration: none; }
+
+/* peek: one-time card for critical items */
+.peek { position: absolute; top: 46px; left: 0; width: 300px; border-radius: 10px; background: var(--c-glass); border: 1px solid rgba(255, 91, 91, .45); backdrop-filter: blur(20px); box-shadow: 0 10px 28px rgba(0,0,0,.3); color: var(--c-fg); padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 4px; z-index: 7; animation: drop .25s ease-out; }
+.peek h4 { margin: 0; font-size: 13px; }
+.peek p { font-size: 12px; color: var(--c-muted); }
+.peek .row { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.peek .primary { background: var(--c-crit); color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.peek .timer { height: 2px; background: rgba(255,255,255,.1); border-radius: 1px; overflow: hidden; margin-top: 6px; }
+.peek .timer i { display: block; height: 100%; width: 100%; background: var(--c-crit); transform-origin: left; animation: shrink 10s linear forwards; }
+.peek:hover .timer i { animation-play-state: paused; }
+@keyframes drop { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes shrink { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .peek { animation: none; } .peek .timer i { animation-duration: 0.01s; animation-iteration-count: 1; } }
+
+.controls { display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; }
+.controls fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.controls legend { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 4px; }
+.controls label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; line-height: 1.4; }
+.controls input { accent-color: var(--accent); margin-top: 3px; }
+.controls small { display: block; color: var(--muted); font-size: 12px; }
+.log { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: pre-line; }
+
+.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.step .lvl { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
+.step p { font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Clio Satellite · design mockup · shell v1</div>
+  <h1>News inside Creatio: the Clio satellite button</h1>
+  <p class="lede">The login strip is one surface. Inside Shell people are working, so the signal has to be quieter: a dot on the button, a "What's new" row on top of the menu, and a flyout with the same cards. Only a breaking change can show a one-time peek card. Spec: <code>docs/features/developer-news.md</code>.</p>
+</header>
+
+<section>
+  <h2>Live mockup</h2>
+  <p>Click "Clio satellite" to open the menu, then "What's new". Use the scenarios on the right. News texts are placeholders.</p>
+  <div class="stage">
+    <div class="browser" aria-label="Creatio Shell mockup">
+      <div class="browser-bar"><i></i><i></i><i></i><span>https://dev2.krylov.cloud/0/Shell/#Section/Contacts</span></div>
+      <div class="shell" id="shell">
+        <div class="toolbar">
+          <div class="logo"><b>●</b> Creatio</div>
+          <div class="search">Search…</div>
+          <div class="sat" id="sat">
+            <button class="main" id="satBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Clio satellite">
+              <svg class="planet" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="#ff5722"/><ellipse cx="8" cy="8" rx="7" ry="3" transform="rotate(-25 8 8)" stroke="currentColor" stroke-width="1.3"/></svg>
+              Clio satellite <span class="caret"></span>
+              <span class="badge-dot" aria-hidden="true"></span>
+            </button>
+            <button class="act" type="button" aria-label="Quick actions">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8l1-5.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+              <span class="caret"></span>
+            </button>
+
+            <div class="menu" id="menu" role="menu" hidden>
+              <button class="mi wn" id="wnRow" type="button" role="menuitem" hidden>
+                <svg class="ico" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 6.5v3l7 3.5v-10l-7 3.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 6c.8.5.8 3.5 0 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <span class="txt"><span class="ttl">What's new <span class="pill" id="wnPill">2</span></span><span class="prev" id="wnPrev"></span></span>
+                <svg class="go" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="sep" id="wnSep" hidden></div>
+              <div id="menuItems"></div>
+            </div>
+
+            <div class="fly" id="fly" role="region" aria-label="Developer news" hidden>
+              <div class="fly-head"><strong>Dev tools news</strong><button class="lb" id="markAll" type="button">Mark all as read</button></div>
+              <ul class="list" id="list"></ul>
+              <div class="fly-foot"><a href="#all">All news →</a><a href="#off">Turn off in options</a></div>
+            </div>
+
+            <div class="peek" id="peek" role="status" aria-live="polite" hidden>
+              <div class="meta"><span class="tag breaking">Breaking</span><span>Oct 7</span></div>
+              <h4 id="peekTitle"></h4>
+              <p id="peekBody"></p>
+              <div class="row"><button class="primary" id="peekRead" type="button">Read</button><button class="lb" id="peekClose" type="button">Dismiss</button></div>
+              <div class="timer"><i></i></div>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="avatar" aria-hidden="true"></div>
+        </div>
+        <div class="content" aria-hidden="true">
+          <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Scenario</legend>
+        <label><input type="radio" name="scn" id="s-new" value="new" checked><span>Unread items<small>Dot on the button, What's new row with count</small></span></label>
+        <label><input type="radio" name="scn" id="s-noticed" value="noticed"><span>Noticed, not read<small>Menu was opened earlier: dot gone, count stays in the row</small></span></label>
+        <label><input type="radio" name="scn" id="s-crit" value="crit"><span>Critical item<small>Red dot + one-time peek card, 10 s, pauses on hover</small></span></label>
+        <label><input type="radio" name="scn" id="s-read" value="read"><span>All read<small>No dot; What's new row hidden, news reachable from Options</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Event log</legend>
+        <div class="log" id="log">—</div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Escalation ladder</h2>
+  <p>Each level is used only if the one before is not enough. Normal news never go above level 2.</p>
+  <div class="ladder">
+    <div class="step"><span class="lvl">level 0 · nothing new</span><h3>No change</h3><p>The button looks exactly as today.</p></div>
+    <div class="step"><span class="lvl">level 1 · ambient</span><h3>Dot on the button</h3><p>8 px orange dot with a ring, no number. Clears as soon as the menu is opened. Decays after 7 days or 10 Shell loads even if ignored.</p></div>
+    <div class="step"><span class="lvl">level 2 · in context</span><h3>What's new row</h3><p>First row of the menu, two lines: count + newest headline. Click opens the flyout next to the menu; that marks items read.</p></div>
+    <div class="step"><span class="lvl">level 3 · critical only</span><h3>Peek card</h3><p>Once per critical item across both surfaces, max one per day. Auto-hides after 10 s, pauses on hover, never steals focus.</p></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var items = [
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes' },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team.', cta: 'Register' },
+    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', cta: 'See the guide' }
+  ];
+  var crit = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments.', cta: 'See migration steps', crit: true };
+  var labels = ['Features', 'Application management', 'Lookups', 'Process library', 'Process log', 'System settings', 'Users', 'Configuration'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var sat = $('sat'), btn = $('satBtn'), menu = $('menu'), fly = $('fly'), peek = $('peek'), log = $('log');
+  var st = { feed: [], read: {}, noticed: false, peekShown: false };
+  var peekTimer = null;
+
+  labels.forEach(function (l) {
+    var b = document.createElement('button');
+    b.className = 'mi'; b.type = 'button'; b.setAttribute('role', 'menuitem');
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/></svg>';
+    b.appendChild(document.createTextNode(l));
+    $('menuItems').appendChild(b);
+  });
+  var opt = document.createElement('div'); opt.className = 'sep'; $('menuItems').appendChild(opt);
+  var s = document.createElement('button'); s.className = 'mi'; s.type = 'button'; s.textContent = 'Settings'; $('menuItems').appendChild(s);
+
+  function note(t) { log.textContent = t + '\n' + (log.textContent === '—' ? '' : log.textContent).split('\n').slice(0, 4).join('\n'); }
+  function unread() { return st.feed.filter(function (i) { return !st.read[i.id]; }); }
+
+  function render() {
+    var u = unread();
+    var hasCrit = u.some(function (i) { return i.crit; });
+    sat.classList.toggle('has-badge', u.length > 0 && !st.noticed);
+    sat.classList.toggle('has-crit', hasCrit);
+    btn.setAttribute('aria-label', u.length && !st.noticed ? 'Clio satellite, ' + u.length + ' unread news' : 'Clio satellite');
+    $('wnRow').hidden = u.length === 0;
+    $('wnSep').hidden = u.length === 0;
+    $('wnPill').textContent = u.length;
+    $('wnPill').classList.toggle('crit', hasCrit);
+    $('wnPrev').textContent = u[0] ? u[0].title : '';
+    var list = $('list'); list.textContent = '';
+    st.feed.forEach(function (i) {
+      var li = document.createElement('li');
+      li.className = 'card' + (st.read[i.id] ? '' : (i.crit ? ' new crit' : ' new'));
+      var d = document.createElement('span'); d.className = 'd';
+      var w = document.createElement('div');
+      var m = document.createElement('div'); m.className = 'meta';
+      var tg = document.createElement('span'); tg.className = 'tag ' + i.type; tg.textContent = i.tag;
+      var dt = document.createElement('span'); dt.textContent = i.date;
+      m.append(tg, dt);
+      var h = document.createElement('h4'); h.textContent = i.title;
+      var p = document.createElement('p'); p.textContent = i.body;
+      var a = document.createElement('a'); a.href = '#news'; a.textContent = i.cta + ' →';
+      w.append(m, h, p, a); li.append(d, w); list.appendChild(li);
+    });
+  }
+
+  // Beside the menu when it fits, otherwise on top of it (same rule as adjustMenuPosition)
+  function placeFly() {
+    var room = $('shell').clientWidth - sat.offsetLeft;
+    fly.style.left = room >= 256 + 320 + 8 ? '256px' : '0px';
+  }
+
+  function closeAll() { menu.hidden = true; fly.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = menu.hidden;
+    closeAll();
+    if (open) {
+      menu.hidden = false; btn.setAttribute('aria-expanded', 'true');
+      if (unread().length && !st.noticed) { st.noticed = true; note('menu opened → dot cleared (noticed)'); }
+      hidePeek();
+      render();
+    }
+  });
+  $('wnRow').addEventListener('click', function (e) {
+    e.stopPropagation();
+    fly.hidden = !fly.hidden;
+    placeFly();
+    if (!fly.hidden) note('flyout opened');
+  });
+  fly.addEventListener('click', function (e) { e.stopPropagation(); });
+  $('markAll').addEventListener('click', function () { st.feed.forEach(function (i) { st.read[i.id] = true; }); note('mark all as read'); render(); });
+  document.addEventListener('click', function () {
+    if (!fly.hidden) { st.feed.forEach(function (i) { st.read[i.id] = true; }); note('flyout closed → items read'); }
+    closeAll(); render();
+  });
+
+  function showPeek(item) {
+    $('peekTitle').textContent = item.title; $('peekBody').textContent = item.body;
+    peek.hidden = false; st.peekShown = true; note('peek shown (once for ' + item.id + ')');
+    var i = peek.querySelector('.timer i'); i.style.animation = 'none'; void i.offsetWidth; i.style.animation = '';
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(function () { if (!peek.matches(':hover')) hidePeek(); }, 10000);
+  }
+  function hidePeek() { if (!peek.hidden) { peek.hidden = true; clearTimeout(peekTimer); } }
+  peek.addEventListener('mouseleave', function () { clearTimeout(peekTimer); peekTimer = setTimeout(hidePeek, 3000); });
+  peek.addEventListener('click', function (e) { e.stopPropagation(); });
+  $('peekClose').addEventListener('click', function () { hidePeek(); note('peek dismissed; dot stays'); });
+  $('peekRead').addEventListener('click', function () {
+    hidePeek(); closeAll(); menu.hidden = false; fly.hidden = false; placeFly(); btn.setAttribute('aria-expanded', 'true');
+    st.noticed = true; note('peek → flyout'); render();
+  });
+
+  function scenario(v) {
+    closeAll(); hidePeek(); st.read = {}; st.noticed = false; log.textContent = '—';
+    st.feed = items.slice();
+    if (v === 'noticed') st.noticed = true;
+    if (v === 'read') st.feed.forEach(function (i) { st.read[i.id] = true; });
+    if (v === 'crit') { st.feed = [crit].concat(items); st.read.b = true; }
+    render();
+    if (v === 'crit') setTimeout(function () { showPeek(crit); }, 400);
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(function (r) { r.addEventListener('change', function () { scenario(r.value); }); });
+  scenario('new');
+})();
+</script>
+</body>
+</html>
