@@ -46,4 +46,24 @@ describe('Extension packaging', () => {
       expect(zipUjLine, `${file} is excluded by *.html but not re-added in the release workflow`).toContain(file);
     }
   });
+
+  it('scripts loaded by the service worker exist and are not excluded from the release ZIP', () => {
+    const background = readFile('background.js');
+    const workflow = readFile('.github/workflows/release.yml');
+    const excluded = [...workflow.matchAll(/-x "([^"]+)"/g)].map(m => m[1]);
+    const imported = [...background.matchAll(/importScripts\(['"]([^'"]+)['"]\)/g)].map(m => m[1]);
+    expect(imported).toContain('news/newsFetcher.js');
+    for (const file of imported) {
+      expect(existsSync(resolve(ROOT, file)), `${file} is imported but does not exist`).toBe(true);
+      const dir = file.split('/')[0] + '/*';
+      expect(excluded, `${file} would be left out of the release ZIP`).not.toContain(dir);
+    }
+  });
+
+  it('news styles are injected on login and Shell pages', () => {
+    const manifest = JSON.parse(readFile('manifest.json'));
+    for (const script of manifest.content_scripts) {
+      expect(script.css).toContain('styles/news.css');
+    }
+  });
 });

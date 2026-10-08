@@ -132,6 +132,26 @@ test.describe('Options page', () => {
     await expect(page.locator('#history-list')).toBeHidden();
   });
 
+  test('history renders stored origins as text and never as a script link', async ({ page }) => {
+    await loadOptions(page, {
+      syncData: {
+        userProfiles: [TEST_PROFILE],
+        lastLoginProfiles: {
+          '<img src=x onerror="window.__xss=1">': TEST_PROFILE.username,
+          'javascript:window.__xss=2': TEST_PROFILE.username,
+        },
+      },
+    });
+    await page.locator('.history-summary').click();
+    const sites = page.locator('.history-item__site');
+    await expect(sites).toHaveCount(2);
+    await expect(page.locator('.history-item__site img')).toHaveCount(0);
+    await expect(sites.filter({ hasText: '<img src=x' })).toHaveCount(1);
+    for (const site of await sites.all()) expect(await site.getAttribute('href')).toBeNull();
+    await sites.first().click();
+    expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+  });
+
   test('history card expands on summary click and shows site, profile and date', async ({ page }) => {
     const ts = new Date('2026-04-17T10:30:00').getTime();
     await loadOptions(page, {

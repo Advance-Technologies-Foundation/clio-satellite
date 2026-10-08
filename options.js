@@ -201,19 +201,26 @@ function loadHistory() {
           ? (profile.alias && profile.alias.trim() ? `${profile.alias} (${profile.username})` : profile.username)
           : username;
 
+        // Keys come from storage (synced, importable): treat them as untrusted text
         let hostname = origin;
-        try { hostname = new URL(origin).hostname; } catch {}
+        let safeHref = '';
+        try {
+          const url = new URL(origin);
+          hostname = url.hostname || origin;
+          if (url.protocol === 'http:' || url.protocol === 'https:') safeHref = url.origin;
+        } catch {}
 
         const li = document.createElement('li');
         li.className = 'history-item';
 
         const link = document.createElement('a');
         link.className = 'history-item__site';
-        link.href = origin;
+        if (safeHref) link.href = safeHref;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.title = origin;
-        link.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${hostname}`;
+        link.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        link.appendChild(document.createTextNode(hostname));
 
         const profileEl = document.createElement('span');
         profileEl.className = 'history-item__profile';
@@ -433,8 +440,43 @@ function initializeDefaultProfilesIfNeeded() {
   });
 }
 
+// ── Developer news settings ──────────────────────────────────────────────────
+
+const NEWS_AUDIENCES = ['admin', 'developer', 'other'];
+
+function initNewsSettings() {
+  const enabled = document.getElementById('news-enabled');
+  const fieldset = document.getElementById('news-audiences');
+  const boxes = [...document.querySelectorAll('input[name="news-audience"]')];
+  if (!enabled || !fieldset) return;
+
+  // Preview feature: off until the user turns it on here
+  chrome.storage.sync.get({ newsEnabled: false, newsAudiences: NEWS_AUDIENCES }, (data) => {
+    enabled.checked = data.newsEnabled === true;
+    const chosen = Array.isArray(data.newsAudiences) && data.newsAudiences.length ? data.newsAudiences : NEWS_AUDIENCES;
+    boxes.forEach(box => { box.checked = chosen.includes(box.value); });
+    fieldset.disabled = !enabled.checked;
+  });
+
+  enabled.addEventListener('change', () => {
+    fieldset.disabled = !enabled.checked;
+    chrome.storage.sync.set({ newsEnabled: enabled.checked });
+  });
+
+  document.getElementById('news-open-all')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'openNewsArchive' });
+  });
+
+  boxes.forEach(box => box.addEventListener('change', () => {
+    // At least one role stays on; to see nothing, turn news off above
+    if (!boxes.some(b => b.checked)) box.checked = true;
+    chrome.storage.sync.set({ newsAudiences: boxes.filter(b => b.checked).map(b => b.value) });
+  }));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
+  initNewsSettings();
 
   loadProfiles();
   loadHistory();

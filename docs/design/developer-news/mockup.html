@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer News Strip — Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column for the proposal; the live mock sits in a "browser" frame that always renders Creatio's light login page. */
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --fg: #1d2127;
+  --muted: #5f6672;
+  --line: #e2e3e0;
+  --accent: #e8501c;
+  --accent-soft: #fdeee7;
+  --code-bg: #efefec;
+  --good: #1f7a4d;
+  --warn: #b4540a;
+
+  /* mock: always Creatio light, independent of the viewer theme */
+  --m-bg: #ffffff;
+  --m-fg: #1f2329;
+  --m-muted: #6b7280;
+  --m-border: #d5d9e0;
+  --m-field: #f3f4f6;
+  --m-accent: #ff5722;
+  --m-accent-hover: #f4511e;
+  /* news signal: calm blue, the colour people read as "new / info" (Google, GitHub, X); orange stays for actions, red for critical */
+  --m-news: #1a6fd6;
+  --m-news-tint: #f7faff;
+  --m-news-line: #c9dcf7;
+  --m-crit: #c62828;
+  --m-crit-tint: #fdecec;
+  --m-crit-line: #f5c2c2;
+  --m-tip: #1e63c4;
+  --m-tip-tint: #e8f0fc;
+  --m-event: #6a3fb5;
+  --m-event-tint: #f0eafb;
+  --m-release-tint: #fff0e9;
+  --m-release: #c8431a;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2;
+    --line: #2e3238; --accent: #ff7a4a; --accent-soft: #3a2219; --code-bg: #262a30;
+    --good: #5fc58f; --warn: #f0a35a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2;
+  --line: #2e3238; --accent: #ff7a4a; --accent-soft: #3a2219; --code-bg: #262a30;
+  --good: #5fc58f; --warn: #f0a35a; color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 920px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
+.lede { font-size: 17px; color: var(--muted); }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+a { color: var(--accent); }
+header { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- live mock ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start; }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.browser { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--m-bg); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); }
+.browser-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--m-field); border-bottom: 1px solid var(--m-border); }
+.browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--m-border); display: block; }
+.browser-bar span { font-family: var(--font-mono); font-size: 11px; color: var(--m-muted); margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page { padding: 40px 20px 56px; display: flex; justify-content: center; color: var(--m-fg); font-size: 14px; line-height: 1.45; min-height: 520px; }
+.form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
+.brand { font-weight: 700; font-size: 22px; color: var(--m-fg); margin-bottom: 12px; letter-spacing: -0.01em; }
+.brand b { color: var(--m-accent); }
+.field { height: 36px; border: 1px solid var(--m-border); border-radius: 4px; background: var(--m-bg); padding: 0 10px; display: flex; align-items: center; color: var(--m-muted); font-size: 13px; }
+.btn-login { height: 36px; border-radius: 4px; background: var(--m-accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+.sat-row { display: flex; gap: 6px; margin-top: 16px; }
+.sat-select { flex: 1; min-width: 0; height: 36px; border: 1px solid var(--m-border); border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 14px; color: var(--m-fg); background: var(--m-bg); }
+.sat-go { width: 36px; height: 36px; border-radius: 4px; background: var(--m-accent); display: grid; place-items: center; flex: none; }
+
+/* the strip: the always-visible 32px line */
+.news { margin-top: 6px; position: relative; }
+.strip { width: 100%; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 6px; border-radius: 4px; border: 1px solid var(--m-border); background: var(--m-bg); color: var(--m-muted); font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; transition: background .15s, border-color .15s; }
+.strip:hover { border-color: #a9b0bc; }
+.strip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 87, 34, .35); }
+.strip .ic { width: 18px; height: 18px; flex: none; display: grid; place-items: center; color: var(--m-muted); }
+.strip .count { flex: none; height: 18px; padding: 0 7px; border-radius: 9px; background: var(--m-news); color: #fff; font-size: 11px; font-weight: 600; display: none; align-items: center; letter-spacing: .01em; }
+.strip .headline { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.strip .chev { flex: none; color: var(--m-muted); transition: transform .2s; }
+.news.open .strip .chev { transform: rotate(180deg); }
+.news.open .strip { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+.news.unread .strip { background: var(--m-news-tint); border-color: var(--m-news-line); color: var(--m-fg); }
+.news.unread .strip .headline { font-weight: 500; }
+.news.unread .strip .count { display: inline-flex; }
+.news.unread .strip .ic { color: var(--m-news); }
+.news.unread .strip .ic::after { content: ""; position: absolute; }
+.news.critical .strip { background: var(--m-crit-tint); border-color: var(--m-crit-line); color: var(--m-fg); }
+.news.critical .strip .count { background: var(--m-crit); }
+.news.critical .strip .ic { color: var(--m-crit); }
+
+.pulse { position: relative; }
+.news.unread .pulse::before { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: currentColor; opacity: .25; animation: ping 1.8s ease-out 3; }
+@keyframes ping { from { transform: scale(.6); opacity: .35; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .news.unread .pulse::before { animation: none; } .strip .chev { transition: none; } }
+
+.panel { display: none; border: 1px solid var(--m-border); border-top: 0; border-radius: 0 0 4px 4px; background: var(--m-bg); box-shadow: 0 6px 16px rgba(17, 24, 39, .08); }
+.news.unread .panel { border-color: var(--m-news-line); }
+.news.critical .panel { border-color: var(--m-crit-line); }
+.news.open .panel { display: block; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--m-field); font-size: 11.5px; color: var(--m-muted); }
+.panel-head strong { color: var(--m-fg); font-weight: 600; font-size: 12px; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--m-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.linkbtn:hover { color: var(--m-fg); }
+.items { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.item { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 10px 10px 10px 8px; border-bottom: 1px solid var(--m-field); }
+.item:last-child { border-bottom: 0; }
+.item .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; background: transparent; }
+.item.new .dot { background: var(--m-news); }
+.item.crit .dot { background: var(--m-crit); }
+.meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--m-muted); margin-bottom: 2px; }
+.tag { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; }
+.tag.release { background: var(--m-release-tint); color: var(--m-release); }
+.tag.tip { background: var(--m-tip-tint); color: var(--m-tip); }
+.tag.event { background: var(--m-event-tint); color: var(--m-event); }
+.tag.breaking { background: var(--m-crit-tint); color: var(--m-crit); }
+.trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--m-news); }
+.trend svg { width: 10px; height: 10px; }
+.item h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--m-fg); line-height: 1.35; }
+.item p { font-size: 12px; color: var(--m-muted); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item .cta { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--m-news); text-decoration: none; }
+.item.crit .cta { color: var(--m-crit); }
+.panel-foot { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-top: 1px solid var(--m-field); font-size: 11.5px; }
+.panel-foot a { color: var(--m-muted); text-decoration: none; }
+.panel-foot a:hover { color: var(--m-fg); }
+
+.controls { display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; }
+.controls fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.controls legend { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 4px; }
+.controls label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; line-height: 1.4; }
+.controls input { accent-color: var(--accent); margin-top: 3px; }
+.controls small { color: var(--muted); display: block; font-size: 12px; }
+.measure { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+/* ---------- research table ---------- */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rule p { font-size: 14px; color: var(--muted); }
+.rule .src { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.state { display: flex; flex-direction: column; gap: 6px; }
+.state .label { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
+.state p { font-size: 14px; color: var(--muted); }
+
+pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.flow > div { padding: 14px 16px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.flow > div:last-child { border-right: 0; }
+.flow b { font-size: 14px; }
+.flow span { font-size: 13px; color: var(--muted); }
+.flow .mono { color: var(--accent); font-size: 11px; }
+@media (max-width: 760px) { .flow > div { border-right: 0; border-bottom: 1px solid var(--line); } .flow > div:last-child { border-bottom: 0; } }
+
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.ok { color: var(--good); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+.sources { font-size: 13px; color: var(--muted); }
+.sources a { color: var(--muted); }
+
+/* optional media: shown only in the expanded panel; placeholders stand in for the real image / YouTube poster */
+.media { position: relative; display: block; margin-top: 6px; width: 100%; max-width: 100%; height: 120px; border-radius: 4px; overflow: hidden; text-decoration: none; }
+.media.img { background: linear-gradient(135deg, #1f2329 0%, #2e3440 100%); }
+.media.img i { position: absolute; left: 10%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.28); }
+.media.img i:nth-child(1) { top: 22%; width: 46%; background: rgba(255,112,67,.85); }
+.media.img i:nth-child(2) { top: 38%; width: 70%; }
+.media.img i:nth-child(3) { top: 54%; width: 58%; }
+.media.img i:nth-child(4) { top: 70%; width: 34%; background: rgba(95,197,143,.8); }
+.media.yt { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.media.yt .play { position: absolute; left: 50%; top: 50%; width: 44px; height: 30px; margin: -15px 0 0 -22px; border-radius: 8px; background: #e62117; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.media.yt .play::after { content: ""; border-left: 11px solid #fff; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px; }
+.media.yt .dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 5px; border-radius: 3px; background: rgba(0,0,0,.75); color: #fff; font-size: 10.5px; font-family: var(--font-mono); }
+.media.yt .src { position: absolute; left: 8px; top: 6px; color: rgba(255,255,255,.85); font-size: 10.5px; font-weight: 600; }
+.media:focus-visible { outline: 2px solid #ff7043; outline-offset: 2px; }
+
+/* video dialog: overlays the whole mocked browser viewport */
+.browser { position: relative; }
+.vd-back { position: absolute; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.vd { width: min(560px, 100%); background: rgba(24,24,24,.92); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; box-shadow: 0 20px 48px rgba(0,0,0,.45); color: #f3f4f6; overflow: hidden; font-family: var(--font-body); }
+.vd-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.vd-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vd-x { width: 28px; height: 28px; border-radius: 6px; border: 0; background: rgba(255,255,255,.08); color: #f3f4f6; cursor: pointer; font-size: 16px; line-height: 1; }
+.vd-x:hover, .vd-x:focus-visible { background: rgba(255,255,255,.16); outline: none; }
+.vd-screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; display: grid; place-items: center; }
+.vd-screen .bar { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; overflow: hidden; }
+.vd-screen .bar i { display: block; height: 100%; width: 0; background: #e62117; animation: vdplay 30s linear forwards; }
+@keyframes vdplay { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .vd-screen .bar i { animation: none; width: 8%; } }
+.vd-screen .now { font-size: 12px; color: rgba(255,255,255,.7); font-family: var(--font-mono); text-align: center; padding: 0 16px; }
+.vd-screen.fail { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.vd-screen .msg { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; text-align: center; padding: 0 16px; }
+.vd-screen .msg a { background: #e62117; color: #fff; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+.vd-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; font-size: 12px; color: #a3a9b4; }
+.vd-foot a { color: #ff7043; text-decoration: none; font-weight: 600; }
+.vd-mode { font-family: var(--font-mono); font-size: 10.5px; }
+
+/* card footer: CTA left, like right */
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.foot .cta { margin-top: 0; }
+.like { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: none; color: var(--m-muted); font: inherit; font-size: 11.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.like:hover { background: var(--m-field); color: var(--m-fg); }
+.like:focus-visible { outline: 2px solid var(--m-news); outline-offset: 1px; }
+.like svg { width: 14px; height: 14px; }
+.like[aria-pressed="true"] { color: var(--m-news); }
+.like[aria-pressed="true"] svg path { fill: currentColor; }
+.like.pop svg { animation: pop .15s ease-out; }
+@keyframes pop { 50% { transform: scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .like.pop svg { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Clio Satellite · design mockup · v1</div>
+  <h1>Developer news strip on the Creatio login page</h1>
+  <p class="lede">A 32 px line under the profile selector. It cannot be hidden, but it stays quiet until there is something new. Content comes from a remote JSON feed, so publishing news needs no extension release. Spec: <code>docs/features/developer-news.md</code>.</p>
+</header>
+
+<section>
+  <h2>Live mockup</h2>
+  <p>Click the strip to expand the feed. Switch scenarios on the right. News texts are placeholders, not real announcements.</p>
+  <div class="stage">
+    <div class="browser" aria-label="Creatio login page mockup">
+      <div class="browser-bar"><i></i><i></i><i></i><span>https://dev2.krylov.cloud/Login/NuiLogin.aspx</span></div>
+      <div class="page">
+        <div class="form">
+          <div class="brand"><b>●</b> Creatio</div>
+          <div class="field">Login</div>
+          <div class="field">Password</div>
+          <div class="btn-login">Log in</div>
+
+          <div class="sat-row">
+            <div class="sat-select">Classic (Supervisor)
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="#6b7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="sat-go" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M4 12h11"/><path d="M11 8l4 4-4 4"/></svg>
+            </div>
+          </div>
+
+          <div class="news" id="news">
+            <button class="strip" id="strip" type="button" aria-expanded="false" aria-controls="panel">
+              <span class="ic pulse" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5"/><path d="M8 13h5"/><path d="M8 16h3"/></svg>
+              </span>
+              <span class="count" id="count">3 new</span>
+              <span class="headline" id="headline"></span>
+              <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="panel" id="panel" role="region" aria-label="Developer news">
+              <div class="panel-head"><strong>Dev tools news</strong><button class="linkbtn" id="markall" type="button">Mark all as read</button></div>
+              <ul class="items" id="items"></ul>
+              <div class="panel-foot"><a href="#changelog">All news →</a><a href="#settings">Turn off in options</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Scenario</legend>
+        <label><input type="radio" name="scn" id="scn-new" value="new" checked> <span>Unread items<small>Tint, counter, latest headline</small></span></label>
+        <label><input type="radio" name="scn" id="scn-read" value="read"> <span>All read<small>Neutral strip, no badge</small></span></label>
+        <label><input type="radio" name="scn" id="scn-crit" value="crit"> <span>Critical item<small>Red tone, auto-expanded once</small></span></label>
+        <label><input type="radio" name="scn" id="scn-ended" value="ended"> <span>Trending window over<small>Release item went quiet unread: no chip, no dot, not counted</small></span></label>
+        <label><input type="radio" name="scn" id="scn-empty" value="empty"> <span>No feed<small>Server down or no items: nothing is rendered</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Options · show news for</legend>
+        <label><input type="checkbox" name="aud" id="aud-admin" value="admin" checked><span>Administration</span></label>
+        <label><input type="checkbox" name="aud" id="aud-dev" value="developer" checked><span>Development</span></label>
+        <label><input type="checkbox" name="aud" id="aud-other" value="other" checked><span>Other</span></label>
+        <small style="color: var(--muted); font-size: 12px;">All on by default. Critical items are always shown.</small>
+      </fieldset>
+      <fieldset>
+        <legend>Video player</legend>
+        <label><input type="radio" name="pm" id="pm-direct" value="direct" checked><span>Direct embed<small>Host CSP allows YouTube frames</small></span></label>
+        <label><input type="radio" name="pm" id="pm-ext" value="ext"><span>Extension frame<small>Host CSP blocks YouTube; extension page hosts the player</small></span></label>
+        <label><input type="radio" name="pm" id="pm-link" value="link"><span>Link out<small>Embedding impossible (error 150/153)</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Dimensions</legend>
+        <div class="measure">collapsed: 32 px<br>expanded: ≤ 32 + 330 px<br>width: same as the form<br>visible cards: up to 3, then scroll</div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>States</h2>
+  <div class="states">
+    <div class="state"><span class="label">unread</span><h3>New items</h3><p>Light blue tint, blue "3 new" pill, newspaper icon, headline of the newest item; the icon pulses three times and stops.</p></div>
+    <div class="state"><span class="label">read</span><h3>All read</h3><p>Collapsing the list marks it read: the strip stays as grey "What's new · headline" until the page reloads, then it is hidden. Nothing new, nothing shown.</p></div>
+    <div class="state"><span class="label">critical</span><h3>Breaking change</h3><p>Red tone. Auto-expanded on first display only, then behaves like a normal unread item.</p></div>
+    <div class="state"><span class="label">none</span><h3>No feed</h3><p>No data or feed disabled: the block is not rendered and the page looks as it does today.</p></div>
+  </div>
+</section>
+
+</div>
+<script>
+(function () {
+  var base = [
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes', aud: ['developer'], likes: 14, trending: true, media: { type: 'image', alt: 'Terminal output of clio pushw showing two changed packages' } },
+    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', aud: ['admin'], likes: 2, cta: 'See the guide' },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team. Recording sent to everyone registered.', cta: 'Register', likes: 7, trending: true, media: { type: 'youtube', title: 'Composable apps for Freedom UI', duration: '1:02:15' } },
+    { id: 'd', type: 'tip', tag: 'Tip', date: 'Sep 24', title: 'Profile aliases now sync across your machines', body: 'Name profiles in Options to tell environments apart at a glance.', aud: ['other'], cta: 'Open options' }
+  ];
+  var critical = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments. Run dotnet tool update clio -g.', cta: 'See migration steps', crit: true };
+
+  var news = document.getElementById('news');
+  var strip = document.getElementById('strip');
+  var count = document.getElementById('count');
+  var headline = document.getElementById('headline');
+  var list = document.getElementById('items');
+  var state = { items: [], seen: {}, ended: {}, open: false };
+
+  // Unread signal: not read and, for trending items, still inside the trending window
+  function signal(i) { return !state.seen[i.id] && !state.ended[i.id]; }
+  function trendingNow(i) { return i.trending && !state.ended[i.id]; }
+  function unread() { return sorted().filter(signal); }
+  // Trending items inside their window go first, then the rest in feed order
+  function sorted() { return visibleItems(state.items).sort(function (a, b) { return (trendingNow(b) ? 1 : 0) - (trendingNow(a) ? 1 : 0); }); }
+
+
+  // Optional media. The real build shows a poster image fetched by the service worker; video always opens on youtube.com
+  function mediaEl(i) {
+    if (!i.media) return null;
+    var el = document.createElement('a');
+    el.href = '#media'; el.className = 'media ' + (i.media.type === 'youtube' ? 'yt' : 'img');
+    el.setAttribute('aria-label', i.media.type === 'youtube' ? 'Play video: ' + i.media.title : i.media.alt);
+    if (i.media.type === 'youtube') {
+      var s = document.createElement('span'); s.className = 'src'; s.textContent = 'YouTube';
+      var pl = document.createElement('span'); pl.className = 'play';
+      var du = document.createElement('span'); du.className = 'dur'; du.textContent = i.media.duration;
+      el.append(s, pl, du);
+    } else {
+      for (var k = 0; k < 4; k++) el.appendChild(document.createElement('i'));
+    }
+    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); if (i.media.type === 'youtube') openVideo(i, el); });
+    return el;
+  }
+
+
+  // Video dialog. Real build: youtube-nocookie iframe, fallback chain direct → extension frame → link out
+  var playerMode = 'direct';
+  var vdBack = null, vdReturn = null;
+  function openVideo(i, poster) {
+    closeVideo();
+    vdReturn = poster;
+    var frame = document.querySelector('.browser');
+    vdBack = document.createElement('div'); vdBack.className = 'vd-back';
+    var d = document.createElement('div'); d.className = 'vd';
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', i.media.title);
+    var head = document.createElement('div'); head.className = 'vd-head';
+    var t = document.createElement('strong'); t.textContent = i.media.title;
+    var x = document.createElement('button'); x.className = 'vd-x'; x.type = 'button'; x.setAttribute('aria-label', 'Close video'); x.textContent = '×';
+    head.append(t, x);
+    var scr = document.createElement('div'); scr.className = 'vd-screen';
+    if (playerMode === 'link') {
+      scr.classList.add('fail');
+      var m = document.createElement('div'); m.className = 'msg';
+      var mt = document.createElement('span'); mt.textContent = "This video can't play on this page.";
+      var ml = document.createElement('a'); ml.href = '#youtube'; ml.textContent = 'Watch on YouTube ↗';
+      m.append(mt, ml); scr.appendChild(m);
+    } else {
+      var now = document.createElement('div'); now.className = 'now'; now.textContent = '▶ playing · youtube-nocookie.com/embed/…';
+      var bar = document.createElement('div'); bar.className = 'bar'; bar.appendChild(document.createElement('i'));
+      scr.append(now, bar);
+    }
+    var foot = document.createElement('div'); foot.className = 'vd-foot';
+    var mode = document.createElement('span'); mode.className = 'vd-mode';
+    mode.textContent = { direct: 'mode: direct embed', ext: 'mode: extension frame (host CSP blocks YouTube)', link: 'mode: link out (embedding not possible)' }[playerMode];
+    var yl = document.createElement('a'); yl.href = '#youtube'; yl.textContent = 'Watch on YouTube ↗';
+    foot.append(mode, yl);
+    d.append(head, scr, foot); vdBack.appendChild(d); frame.appendChild(vdBack);
+    x.addEventListener('click', closeVideo);
+    vdBack.addEventListener('click', function (e) { e.stopPropagation(); if (e.target === vdBack) closeVideo(); });
+    d.addEventListener('click', function (e) { e.stopPropagation(); });
+    x.focus();
+    if (typeof onVideoStart === 'function') onVideoStart(i);
+  }
+  function closeVideo() {
+    if (!vdBack) return;
+    vdBack.remove(); vdBack = null;
+    if (vdReturn) vdReturn.focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && vdBack) { e.stopPropagation(); closeVideo(); } }, true);
+  document.querySelectorAll('input[name="pm"]').forEach(function (r) { r.addEventListener('change', function () { playerMode = r.value; }); });
+
+
+  // Audiences: what the user chose in Options (all on by default). Critical items ignore the filter.
+  var aud = { admin: true, developer: true, other: true };
+  function visibleItems(list) { return list.filter(function (i) { return i.crit || (i.aud || ['admin', 'developer', 'other']).some(function (a) { return aud[a]; }); }); }
+  document.querySelectorAll('input[name="aud"]').forEach(function (c) {
+    c.addEventListener('change', function () {
+      aud[c.value] = c.checked;
+      if (!aud.admin && !aud.developer && !aud.other) { aud[c.value] = true; c.checked = true; }  // at least one role stays on
+      render();
+    });
+  });
+
+  // Likes: local-first toggle; the number shows from 3 likes (showLikesFrom)
+  var liked = {};
+  function likeEl(i) {
+    if (i.crit) return null;   // no reactions on breaking changes
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'like';
+    var n = (i.likes || 0) + (liked[i.id] ? 1 : 0);
+    b.setAttribute('aria-pressed', liked[i.id] ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Like this news' + (n ? ', ' + n + ' likes' : ''));
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 7v7H2.5V7H5zm0 0l2.6-4.6c.3-.5 1-.6 1.4-.2.3.3.4.7.3 1.1L8.8 6H13c.8 0 1.4.7 1.2 1.5l-1.1 5.3c-.1.7-.7 1.2-1.4 1.2H5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+    if (n >= 3) b.appendChild(document.createTextNode(String(n)));
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      liked[i.id] = !liked[i.id];
+      state.seen[i.id] = true;
+      render();
+      var again = document.querySelector('.like[data-id="' + i.id + '"]');
+      if (again && liked[i.id]) again.classList.add('pop');
+    });
+    b.setAttribute('data-id', i.id);
+    return b;
+  }
+
+  function render() {
+    var u = unread();
+    // Shown once on this page → stays (without a count) until reload; a scenario switch acts as a reload
+    if (u.length) state.shownOnPage = true;
+    news.hidden = u.length === 0 && !state.shownOnPage;
+    var hasCrit = u.some(function (i) { return i.crit; });
+    news.classList.toggle('unread', u.length > 0);
+    news.classList.toggle('critical', hasCrit);
+    news.classList.toggle('open', state.open);
+    strip.setAttribute('aria-expanded', String(state.open));
+    count.textContent = u.length + ' new';
+    var lead = u[0] || sorted()[0];
+    headline.textContent = lead ? (u.length ? lead.title : "What's new · " + lead.title) : '';
+    list.textContent = '';
+    sorted().forEach(function (i) {
+      var li = document.createElement('li');
+      li.className = 'item' + (signal(i) ? ' new' : '') + (i.crit && signal(i) ? ' crit' : '');
+      var dot = document.createElement('span'); dot.className = 'dot';
+      var body = document.createElement('div');
+      var meta = document.createElement('div'); meta.className = 'meta';
+      var tag = document.createElement('span'); tag.className = 'tag ' + i.type; tag.textContent = i.tag;
+      var d = document.createElement('span'); d.textContent = i.date;
+      meta.append(tag, d);
+      if (trendingNow(i)) {
+        var tr = document.createElement('span'); tr.className = 'trend';
+        tr.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1.5 8.5l3-3 2 2 4-4M7.5 3.5h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        tr.appendChild(document.createTextNode('Trending'));
+        meta.appendChild(tr);
+      }
+      var h = document.createElement('h4'); h.textContent = i.title;
+      var p = document.createElement('p'); p.textContent = i.body;
+      var a = document.createElement('a'); a.className = 'cta'; a.href = '#news'; a.textContent = i.cta + ' →';
+      var md = mediaEl(i);
+      body.append(meta, h);
+      if (md) body.appendChild(md);
+      var foot = document.createElement('div'); foot.className = 'foot';
+      foot.appendChild(a);
+      var lk = likeEl(i); if (lk) foot.appendChild(lk);
+      body.append(p, foot);
+      li.append(dot, body);
+      list.appendChild(li);
+    });
+  }
+
+  function markAllSeen() { state.items.forEach(function (i) { state.seen[i.id] = true; }); }
+
+  strip.addEventListener('click', function () {
+    var wasOpen = state.open;
+    state.open = !state.open;
+    render();
+    // Facebook-style: the badge clears once the list has been opened, dots fade on close
+    if (wasOpen) { markAllSeen(); render(); }
+  });
+  document.getElementById('markall').addEventListener('click', function () { markAllSeen(); render(); });
+
+  function scenario(v) {
+    state.shownOnPage = false;
+    state.seen = {};
+    state.ended = {};
+    state.open = false;
+    if (v === 'new') { state.items = base.slice(); state.seen.d = true; }
+    if (v === 'read') { state.items = base.slice(); markAllSeen(); }
+    if (v === 'crit') { state.items = [critical].concat(base); state.seen.d = true; state.seen.c = true; state.seen.b = true; state.open = true; }
+    if (v === 'ended') { state.items = base.slice(); state.seen.d = true; state.ended.a = true; }
+    if (v === 'empty') { state.items = []; }
+    render();
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(function (r) {
+    r.addEventListener('change', function () { scenario(r.value); });
+  });
+  scenario('new');
+})();
+</script>
+</body>
+</html>

@@ -199,6 +199,30 @@ test.describe('Unknown page', () => {
   });
 });
 
+// ─── Position next to the Creatio toolbar ────────────────────────────────────
+
+test.describe('Initial position', () => {
+  test('buttons do not cover Creatio controls placed right after the search (CPQ operator status)', async ({ page }) => {
+    // Same layout as Creatio Shell with chats: search and operator status share one toolbar group
+    await page.route(`${BASE}/cpq/shell/`, route => route.fulfill({ contentType: 'text/html', body: `<!DOCTYPE html><html><head>
+      <style>* { transition: none !important; animation: none !important; }</style></head><body>
+      <crt-app-toolbar style="display:block;position:fixed;top:0;left:0;height:56px;width:100%;">
+        <div style="position:absolute;top:8px;left:16px;display:flex;gap:16px;align-items:center;height:40px;">
+          <crt-global-search style="display:block;width:218px;height:32px;"></crt-global-search>
+          <crt-operator-state style="display:block;width:108px;height:24px;"></crt-operator-state>
+        </div>
+      </crt-app-toolbar></body></html>` }));
+    await load(page, '/cpq/shell/');
+    await waitForMenu(page);
+    const floating = page.locator('.creatio-satelite-floating');
+    await expect.poll(async () => {
+      const op = await page.locator('crt-operator-state').boundingBox();
+      const box = await floating.boundingBox();
+      return box && op && box.x >= op.x + op.width;
+    }, { timeout: 5000 }).toBe(true);
+  });
+});
+
 // ─── Excluded domains ─────────────────────────────────────────────────────────
 
 // Shell-like HTML used to verify the exclusion is domain-based, not content-based.

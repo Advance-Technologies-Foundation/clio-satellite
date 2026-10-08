@@ -11,8 +11,9 @@ export const CONTENT_JS = readFileSync(
 
 // Sets up window.chrome mock before page scripts run.
 // syncData pre-populates chrome.storage.sync (e.g. { userProfiles: [...] }).
-export async function setupChromeMock(page, { syncData = {} } = {}) {
-  await page.addInitScript((initialSync) => {
+// newsFeed, when given, is what the background "getNews" handler returns.
+export async function setupChromeMock(page, { syncData = {}, newsFeed = null } = {}) {
+  await page.addInitScript(({ initialSync, feed }) => {
     const local = {};
     const sync = Object.assign({}, initialSync);
     window.chrome = {
@@ -40,9 +41,22 @@ export async function setupChromeMock(page, { syncData = {} } = {}) {
           set: (d, cb) => { Object.assign(sync, d); if (cb) cb(); },
         },
       },
-      runtime: { sendMessage: () => {}, getURL: (p) => `${location.origin}/${p}`, lastError: undefined },
+      runtime: {
+        sendMessage: (message, callback) => {
+          (window.__sentMessages = window.__sentMessages || []).push(message);
+          if (!callback) return;
+          if (message.action === 'getNews') {
+            callback(feed ? { ok: true, raw: JSON.stringify(feed) } : { ok: false });
+          } else {
+            callback({ ok: false });
+          }
+        },
+        getURL: (p) => `${location.origin}/${p}`,
+        getManifest: () => ({ version: '2.6' }),
+        lastError: undefined,
+      },
     };
-  }, syncData);
+  }, { initialSync: syncData, feed: newsFeed });
 }
 
 export async function injectContentScript(page) {

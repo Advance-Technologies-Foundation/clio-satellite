@@ -1,7 +1,27 @@
 import { debugLog, getLastError } from './debug.js';
 
 const STABLE_CHECK_MS = 120;
+const ANCHOR_GAP = 20;
+// Siblings further away than this belong to another toolbar group, not to the search's group
+const GROUP_GAP_MAX = 48;
 const lastTargetRect = new WeakMap();
+
+// Right edge of the toolbar group the search belongs to. Creatio puts its own controls right
+// after the search (e.g. the chat operator status button), so the buttons must go after them.
+export function anchorRightEdge(target, floatingContainer) {
+  const rect = target.getBoundingClientRect();
+  let right = rect.right;
+  for (let sib = target.nextElementSibling; sib; sib = sib.nextElementSibling) {
+    // Our own container can be a sibling when the search sits directly in <body>
+    if (sib === floatingContainer || sib.contains(floatingContainer)) break;
+    const b = sib.getBoundingClientRect();
+    if (!b.width || !b.height) continue;
+    if (b.bottom <= rect.top || b.top >= rect.bottom) continue;   // not in the same row
+    if (b.left - right > GROUP_GAP_MAX) break;
+    right = Math.max(right, b.right);
+  }
+  return right;
+}
 
 export function positionFloatingContainerRelativeToSearch(
   floatingContainer = document.querySelector('.creatio-satelite-floating')
@@ -66,7 +86,9 @@ export function positionFloatingContainerRelativeToSearch(
 
   // The search field animates its width when it appears; positioning against an
   // intermediate size makes the buttons jump. Move only once the rect is stable.
-  const rectKey = `${Math.round(targetRect.left)},${Math.round(targetRect.right)},${Math.round(targetRect.top)}`;
+  // Only the search has Creatio controls glued to it; the action-button fallback keeps its old anchor
+  const anchorRight = searchElement ? anchorRightEdge(targetElement, floatingContainer) : targetRect.right;
+  const rectKey = `${Math.round(targetRect.left)},${Math.round(anchorRight)},${Math.round(targetRect.top)}`;
   const now = Date.now();
   const seen = lastTargetRect.get(floatingContainer);
   if (!seen || seen.key !== rectKey) {
@@ -80,7 +102,7 @@ export function positionFloatingContainerRelativeToSearch(
     return false;
   }
 
-  const leftPosition = targetRect.right + 20;
+  const leftPosition = anchorRight + ANCHOR_GAP;
   const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2 - 20;
   const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
   const finalTop = Math.max(10, Math.min(window.innerHeight - containerRect.height - 10, topPosition));

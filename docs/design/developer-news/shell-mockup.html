@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shell News Indicator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: proposal column; the mock frame always renders Creatio Shell (light app, dark glass menus) regardless of the viewer theme. */
+:root {
+  --bg: #f6f6f4; --surface: #ffffff; --fg: #1d2127; --muted: #5f6672; --line: #e2e3e0;
+  --accent: #e8501c; --code-bg: #efefec;
+
+  /* mock: Creatio Shell */
+  --s-app: #f4f5f8; --s-bar: #ffffff; --s-fg: #1f2329; --s-muted: #6b7280; --s-border: #e3e6ec;
+  --s-search: #f1f3f6; --s-tile: #ffffff;
+  /* mock: Clio satellite (values from menu-item.css) */
+  --c-btn: #1f2329; --c-btn-hover: #2c323b; --c-btn-fg: #f3f4f6;
+  --c-glass: rgba(24, 24, 24, 0.86); --c-glass-line: rgba(255, 255, 255, 0.1);
+  --c-fg: #f3f4f6; --c-muted: #a3a9b4; --c-hover: rgba(255, 255, 255, 0.08);
+  --c-accent: #ff5722; --c-accent-2: #ff7043; --c-crit: #ff5b5b;
+  /* news signal: blue on the dark glass; orange stays the brand/action colour */
+  --c-news: #3d8bff; --c-news-2: #7cb2ff;
+  --c-tip: #7fb0ff; --c-event: #c1a2ff; --c-release: #ff9a73;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2; --line: #2e3238; --accent: #ff7a4a; --code-bg: #262a30; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #15171a; --surface: #1d2024; --fg: #e8e9eb; --muted: #a2a8b2; --line: #2e3238; --accent: #ff7a4a; --code-bg: #262a30; color-scheme: dark; }
+
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 48px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 22px; font-weight: 600; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+section, header { display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 17px; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+/* ---------- stage ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.browser { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--s-app); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.browser-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e9ebef; border-bottom: 1px solid var(--s-border); }
+.browser-bar i { width: 10px; height: 10px; border-radius: 50%; background: #c9ced6; display: block; }
+.browser-bar span { font-family: var(--font-mono); font-size: 11px; color: var(--s-muted); margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell { position: relative; min-height: 560px; color: var(--s-fg); font-size: 13px; line-height: 1.4; overflow: hidden; }
+.toolbar { height: 52px; background: var(--s-bar); border-bottom: 1px solid var(--s-border); display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+.logo { font-weight: 700; font-size: 16px; white-space: nowrap; }
+.logo b { color: var(--c-accent); }
+.search { flex: 0 1 300px; min-width: 80px; height: 32px; border-radius: 16px; background: var(--s-search); display: flex; align-items: center; padding: 0 12px; color: var(--s-muted); font-size: 12px; }
+.spacer { flex: 1; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: #d6dae2; flex: none; }
+.content { padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tile { height: 86px; border-radius: 8px; background: var(--s-tile); border: 1px solid var(--s-border); }
+
+/* Clio satellite button group */
+.sat { position: relative; display: flex; flex: none; border-radius: 8px; box-shadow: 0 1px 2px rgba(16,24,40,.12), 0 4px 12px rgba(16,24,40,.14); }
+.sat button { font: inherit; border: 0; cursor: pointer; background: var(--c-btn); color: var(--c-btn-fg); height: 34px; display: flex; align-items: center; gap: 8px; }
+.sat button:hover, .sat button[aria-expanded="true"] { background: var(--c-btn-hover); }
+.sat button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(255,112,67,.7); }
+.sat .main { border-radius: 8px 0 0 8px; padding: 0 12px; font-size: 13px; font-weight: 600; letter-spacing: .01em; position: relative; }
+.sat .act { border-radius: 0 8px 8px 0; border-left: 1px solid rgba(255,255,255,.12); padding: 0 10px; }
+.caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; opacity: .7; }
+.planet { width: 16px; height: 16px; flex: none; }
+
+/* small badge (Material small badge, 8px + ring in the button colour) */
+.badge-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-news); box-shadow: 0 0 0 2px var(--s-bar); display: none; }
+.sat.has-badge .badge-dot { display: block; }
+.sat.has-crit .badge-dot { background: var(--c-crit); }
+
+/* glass menu */
+.menu { position: absolute; top: 40px; left: 0; width: 248px; padding: 6px; border-radius: 10px; background: var(--c-glass); border: 1px solid var(--c-glass-line); backdrop-filter: blur(20px) saturate(160%); box-shadow: 0 8px 24px rgba(0,0,0,.25); color: var(--c-fg); z-index: 5; }
+.mi { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: none; color: var(--c-fg); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.mi:hover, .mi:focus-visible { background: var(--c-hover); outline: none; }
+.mi svg { width: 16px; height: 16px; flex: none; color: var(--c-muted); }
+.sep { height: 1px; margin: 4px 8px; background: var(--c-glass-line); }
+
+/* What's new row: two lines, sits on top of the menu */
+.wn { height: auto; padding: 8px 10px; align-items: flex-start; }
+.wn .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wn .ttl { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.wn .prev { color: var(--c-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { height: 16px; min-width: 16px; padding: 0 5px; border-radius: 8px; background: var(--c-news); color: #fff; font-size: 10.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.pill.crit { background: var(--c-crit); }
+.wn .go { color: var(--c-muted); margin-top: 2px; }
+.wn svg.ico { color: var(--c-news-2); margin-top: 1px; }
+
+/* flyout */
+.fly { position: absolute; top: 40px; left: 256px; width: 320px; border-radius: 10px; background: var(--c-glass); border: 1px solid var(--c-glass-line); backdrop-filter: blur(20px) saturate(160%); box-shadow: 0 8px 24px rgba(0,0,0,.25); color: var(--c-fg); z-index: 6; }
+.fly-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--c-glass-line); font-size: 12px; }
+.fly-head strong { font-size: 13px; }
+.lb { background: none; border: 0; padding: 0; color: var(--c-muted); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.lb:hover { color: var(--c-fg); }
+.list { list-style: none; margin: 0; padding: 4px 0; max-height: 360px; overflow-y: auto; }
+.card { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: 0 8px; padding: 9px 12px 9px 10px; }
+.card + .card { border-top: 1px solid var(--c-glass-line); }
+.card .d { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; }
+.card.new .d { background: var(--c-news); }
+.card.crit .d { background: var(--c-crit); }
+.meta { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: var(--c-muted); }
+.tag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,.08); }
+.trend { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--c-news-2); }
+.trend svg { width: 10px; height: 10px; }
+.tag.release { color: var(--c-release); } .tag.tip { color: var(--c-tip); } .tag.event { color: var(--c-event); } .tag.breaking { color: var(--c-crit); }
+.card h4 { margin: 2px 0 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
+.card p { font-size: 12px; color: var(--c-muted); margin-top: 2px; }
+.card a { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--c-news-2); text-decoration: none; }
+.card.crit a { color: var(--c-crit); }
+.fly-foot { display: flex; justify-content: space-between; padding: 8px 12px; border-top: 1px solid var(--c-glass-line); font-size: 12px; }
+.fly-foot a { color: var(--c-muted); text-decoration: none; }
+
+/* peek: one-time card for critical items */
+.peek { position: absolute; top: 46px; left: 0; width: 300px; border-radius: 10px; background: var(--c-glass); border: 1px solid rgba(255, 91, 91, .45); backdrop-filter: blur(20px); box-shadow: 0 10px 28px rgba(0,0,0,.3); color: var(--c-fg); padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 4px; z-index: 7; animation: drop .25s ease-out; }
+.peek h4 { margin: 0; font-size: 13px; }
+.peek p { font-size: 12px; color: var(--c-muted); }
+.peek .row { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.peek .primary { background: var(--c-crit); color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.peek .timer { height: 2px; background: rgba(255,255,255,.1); border-radius: 1px; overflow: hidden; margin-top: 6px; }
+.peek .timer i { display: block; height: 100%; width: 100%; background: var(--c-crit); transform-origin: left; animation: shrink 10s linear forwards; }
+.peek:hover .timer i { animation-play-state: paused; }
+@keyframes drop { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes shrink { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .peek { animation: none; } .peek .timer i { animation-duration: 0.01s; animation-iteration-count: 1; } }
+
+.controls { display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; }
+.controls fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.controls legend { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 0 4px; }
+.controls label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; line-height: 1.4; }
+.controls input { accent-color: var(--accent); margin-top: 3px; }
+.controls small { display: block; color: var(--muted); font-size: 12px; }
+.log { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); white-space: pre-line; }
+
+.ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.step .lvl { font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
+.step p { font-size: 14px; color: var(--muted); }
+
+/* optional media: shown only in the expanded panel; placeholders stand in for the real image / YouTube poster */
+.media { position: relative; display: block; margin-top: 6px; width: 100%; max-width: 100%; height: 120px; border-radius: 4px; overflow: hidden; text-decoration: none; }
+.media.img { background: linear-gradient(135deg, #1f2329 0%, #2e3440 100%); }
+.media.img i { position: absolute; left: 10%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.28); }
+.media.img i:nth-child(1) { top: 22%; width: 46%; background: rgba(255,112,67,.85); }
+.media.img i:nth-child(2) { top: 38%; width: 70%; }
+.media.img i:nth-child(3) { top: 54%; width: 58%; }
+.media.img i:nth-child(4) { top: 70%; width: 34%; background: rgba(95,197,143,.8); }
+.media.yt { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.media.yt .play { position: absolute; left: 50%; top: 50%; width: 44px; height: 30px; margin: -15px 0 0 -22px; border-radius: 8px; background: #e62117; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.media.yt .play::after { content: ""; border-left: 11px solid #fff; border-top: 7px solid transparent; border-bottom: 7px solid transparent; margin-left: 3px; }
+.media.yt .dur { position: absolute; right: 6px; bottom: 6px; padding: 1px 5px; border-radius: 3px; background: rgba(0,0,0,.75); color: #fff; font-size: 10.5px; font-family: var(--font-mono); }
+.media.yt .src { position: absolute; left: 8px; top: 6px; color: rgba(255,255,255,.85); font-size: 10.5px; font-weight: 600; }
+.media:focus-visible { outline: 2px solid #ff7043; outline-offset: 2px; }
+
+/* video dialog: overlays the whole mocked browser viewport */
+.browser { position: relative; }
+.vd-back { position: absolute; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.vd { width: min(560px, 100%); background: rgba(24,24,24,.92); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; box-shadow: 0 20px 48px rgba(0,0,0,.45); color: #f3f4f6; overflow: hidden; font-family: var(--font-body); }
+.vd-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; }
+.vd-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vd-x { width: 28px; height: 28px; border-radius: 6px; border: 0; background: rgba(255,255,255,.08); color: #f3f4f6; cursor: pointer; font-size: 16px; line-height: 1; }
+.vd-x:hover, .vd-x:focus-visible { background: rgba(255,255,255,.16); outline: none; }
+.vd-screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; display: grid; place-items: center; }
+.vd-screen .bar { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; overflow: hidden; }
+.vd-screen .bar i { display: block; height: 100%; width: 0; background: #e62117; animation: vdplay 30s linear forwards; }
+@keyframes vdplay { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .vd-screen .bar i { animation: none; width: 8%; } }
+.vd-screen .now { font-size: 12px; color: rgba(255,255,255,.7); font-family: var(--font-mono); text-align: center; padding: 0 16px; }
+.vd-screen.fail { background: radial-gradient(circle at 30% 40%, #3b2a5c 0%, #15121f 75%); }
+.vd-screen .msg { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; text-align: center; padding: 0 16px; }
+.vd-screen .msg a { background: #e62117; color: #fff; text-decoration: none; font-weight: 600; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+.vd-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; font-size: 12px; color: #a3a9b4; }
+.vd-foot a { color: #ff7043; text-decoration: none; font-weight: 600; }
+.vd-mode { font-family: var(--font-mono); font-size: 10.5px; }
+
+/* card footer: CTA left, like right */
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.foot a { margin-top: 0; }
+.like { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: none; color: var(--c-muted); font: inherit; font-size: 11.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.like:hover { background: rgba(255,255,255,.08); color: var(--c-fg); }
+.like:focus-visible { outline: 2px solid var(--c-news-2); outline-offset: 1px; }
+.like svg { width: 14px; height: 14px; }
+.like[aria-pressed="true"] { color: var(--c-news-2); }
+.like[aria-pressed="true"] svg path { fill: currentColor; }
+.like.pop svg { animation: pop .15s ease-out; }
+@keyframes pop { 50% { transform: scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .like.pop svg { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Clio Satellite · design mockup · shell v1</div>
+  <h1>News inside Creatio: the Clio satellite button</h1>
+  <p class="lede">The login strip is one surface. Inside Shell people are working, so the signal has to be quieter: a dot on the button, a "What's new" row on top of the menu, and a flyout with the same cards. Only a breaking change can show a one-time peek card. Spec: <code>docs/features/developer-news.md</code>.</p>
+</header>
+
+<section>
+  <h2>Live mockup</h2>
+  <p>Click "Clio satellite" to open the menu, then "What's new". Use the scenarios on the right. News texts are placeholders.</p>
+  <div class="stage">
+    <div class="browser" aria-label="Creatio Shell mockup">
+      <div class="browser-bar"><i></i><i></i><i></i><span>https://dev2.krylov.cloud/0/Shell/#Section/Contacts</span></div>
+      <div class="shell" id="shell">
+        <div class="toolbar">
+          <div class="logo"><b>●</b> Creatio</div>
+          <div class="search">Search…</div>
+          <div class="sat" id="sat">
+            <button class="main" id="satBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Clio satellite">
+              <svg class="planet" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="#ff5722"/><ellipse cx="8" cy="8" rx="7" ry="3" transform="rotate(-25 8 8)" stroke="currentColor" stroke-width="1.3"/></svg>
+              Clio satellite <span class="caret"></span>
+              <span class="badge-dot" aria-hidden="true"></span>
+            </button>
+            <button class="act" type="button" aria-label="Quick actions">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8l1-5.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+              <span class="caret"></span>
+            </button>
+
+            <div class="menu" id="menu" role="menu" hidden>
+              <button class="mi wn" id="wnRow" type="button" role="menuitem" hidden>
+                <svg class="ico" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 6.5v3l7 3.5v-10l-7 3.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 6c.8.5.8 3.5 0 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <span class="txt"><span class="ttl">What's new <span class="pill" id="wnPill">2</span></span><span class="prev" id="wnPrev"></span></span>
+                <svg class="go" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="sep" id="wnSep" hidden></div>
+              <div id="menuItems"></div>
+            </div>
+
+            <div class="fly" id="fly" role="region" aria-label="Developer news" hidden>
+              <div class="fly-head"><strong>Dev tools news</strong><button class="lb" id="markAll" type="button">Mark all as read</button></div>
+              <ul class="list" id="list"></ul>
+              <div class="fly-foot"><a href="#all">All news →</a><a href="#off">Turn off in options</a></div>
+            </div>
+
+            <div class="peek" id="peek" role="status" aria-live="polite" hidden>
+              <div class="meta"><span class="tag breaking">Breaking</span><span>Oct 7</span></div>
+              <h4 id="peekTitle"></h4>
+              <p id="peekBody"></p>
+              <div class="row"><button class="primary" id="peekRead" type="button">Read</button><button class="lb" id="peekClose" type="button">Dismiss</button></div>
+              <div class="timer"><i></i></div>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="avatar" aria-hidden="true"></div>
+        </div>
+        <div class="content" aria-hidden="true">
+          <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <fieldset>
+        <legend>Scenario</legend>
+        <label><input type="radio" name="scn" id="s-new" value="new" checked><span>Unread items<small>Dot on the button, What's new row with count</small></span></label>
+        <label><input type="radio" name="scn" id="s-noticed" value="noticed"><span>Noticed, not read<small>Menu was opened earlier: dot gone, count stays in the row</small></span></label>
+        <label><input type="radio" name="scn" id="s-crit" value="crit"><span>Critical item<small>Red dot + one-time peek card, 10 s, pauses on hover</small></span></label>
+        <label><input type="radio" name="scn" id="s-ended" value="ended"><span>Trending windows over<small>Unread but out of window: no dot, no row, no chip</small></span></label>
+        <label><input type="radio" name="scn" id="s-read" value="read"><span>All read<small>No dot, no row (after reload). Read during the visit: row stays without a count until reload</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Options · show news for</legend>
+        <label><input type="checkbox" name="aud" id="aud-admin" value="admin" checked><span>Administration</span></label>
+        <label><input type="checkbox" name="aud" id="aud-dev" value="developer" checked><span>Development</span></label>
+        <label><input type="checkbox" name="aud" id="aud-other" value="other" checked><span>Other</span></label>
+        <small style="color: var(--muted); font-size: 12px;">All on by default. Critical items are always shown.</small>
+      </fieldset>
+      <fieldset>
+        <legend>Video player</legend>
+        <label><input type="radio" name="pm" id="pm-direct" value="direct" checked><span>Direct embed<small>Host CSP allows YouTube frames</small></span></label>
+        <label><input type="radio" name="pm" id="pm-ext" value="ext"><span>Extension frame<small>Host CSP blocks YouTube; extension page hosts the player</small></span></label>
+        <label><input type="radio" name="pm" id="pm-link" value="link"><span>Link out<small>Embedding impossible (error 150/153)</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Event log</legend>
+        <div class="log" id="log">—</div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Escalation ladder</h2>
+  <p>Each level is used only if the one before is not enough. Normal news never go above level 2.</p>
+  <div class="ladder">
+    <div class="step"><span class="lvl">level 0 · nothing new</span><h3>No change</h3><p>The button looks exactly as today.</p></div>
+    <div class="step"><span class="lvl">level 1 · ambient</span><h3>Dot on the button</h3><p>8 px blue dot with a ring, no number. Clears as soon as the menu is opened. Decays after 7 days or 10 Shell loads even if ignored.</p></div>
+    <div class="step"><span class="lvl">level 2 · in context</span><h3>What's new row</h3><p>First row of the menu, two lines: count + newest headline. Click opens the flyout next to the menu; that marks items read.</p></div>
+    <div class="step"><span class="lvl">level 3 · critical only</span><h3>Peek card</h3><p>Once per critical item across both surfaces, max one per day. Auto-hides after 10 s, pauses on hover, never steals focus.</p></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var items = [
+    { id: 'a', type: 'release', tag: 'Release', date: 'Oct 6', title: 'Deploy packages 2× faster with clio 8.1', body: 'pushw now uploads only the packages that changed since the last deploy.', cta: 'Read release notes', aud: ['developer'], likes: 14, trending: true, media: { type: 'image', alt: 'Terminal output of clio pushw showing two changed packages' } },
+    { id: 'c', type: 'event', tag: 'Webinar', date: 'Oct 21', title: 'Live: building composable apps for Freedom UI', body: 'One hour, Q&A with the platform team.', cta: 'Register', likes: 7, trending: true, media: { type: 'youtube', title: 'Composable apps for Freedom UI', duration: '1:02:15' } },
+    { id: 'b', type: 'tip', tag: 'Tip', date: 'Oct 3', title: 'Restore a broken environment in one command', body: 'clio restore-workspace rolls schemas back to the last committed state.', aud: ['admin'], likes: 2, cta: 'See the guide' }
+  ];
+  var crit = { id: 'z', type: 'breaking', tag: 'Breaking', date: 'Oct 7', title: 'Update clio before Nov 1 to keep deploying', body: 'Older versions stop authenticating against 8.3 environments.', cta: 'See migration steps', crit: true };
+  var labels = ['Features', 'Application management', 'Lookups', 'Process library', 'Process log', 'System settings', 'Users', 'Configuration'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var sat = $('sat'), btn = $('satBtn'), menu = $('menu'), fly = $('fly'), peek = $('peek'), log = $('log');
+  var st = { feed: [], read: {}, ended: {}, noticed: false, peekShown: false };
+  var peekTimer = null;
+
+  labels.forEach(function (l) {
+    var b = document.createElement('button');
+    b.className = 'mi'; b.type = 'button'; b.setAttribute('role', 'menuitem');
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/></svg>';
+    b.appendChild(document.createTextNode(l));
+    $('menuItems').appendChild(b);
+  });
+  var opt = document.createElement('div'); opt.className = 'sep'; $('menuItems').appendChild(opt);
+  var s = document.createElement('button'); s.className = 'mi'; s.type = 'button'; s.textContent = 'Settings'; $('menuItems').appendChild(s);
+
+  function note(t) { log.textContent = t + '\n' + (log.textContent === '—' ? '' : log.textContent).split('\n').slice(0, 4).join('\n'); }
+  // Unread signal: not read and, for trending items, still inside the trending window
+  function signal(i) { return !st.read[i.id] && !st.ended[i.id]; }
+  function trendingNow(i) { return i.trending && !st.ended[i.id]; }
+  function sorted() { return visibleItems(st.feed).sort(function (a, b) { return (trendingNow(b) ? 1 : 0) - (trendingNow(a) ? 1 : 0); }); }
+  function unread() { return sorted().filter(signal); }
+
+
+  // Optional media. The real build shows a poster image fetched by the service worker; video always opens on youtube.com
+  function mediaEl(i) {
+    if (!i.media) return null;
+    var el = document.createElement('a');
+    el.href = '#media'; el.className = 'media ' + (i.media.type === 'youtube' ? 'yt' : 'img');
+    el.setAttribute('aria-label', i.media.type === 'youtube' ? 'Play video: ' + i.media.title : i.media.alt);
+    if (i.media.type === 'youtube') {
+      var s = document.createElement('span'); s.className = 'src'; s.textContent = 'YouTube';
+      var pl = document.createElement('span'); pl.className = 'play';
+      var du = document.createElement('span'); du.className = 'dur'; du.textContent = i.media.duration;
+      el.append(s, pl, du);
+    } else {
+      for (var k = 0; k < 4; k++) el.appendChild(document.createElement('i'));
+    }
+    el.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); if (i.media.type === 'youtube') openVideo(i, el); });
+    return el;
+  }
+
+
+  // Video dialog. Real build: youtube-nocookie iframe, fallback chain direct → extension frame → link out
+  var playerMode = 'direct';
+  var vdBack = null, vdReturn = null;
+  function openVideo(i, poster) {
+    closeVideo();
+    vdReturn = poster;
+    var frame = document.querySelector('.browser');
+    vdBack = document.createElement('div'); vdBack.className = 'vd-back';
+    var d = document.createElement('div'); d.className = 'vd';
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', i.media.title);
+    var head = document.createElement('div'); head.className = 'vd-head';
+    var t = document.createElement('strong'); t.textContent = i.media.title;
+    var x = document.createElement('button'); x.className = 'vd-x'; x.type = 'button'; x.setAttribute('aria-label', 'Close video'); x.textContent = '×';
+    head.append(t, x);
+    var scr = document.createElement('div'); scr.className = 'vd-screen';
+    if (playerMode === 'link') {
+      scr.classList.add('fail');
+      var m = document.createElement('div'); m.className = 'msg';
+      var mt = document.createElement('span'); mt.textContent = "This video can't play on this page.";
+      var ml = document.createElement('a'); ml.href = '#youtube'; ml.textContent = 'Watch on YouTube ↗';
+      m.append(mt, ml); scr.appendChild(m);
+    } else {
+      var now = document.createElement('div'); now.className = 'now'; now.textContent = '▶ playing · youtube-nocookie.com/embed/…';
+      var bar = document.createElement('div'); bar.className = 'bar'; bar.appendChild(document.createElement('i'));
+      scr.append(now, bar);
+    }
+    var foot = document.createElement('div'); foot.className = 'vd-foot';
+    var mode = document.createElement('span'); mode.className = 'vd-mode';
+    mode.textContent = { direct: 'mode: direct embed', ext: 'mode: extension frame (host CSP blocks YouTube)', link: 'mode: link out (embedding not possible)' }[playerMode];
+    var yl = document.createElement('a'); yl.href = '#youtube'; yl.textContent = 'Watch on YouTube ↗';
+    foot.append(mode, yl);
+    d.append(head, scr, foot); vdBack.appendChild(d); frame.appendChild(vdBack);
+    x.addEventListener('click', closeVideo);
+    vdBack.addEventListener('click', function (e) { e.stopPropagation(); if (e.target === vdBack) closeVideo(); });
+    d.addEventListener('click', function (e) { e.stopPropagation(); });
+    x.focus();
+    if (typeof onVideoStart === 'function') onVideoStart(i);
+  }
+  function closeVideo() {
+    if (!vdBack) return;
+    vdBack.remove(); vdBack = null;
+    if (vdReturn) vdReturn.focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && vdBack) { e.stopPropagation(); closeVideo(); } }, true);
+  document.querySelectorAll('input[name="pm"]').forEach(function (r) { r.addEventListener('change', function () { playerMode = r.value; }); });
+
+
+  // Audiences: what the user chose in Options (all on by default). Critical items ignore the filter.
+  var aud = { admin: true, developer: true, other: true };
+  function visibleItems(list) { return list.filter(function (i) { return i.crit || (i.aud || ['admin', 'developer', 'other']).some(function (a) { return aud[a]; }); }); }
+  document.querySelectorAll('input[name="aud"]').forEach(function (c) {
+    c.addEventListener('change', function () {
+      aud[c.value] = c.checked;
+      if (!aud.admin && !aud.developer && !aud.other) { aud[c.value] = true; c.checked = true; }  // at least one role stays on
+      render();
+    });
+  });
+
+  // Likes: local-first toggle; the number shows from 3 likes (showLikesFrom)
+  var liked = {};
+  function likeEl(i) {
+    if (i.crit) return null;   // no reactions on breaking changes
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'like';
+    var n = (i.likes || 0) + (liked[i.id] ? 1 : 0);
+    b.setAttribute('aria-pressed', liked[i.id] ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Like this news' + (n ? ', ' + n + ' likes' : ''));
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 7v7H2.5V7H5zm0 0l2.6-4.6c.3-.5 1-.6 1.4-.2.3.3.4.7.3 1.1L8.8 6H13c.8 0 1.4.7 1.2 1.5l-1.1 5.3c-.1.7-.7 1.2-1.4 1.2H5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+    if (n >= 3) b.appendChild(document.createTextNode(String(n)));
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      liked[i.id] = !liked[i.id];
+      st.read[i.id] = true;
+      render();
+      var again = document.querySelector('.like[data-id="' + i.id + '"]');
+      if (again && liked[i.id]) again.classList.add('pop');
+    });
+    b.setAttribute('data-id', i.id);
+    return b;
+  }
+
+  function render() {
+    var u = unread();
+    var hasCrit = u.some(function (i) { return i.crit; });
+    sat.classList.toggle('has-badge', u.length > 0 && !st.noticed);
+    sat.classList.toggle('has-crit', hasCrit);
+    btn.setAttribute('aria-label', u.length && !st.noticed ? 'Clio satellite, ' + u.length + ' unread news' : 'Clio satellite');
+    // Shown once on this page → the row stays (without a count) until reload; a scenario switch acts as a reload
+    if (u.length) st.rowSeen = true;
+    $('wnRow').hidden = u.length === 0 && !st.rowSeen;
+    $('wnSep').hidden = $('wnRow').hidden;
+    $('wnPill').hidden = u.length === 0;
+    $('wnPill').textContent = u.length;
+    $('wnPill').classList.toggle('crit', hasCrit);
+    $('wnPrev').textContent = u[0] ? u[0].title : (sorted()[0] ? sorted()[0].title : '');
+    var list = $('list'); list.textContent = '';
+    sorted().forEach(function (i) {
+      var li = document.createElement('li');
+      li.className = 'card' + (!signal(i) ? '' : (i.crit ? ' new crit' : ' new'));
+      var d = document.createElement('span'); d.className = 'd';
+      var w = document.createElement('div');
+      var m = document.createElement('div'); m.className = 'meta';
+      var tg = document.createElement('span'); tg.className = 'tag ' + i.type; tg.textContent = i.tag;
+      var dt = document.createElement('span'); dt.textContent = i.date;
+      m.append(tg, dt);
+      if (trendingNow(i)) {
+        var tr = document.createElement('span'); tr.className = 'trend';
+        tr.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1.5 8.5l3-3 2 2 4-4M7.5 3.5h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        tr.appendChild(document.createTextNode('Trending'));
+        m.appendChild(tr);
+      }
+      var h = document.createElement('h4'); h.textContent = i.title;
+      var p = document.createElement('p'); p.textContent = i.body;
+      var a = document.createElement('a'); a.href = '#news'; a.textContent = i.cta + ' →';
+      var md = mediaEl(i);
+      w.append(m, h);
+      if (md) w.appendChild(md);
+      var foot = document.createElement('div'); foot.className = 'foot';
+      foot.appendChild(a);
+      var lk = likeEl(i); if (lk) foot.appendChild(lk);
+      w.append(p, foot); li.append(d, w); list.appendChild(li);
+    });
+  }
+
+  // Beside the menu when it fits, otherwise on top of it (same rule as adjustMenuPosition)
+  function placeFly() {
+    var room = $('shell').clientWidth - sat.offsetLeft;
+    fly.style.left = room >= 256 + 320 + 8 ? '256px' : '0px';
+  }
+
+  function closeAll() { menu.hidden = true; fly.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = menu.hidden;
+    closeAll();
+    if (open) {
+      menu.hidden = false; btn.setAttribute('aria-expanded', 'true');
+      if (unread().length && !st.noticed) { st.noticed = true; note('menu opened → dot cleared (noticed)'); }
+      hidePeek();
+      render();
+    }
+  });
+  $('wnRow').addEventListener('click', function (e) {
+    e.stopPropagation();
+    fly.hidden = !fly.hidden;
+    placeFly();
+    if (!fly.hidden) note('flyout opened');
+  });
+  fly.addEventListener('click', function (e) { e.stopPropagation(); });
+  $('markAll').addEventListener('click', function () { st.feed.forEach(function (i) { st.read[i.id] = true; }); note('mark all as read'); render(); });
+  document.addEventListener('click', function () {
+    if (!fly.hidden) { st.feed.forEach(function (i) { st.read[i.id] = true; }); note('flyout closed → items read'); }
+    closeAll(); render();
+  });
+
+  function showPeek(item) {
+    $('peekTitle').textContent = item.title; $('peekBody').textContent = item.body;
+    peek.hidden = false; st.peekShown = true; note('peek shown (once for ' + item.id + ')');
+    var i = peek.querySelector('.timer i'); i.style.animation = 'none'; void i.offsetWidth; i.style.animation = '';
+    clearTimeout(peekTimer);
+    peekTimer = setTimeout(function () { if (!peek.matches(':hover')) hidePeek(); }, 10000);
+  }
+  function hidePeek() { if (!peek.hidden) { peek.hidden = true; clearTimeout(peekTimer); } }
+  peek.addEventListener('mouseleave', function () { clearTimeout(peekTimer); peekTimer = setTimeout(hidePeek, 3000); });
+  peek.addEventListener('click', function (e) { e.stopPropagation(); });
+  $('peekClose').addEventListener('click', function () { hidePeek(); note('peek dismissed; dot stays'); });
+  $('peekRead').addEventListener('click', function () {
+    hidePeek(); closeAll(); menu.hidden = false; fly.hidden = false; placeFly(); btn.setAttribute('aria-expanded', 'true');
+    st.noticed = true; note('peek → flyout'); render();
+  });
+
+  function scenario(v) {
+    st.rowSeen = false;
+    closeAll(); hidePeek(); st.read = {}; st.ended = {}; st.noticed = false; log.textContent = '—';
+    st.feed = items.slice();
+    if (v === 'noticed') st.noticed = true;
+    if (v === 'read') st.feed.forEach(function (i) { st.read[i.id] = true; });
+    if (v === 'ended') { st.ended.a = true; st.ended.c = true; st.read.b = true; }
+    if (v === 'crit') { st.feed = [crit].concat(items); st.read.b = true; }
+    render();
+    if (v === 'crit') setTimeout(function () { showPeek(crit); }, 400);
+  }
+  document.querySelectorAll('input[name="scn"]').forEach(function (r) { r.addEventListener('change', function () { scenario(r.value); }); });
+  scenario('new');
+})();
+</script>
+</body>
+</html>

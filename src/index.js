@@ -1,10 +1,13 @@
 import { debugLog } from './debug.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { checkCreatioPageAndCreateMenu, monitorButtons, setupObserver, initDebugHelper } from './observer.js';
+import { initLoginNews } from './news/loginStrip.js';
 
-// Abort early on login pages before any initialization
+// On login pages only the developer news strip runs (login/login.js builds the profile row)
 const initialType = getCreatioPageType();
-if (initialType !== 'login') {
+if (initialType === 'login') {
+  initLoginNews().catch(error => console.error('[Clio Satellite] Developer news failed:', error));
+} else {
   // Initial check after page settles
   setTimeout(() => checkCreatioPageAndCreateMenu(), 1000);
 

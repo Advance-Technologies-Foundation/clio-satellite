@@ -67,6 +67,36 @@
         <p id="profile-search-empty" class="search-empty" style="display:none">No profiles match your search.</p>
       </div>
 
+      <!-- Developer news -->
+      <div class="card" id="news-card">
+        <div class="card__toolbar">
+          <span class="card__section-title">Developer news <span class="news-settings__badge">Preview</span></span>
+        </div>
+        <div class="news-settings">
+          <label class="checkbox">
+            <input type="checkbox" id="news-enabled">
+            <span class="checkbox__label">Show developer news on the login page and in Creatio</span>
+          </label>
+          <fieldset class="news-audiences" id="news-audiences">
+            <legend class="news-audiences__legend">Show news for</legend>
+            <label class="checkbox">
+              <input type="checkbox" name="news-audience" id="news-aud-admin" value="admin" checked>
+              <span class="checkbox__label">Administration <small class="news-audiences__hint">system settings, users, licences, environments, deployment</small></span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="news-audience" id="news-aud-developer" value="developer" checked>
+              <span class="checkbox__label">Development <small class="news-audiences__hint">packages, schemas, clio commands, debugging</small></span>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="news-audience" id="news-aud-other" value="other" checked>
+              <span class="checkbox__label">Other <small class="news-audiences__hint">events, community, general news</small></span>
+            </label>
+          </fieldset>
+          <button type="button" id="news-open-all" class="btn btn--text news-settings__all">Open all developer news ↗</button>
+          <p class="news-settings__note">Preview feature, off by default. Nothing is downloaded until you turn it on. Critical news (breaking changes) are always shown while news are on. News are loaded as plain text from advance-technologies-foundation.github.io; no personal data is sent.</p>
+        </div>
+      </div>
+
       <!-- Danger zone -->
       <div class="card card--danger">
         <div class="card__toolbar">

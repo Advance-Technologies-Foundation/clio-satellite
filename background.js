@@ -1,5 +1,16 @@
 // This is the background script for the Chrome extension
 
+// Developer news: feed and media fetching (see docs/architecture/news.md)
+importScripts('news/newsFetcher.js');
+const newsFetcher = self.ClioNewsFetcher.createNewsFetcher({
+    fetchFn: (url, init) => fetch(url, init),
+    storage: {
+        get: (defaults) => chrome.storage.local.get(defaults),
+        set: (data) => chrome.storage.local.set(data),
+    },
+    syncGet: (defaults) => chrome.storage.sync.get(defaults),
+});
+
 // Define default profile
 const defaultProfiles = [
     { username: 'Supervisor', password: 'Supervisor', alias: '' }
@@ -79,6 +90,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
         });
         return true; // indicate async sendResponse
+    }
+    else if (message.action === 'getNews') {
+        newsFetcher.getNews().then(sendResponse, () => sendResponse({ ok: false }));
+        return true;
+    }
+    else if (message.action === 'getNewsMedia') {
+        newsFetcher.getNewsMedia(message.url).then(sendResponse, () => sendResponse({ ok: false }));
+        return true;
+    }
+    else if (message.action === 'openNewsArchive') {
+        // All published news live on the public feed site, outside the extension
+        chrome.tabs.create({ url: self.ClioNewsFetcher.ARCHIVE_URL });
+        sendResponse({ success: true });
+        return true;
     }
     else if (message.action === 'openOptionsPage') {
         // Open the options page using runtime API
