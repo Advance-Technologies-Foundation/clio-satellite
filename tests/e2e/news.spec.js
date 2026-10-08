@@ -177,6 +177,33 @@ test.describe('Developer news in Shell', () => {
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
   });
 
+  test('the flyout is as tall as its news when there are few, without a scrollbar', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await loadShell(page);
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const list = page.locator('.csl-news-flyout .csl-news-list');
+    await expect(list.locator('.csl-news-card')).toHaveCount(2);
+    const { scroll, client } = await list.evaluate(el => ({ scroll: el.scrollHeight, client: el.clientHeight }));
+    expect(scroll).toBeLessThanOrEqual(client);
+  });
+
+  test('with many news the flyout stops at 80% of the window height and the list scrolls', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    const many = feed(Array.from({ length: 5 }, (_, i) => item(`m${i}`)));
+    await loadShell(page, { newsFeed: many, syncData: { newsOnboardedAt: 1 } });
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const flyout = page.locator('.csl-news-flyout');
+    await expect(flyout.locator('.csl-news-card')).toHaveCount(5);
+    const box = await flyout.boundingBox();
+    expect(box.height).toBeLessThanOrEqual(500 * 0.8 + 1);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
+    expect(box.height).toBeGreaterThan(500 * 0.5);
+    const scrolls = await flyout.locator('.csl-news-list').evaluate(el => el.scrollHeight > el.clientHeight);
+    expect(scrolls).toBe(true);
+  });
+
   test('closing the menu marks the flyout news read; the row stays without a count until reload', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
@@ -221,5 +248,59 @@ test.describe('Developer news settings', () => {
     await page.locator('#news-enabled').uncheck();
     await expect(page.locator('#news-aud-admin')).toBeDisabled();
     expect(await page.evaluate(() => new Promise(r => chrome.storage.sync.get({ newsEnabled: true }, d => r(d.newsEnabled))))).toBe(false);
+  });
+
+  test('troubleshooting explains why each cached news item is shown or hidden', async ({ page }) => {
+    const cached = feed([
+      item('read1', { title: 'Already read news' }),
+      item('dev', { title: 'Developer news', audiences: ['developer'] }),
+      item('new1', { title: 'Fresh admin news', audiences: ['admin'] }),
+      item('later', { title: 'Needs a newer extension', minVersion: '9.9' }),
+      item('login1', { title: 'Login only news', surfaces: ['login'] }),
+    ]);
+    await setupChromeMock(page, { syncData: { newsEnabled: true, newsAudiences: ['admin'], newsRead: { read1: 1 } } });
+    await page.addInitScript(raw => {
+      const set = window.chrome.storage.local.set;
+      set({ newsFeedCache: { raw, fetchedAt: Date.now(), refreshHours: 6 } });
+    }, JSON.stringify(cached));
+    await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#news-debug summary').click();
+    await expect(page.locator('#news-debug-status')).toContainText('Cached feed: 5 item(s)');
+    const row = title => page.locator('.news-debug__item', { hasText: title }).locator('.news-debug__state');
+    await expect(row('Already read news')).toHaveText('read');
+    await expect(row('Developer news')).toHaveText('hidden: topic is turned off above');
+    await expect(row('Fresh admin news')).toHaveText('new');
+    await expect(row('Needs a newer extension')).toHaveText('hidden: needs Clio Satellite 9.9');
+    await expect(page.locator('.news-debug__item', { hasText: 'Login only news' })).toContainText('login page only');
+  });
+
+  test('"Mark all news as unread" forgets read, opened and skipped news', async ({ page }) => {
+    await setupChromeMock(page, { syncData: { newsEnabled: true, newsRead: { a: 1 }, newsFirstShown: { a: 1 }, newsAutoOpened: { a: true }, newsSkipped: { b: 1 } } });
+    await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#news-debug summary').click();
+    await page.locator('#news-reset-read').click();
+    await expect(page.locator('#news-debug-status')).toContainText('All news are unread again.');
+    const state = await page.evaluate(() => new Promise(r => chrome.storage.sync.get({ newsRead: null, newsFirstShown: null, newsAutoOpened: null, newsSkipped: null }, r)));
+    expect(state).toEqual({ newsRead: {}, newsFirstShown: {}, newsAutoOpened: {}, newsSkipped: {} });
+  });
+
+  test('"Download news now" clears the cache and fetches the feed again', async ({ page }) => {
+    await setupChromeMock(page, { syncData: { newsEnabled: true }, newsFeed: TWO });
+    await page.addInitScript(() => window.chrome.storage.local.set({ newsFeedCache: { raw: '{"schemaVersion":1,"items":[]}', fetchedAt: 1, refreshHours: 24 }, newsMediaCache: { x: 1 } }));
+    await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#news-debug summary').click();
+    await expect(page.locator('#news-debug-status')).toContainText('Cached feed: 0 item(s)');
+    await page.locator('#news-refresh').click();
+    await expect(page.locator('#news-debug-status')).toContainText('Cached feed: 2 item(s)');
+    expect(await page.evaluate(() => window.__sentMessages.map(m => m.action))).toContain('getNews');
+    const media = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['newsMediaCache'], r)));
+    expect(media.newsMediaCache).toBeUndefined();
+  });
+
+  test('troubleshooting says when news are turned off', async ({ page }) => {
+    await setupChromeMock(page, { newsFeed: null });
+    await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#news-debug summary').click();
+    await expect(page.locator('#news-debug-status')).toHaveText('News are turned off: nothing is downloaded.');
   });
 });

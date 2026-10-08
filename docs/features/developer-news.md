@@ -438,6 +438,7 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 - **Cross-tab sync** through `chrome.storage.onChanged`; both surfaces re-render from the store.
 - **Shell integration points:** the dot is a child of `.scripts-menu-button`; the `What's new` row is prepended in `buildNavMenu()`; the flyout is a sibling of `.scripts-menu-container` positioned with `adjustMenuPosition`. `monitorButtons` re-creates the button group, so the indicator must re-mount idempotently.
 - **Options page:** toggle `Show developer news` (`newsEnabled`, default off while the feature is in preview). When off, no request is made and nothing renders on either surface.
+- **Options → Troubleshooting** (collapsed): the cached feed (item count, download time, next check) and, for each cached item, whether it is `new`, `read` or `hidden` with the reason (skipped at the first run, not published yet, expired, needs a newer extension, topic turned off), plus `login page only` / `inside Creatio only` for single-surface items. Two buttons: **Download news now** clears `newsFeedCache` and `newsMediaCache` and asks the worker for the feed at once; **Mark all news as unread** resets `newsRead`, `newsFirstShown`, `newsAutoOpened`, `newsSkipped` and `newsNoticed`. For testers and for users who wonder why an item is missing.
 - **Styles:** login in `styles/login.css` (`--csl-*` variables); Shell in `menu-item.css`, reusing the glass tokens of the menus.
 
 ## Chrome Web Store

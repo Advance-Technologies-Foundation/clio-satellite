@@ -46,6 +46,8 @@ export async function setupChromeMock(page, { syncData = {}, newsFeed = null } =
           (window.__sentMessages = window.__sentMessages || []).push(message);
           if (!callback) return;
           if (message.action === 'getNews') {
+            // Like the background worker: a successful download is written to the feed cache
+            if (feed && sync.newsEnabled === true) local.newsFeedCache = { raw: JSON.stringify(feed), fetchedAt: Date.now(), refreshHours: 6 };
             callback(feed ? { ok: true, raw: JSON.stringify(feed) } : { ok: false });
           } else {
             callback({ ok: false });

@@ -691,6 +691,17 @@ html[data-theme="system"] .theme-switcher__btn[data-theme-value="system"] {
 
 .news-settings__all { align-self: flex-start; padding-left: 0; }
 
+.news-debug { border-top: 1px solid var(--c-border, rgba(0,0,0,.08)); padding-top: 12px; }
+.news-debug__summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--c-text-2); }
+.news-debug__status { margin: 10px 0 6px; font-size: 13px; }
+.news-debug__list { margin: 0 0 10px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.news-debug__item { display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+.news-debug__state { flex: none; min-width: 64px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--c-hover); color: var(--c-text-2); }
+.news-debug__state--new { background: var(--c-primary); color: #fff; }
+.news-debug__where { flex: none; font-size: 12px; color: var(--c-text-2); }
+.news-debug__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.news-debug__hint { margin: 8px 0 0; font-size: 12px; color: var(--c-text-2); }
+
 .news-settings__note {
   margin: 0;
   font-size: 12px;

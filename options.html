@@ -93,6 +93,16 @@
             </label>
           </fieldset>
           <button type="button" id="news-open-all" class="btn btn--text news-settings__all">Open all developer news ↗</button>
+          <details class="news-debug" id="news-debug">
+            <summary class="news-debug__summary">Troubleshooting</summary>
+            <p class="news-debug__status" id="news-debug-status" aria-live="polite"></p>
+            <ul class="news-debug__list" id="news-debug-list"></ul>
+            <div class="news-debug__actions">
+              <button type="button" id="news-refresh" class="btn btn--outlined btn--sm">Download news now</button>
+              <button type="button" id="news-reset-read" class="btn btn--outlined btn--sm">Mark all news as unread</button>
+            </div>
+            <p class="news-debug__hint">Download news now clears the cached feed and images and fetches them again. Mark all news as unread forgets which news you have read, opened or skipped, so they show up as new on the login page and in Creatio.</p>
+          </details>
           <p class="news-settings__note">Preview feature, off by default. Nothing is downloaded until you turn it on. Critical news (breaking changes) are always shown while news are on. News are loaded as plain text from advance-technologies-foundation.github.io; no personal data is sent.</p>
         </div>
       </div>
