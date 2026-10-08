@@ -22,7 +22,7 @@ function response({ status = 200, body = FEED, headers = {}, bytes } = {}) {
   };
 }
 
-function setup({ local = {}, sync = {}, now = 1_000_000_000_000, fetchImpl } = {}) {
+function setup({ local = {}, sync = { newsEnabled: true }, now = 1_000_000_000_000, fetchImpl } = {}) {
   const store = { ...local };
   const fetchFn = vi.fn(fetchImpl || (async () => response({ headers: { ETag: '"v1"' } })));
   let time = now;
@@ -66,6 +66,12 @@ describe('newsFetcher.getNews', () => {
   it('does not fetch when news are turned off', async () => {
     const { fetcher, fetchFn } = setup({ sync: { newsEnabled: false } });
     expect((await fetcher.getNews()).ok).toBe(false);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch until news are turned on in Options (off by default)', async () => {
+    const { fetcher, fetchFn } = setup({ sync: {} });
+    expect(await fetcher.getNews()).toEqual({ ok: false, reason: 'disabled' });
     expect(fetchFn).not.toHaveBeenCalled();
   });
 

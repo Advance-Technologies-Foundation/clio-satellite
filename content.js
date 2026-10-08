@@ -731,7 +731,8 @@
 
   // src/news/newsStore.js
   var SYNC_DEFAULTS = {
-    newsEnabled: true,
+    newsEnabled: false,
+    // preview feature: off until turned on in Options
     newsAudiences: ["admin", "developer", "other"],
     newsRead: {},
     newsFirstShown: {},
@@ -780,7 +781,7 @@
   async function loadState() {
     const [sync, local] = await Promise.all([syncGet(SYNC_DEFAULTS), localGet(LOCAL_DEFAULTS)]);
     return {
-      enabled: sync.newsEnabled !== false,
+      enabled: sync.newsEnabled === true,
       audiences: Array.isArray(sync.newsAudiences) && sync.newsAudiences.length ? sync.newsAudiences : SYNC_DEFAULTS.newsAudiences,
       read: sync.newsRead || {},
       firstShown: sync.newsFirstShown || {},

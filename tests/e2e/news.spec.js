@@ -30,8 +30,9 @@ function item(id, extra = {}) {
 
 const TWO = feed([item('a', { audiences: ['developer'] }), item('b', { type: 'tip', audiences: ['admin'] })]);
 
+// News are a preview feature, off by default; most tests cover the turned-on state
 async function loadLogin(page, { newsFeed = TWO, syncData = {} } = {}) {
-  await setupChromeMock(page, { syncData: { userProfiles: PROFILES, ...syncData }, newsFeed });
+  await setupChromeMock(page, { syncData: { newsEnabled: true, userProfiles: PROFILES, ...syncData }, newsFeed });
   await page.goto(`${BASE}/login/`);
   await page.addStyleTag({ content: read('styles/login.css') });
   await page.addStyleTag({ content: read('styles/news.css') });
@@ -42,7 +43,7 @@ async function loadLogin(page, { newsFeed = TWO, syncData = {} } = {}) {
 }
 
 async function loadShell(page, { newsFeed = TWO, syncData = {} } = {}) {
-  await setupChromeMock(page, { syncData, newsFeed });
+  await setupChromeMock(page, { syncData: { newsEnabled: true, ...syncData }, newsFeed });
   await page.goto(`${BASE}/shell/`);
   for (const css of ['styles/shell.css', 'menu-item.css', 'styles/news.css']) {
     await page.addStyleTag({ content: read(css) });
@@ -71,6 +72,17 @@ test.describe('Developer news on the login page', () => {
     await expect(page.locator('.csl-news-card__cta').first()).toHaveAttribute('target', '_blank');
     await page.locator('.csl-news-strip').click();
     // Nothing new is left, so the whole strip goes away
+    await expect(page.locator('.csl-news')).toBeHidden();
+  });
+
+  test('nothing is shown until news are turned on in Options', async ({ page }) => {
+    await setupChromeMock(page, { syncData: { userProfiles: PROFILES }, newsFeed: TWO });
+    await page.goto(`${BASE}/login/`);
+    await page.addStyleTag({ content: read('styles/news.css') });
+    await page.addScriptTag({ content: read('login/login-events.js') });
+    await page.addScriptTag({ content: read('login/login.js') });
+    await injectContentScript(page);
+    await page.waitForSelector('.creatio-satelite-login-profiles-container');
     await expect(page.locator('.csl-news')).toBeHidden();
   });
 
@@ -186,10 +198,14 @@ test.describe('Developer news in Shell', () => {
 });
 
 test.describe('Developer news settings', () => {
-  test('all roles on by default; at least one stays on; news can be turned off', async ({ page }) => {
+  test('news are off by default; once on, all roles are on and at least one stays on', async ({ page }) => {
     await setupChromeMock(page);
     await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
     const boxes = page.locator('input[name="news-audience"]');
+    await expect(page.locator('#news-enabled')).not.toBeChecked();
+    await expect(page.locator('#news-aud-admin')).toBeDisabled();
+    await page.locator('#news-enabled').check();
+    expect(await page.evaluate(() => new Promise(r => chrome.storage.sync.get({ newsEnabled: false }, d => r(d.newsEnabled))))).toBe(true);
     await expect(boxes).toHaveCount(3);
     for (const box of await boxes.all()) await expect(box).toBeChecked();
 

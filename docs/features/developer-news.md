@@ -1,6 +1,6 @@
 # Developer News
 
-**Status:** implemented in branch `feature/developer-news-strip` (not merged). Code map: [`docs/architecture/news.md`](../architecture/news.md). Not implemented yet: the extension-page player fallback (step 2 of the player chain) and reactions.
+**Status:** implemented in branch `feature/developer-news-strip` (not merged). Code map: [`docs/architecture/news.md`](../architecture/news.md). Shipped as a **preview feature, off by default**: nothing is fetched or shown until the user turns on `Show developer news` in Options. Not implemented yet: the extension-page player fallback (step 2 of the player chain) and reactions.
 **Mockups** (open in a browser, no build step):
 - [`mockup.html`](../design/developer-news/mockup.html) — login page strip.
 - [`shell-mockup.html`](../design/developer-news/shell-mockup.html) — indicator inside Creatio (Clio satellite button, menu row, flyout, peek card).
@@ -128,7 +128,7 @@ One store for both surfaces, so reading news on the login page clears the dot in
 | `newsMediaCache` | `local` | `{ [url]: { dataUrl, fetchedAt } }` — images and posters, ≤ 2 MB total, pruned with the feed |
 | `newsSkipped` | `sync` | `{ [id]: ts }` — backlog skipped at the first run |
 | `newsOnboardedAt` | `sync` | timestamp of the first run; `0` = not yet |
-| `newsEnabled` | `sync` | boolean, default `true` |
+| `newsEnabled` | `sync` | boolean, default `false` (preview feature, opt-in) |
 | `newsAudiences` | `sync` | `["admin", "developer", "other"]` by default; at least one |
 
 - `read` is global (sync), `noticed` is per device (local): a dot on a second laptop is fine, a re-appearing unread item is not.
@@ -143,8 +143,8 @@ Users choose which kinds of news they want: **Administration**, **Development**,
 Options page, section **Developer news**:
 
 ```
-Developer news
-[x] Show developer news                      (master switch, newsEnabled)
+Developer news  [Preview]
+[ ] Show developer news                      (master switch, newsEnabled, off by default)
     Show news for:
     [x] Administration   system settings, users, licences, environments, deployment
     [x] Development      packages, schemas, clio commands, debugging
@@ -437,7 +437,7 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
 - **Player:** `src/news/videoDialog.js` (dialog, focus trap, fallback chain, postMessage listener) and `news/player.html` + `news/player.js` (extension page for step 2, listed in `web_accessible_resources` with `use_dynamic_url: true` so other sites cannot frame it by a fixed URL).
 - **Cross-tab sync** through `chrome.storage.onChanged`; both surfaces re-render from the store.
 - **Shell integration points:** the dot is a child of `.scripts-menu-button`; the `What's new` row is prepended in `buildNavMenu()`; the flyout is a sibling of `.scripts-menu-container` positioned with `adjustMenuPosition`. `monitorButtons` re-creates the button group, so the indicator must re-mount idempotently.
-- **Options page:** toggle `Show developer news` (`newsEnabled`, default on). When off, no request is made and nothing renders on either surface.
+- **Options page:** toggle `Show developer news` (`newsEnabled`, default off while the feature is in preview). When off, no request is made and nothing renders on either surface.
 - **Styles:** login in `styles/login.css` (`--csl-*` variables); Shell in `menu-item.css`, reusing the glass tokens of the menus.
 
 ## Chrome Web Store
@@ -452,7 +452,7 @@ src/news/newsCards.js       shared card renderer (textContent only), light/dark 
   - *"Added a collapsible developer news strip under the login profile selector."*
   - *"Added an unread-news dot to the Clio satellite button and a What's new entry at the top of its menu that opens the news list."*
   - *"News items can include an image or a YouTube video. Videos play in a built-in player dialog (youtube-nocookie.com) after the user clicks play, or open on youtube.com if the page does not allow embedded video."*
-  - *"News are loaded as plain text from https://… every 6 hours; no user data is sent. News can be turned off in Options."*
+  - *"News are loaded as plain text from https://… every 6 hours; no user data is sent. News are off by default and can be turned on or off in Options."*
 - When the feed domain is chosen, add it to the permission justification in `CLAUDE.md` and the other agent instruction files.
 
 ## Tests (planned)
@@ -481,7 +481,7 @@ Principles:
 - **Position beats colour.** Banner blindness is learned for screen regions that were never useful. The strip sits right under the login button, where the eye already goes.
 - **Signal only what is new.** A badge that is always on gets ignored (badge blindness).
 - **Benefit-first titles** and **one CTA** per item.
-- **User control:** can be turned off; items expire; critical items auto-open only once.
+- **User control:** opt-in while in preview, can be turned off; items expire; critical items auto-open only once.
 - **Inform, never interrupt, while the user works:** dot only, no animation, decay if ignored; a peek card only for breaking changes.
 
 Sources:

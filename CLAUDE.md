@@ -105,7 +105,7 @@ Google reviewers read the release notes to verify the extension behaves as descr
 - `activeTab` — used to detect current page type and inject the appropriate UI
 - `contextMenus` — used to add a right-click shortcut to open the options page
 - `host_permissions: <all_urls>` — required because Creatio can be hosted on any domain (self-hosted instances)
-- Developer news — the background service worker downloads `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json` and its images (and YouTube posters from `https://i.ytimg.com`). Plain JSON data and images only, no remote code; covered by `<all_urls>`, no extra permission. Turning news off in Options stops these requests.
+- Developer news — the background service worker downloads `https://advance-technologies-foundation.github.io/clio-news-feed/v1/feeds/clio-satellite.json` and its images (and YouTube posters from `https://i.ytimg.com`). Plain JSON data and images only, no remote code; covered by `<all_urls>`, no extra permission. News are a preview feature, off by default: no request is made until the user turns news on in Options, and turning them off stops the requests again.
 
 ---
 

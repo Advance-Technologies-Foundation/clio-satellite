@@ -20,7 +20,7 @@
 
 **Background messages:** `getNews` → `{ ok, raw }`; `getNewsMedia { url }` → `{ ok, dataUrl }`; `openNewsArchive` → opens the public feed site in a new tab.
 
-**Storage:** sync — `newsEnabled`, `newsAudiences`, `newsRead`, `newsFirstShown`, `newsAutoOpened` (+ `lastPeekAt`), `newsSkipped`, `newsOnboardedAt`; local — `newsNoticed`, `newsFeedCache`, `newsMediaCache`.
+**Storage:** sync — `newsEnabled` (default `false`: preview feature, opt-in; `newsStore.loadState()` and `newsFetcher.getNews()` both require an explicit `true`), `newsAudiences`, `newsRead`, `newsFirstShown`, `newsAutoOpened` (+ `lastPeekAt`), `newsSkipped`, `newsOnboardedAt`; local — `newsNoticed`, `newsFeedCache`, `newsMediaCache`.
 
 **Key decisions:**
 - One bundle, two surfaces: `content.js` already runs on login pages, so `src/index.js` calls `initLoginNews()` there instead of returning; validation and state logic exist once.

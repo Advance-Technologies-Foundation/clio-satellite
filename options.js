@@ -443,8 +443,9 @@ function initNewsSettings() {
   const boxes = [...document.querySelectorAll('input[name="news-audience"]')];
   if (!enabled || !fieldset) return;
 
-  chrome.storage.sync.get({ newsEnabled: true, newsAudiences: NEWS_AUDIENCES }, (data) => {
-    enabled.checked = data.newsEnabled !== false;
+  // Preview feature: off until the user turns it on here
+  chrome.storage.sync.get({ newsEnabled: false, newsAudiences: NEWS_AUDIENCES }, (data) => {
+    enabled.checked = data.newsEnabled === true;
     const chosen = Array.isArray(data.newsAudiences) && data.newsAudiences.length ? data.newsAudiences : NEWS_AUDIENCES;
     boxes.forEach(box => { box.checked = chosen.includes(box.value); });
     fieldset.disabled = !enabled.checked;

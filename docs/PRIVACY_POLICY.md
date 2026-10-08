@@ -27,7 +27,7 @@ The Extension shows short news about clio and Creatio developer tools on the Cre
 - The news are downloaded as plain text (JSON) and images from `https://advance-technologies-foundation.github.io/clio-news-feed/` at most every few hours. The request contains no personal data, no Creatio address and no identifiers.
 - Which news you have read, when you first saw them, and the roles you chose (Administration, Development, Other) are stored in Chrome storage in your browser only.
 - YouTube previews may be loaded from `i.ytimg.com` (Google) when you open the news list. A video plays from `youtube-nocookie.com` only after you press play; "Watch on YouTube" opens youtube.com.
-- You can turn developer news off in the Extension options; the Extension then makes no news requests.
+- Developer news are off by default. The Extension makes no news requests until you turn developer news on in the Extension options, and stops them when you turn it off again.
 
 ## How We Use Information
 

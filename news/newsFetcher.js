@@ -74,8 +74,9 @@
     }
 
     async function getNews() {
-      const { newsEnabled } = await syncGet({ newsEnabled: true });
-      if (newsEnabled === false) return { ok: false, reason: 'disabled' };
+      // Preview feature: nothing is downloaded until news are turned on in Options
+      const { newsEnabled } = await syncGet({ newsEnabled: false });
+      if (newsEnabled !== true) return { ok: false, reason: 'disabled' };
       const { newsFeedCache: cache = {} } = await storage.get({ newsFeedCache: {} });
       const ttl = (cache.refreshHours || DEFAULT_REFRESH_HOURS) * HOUR;
       let current = cache;

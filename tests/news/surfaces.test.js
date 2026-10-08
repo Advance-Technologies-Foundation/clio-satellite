@@ -21,7 +21,9 @@ function readLocal(keys) {
   return new Promise(resolve => chrome.storage.local.get(keys, resolve));
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // News are a preview feature, off by default; these tests cover the turned-on state
+  await storeSync({ newsEnabled: true });
   _resetLoginNews();
   _resetShellNews();
   sent = [];
