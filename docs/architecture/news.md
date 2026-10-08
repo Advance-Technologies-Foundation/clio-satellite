@@ -22,7 +22,7 @@
 
 - `options.js` → `initNewsDebug()` / `renderNewsDebug()`: the Troubleshooting part of the Developer news card. It reads `newsFeedCache` and the sync state directly and mirrors the visibility checks of `newsCore.selectVisible()` / `isUnreadSignal()` in plain words (options.js is not part of the content bundle, so the logic is duplicated on purpose and kept to the user-visible reasons). Download news now = remove the caches + `getNews` message; Mark all as unread = reset the read-state keys below.
 
-**Storage:** sync — `newsEnabled` (default `false`: preview feature, opt-in; `newsStore.loadState()` and `newsFetcher.getNews()` both require an explicit `true`), `newsAudiences`, `newsRead`, `newsFirstShown`, `newsAutoOpened` (+ `lastPeekAt`), `newsSkipped`, `newsOnboardedAt`; local — `newsNoticed`, `newsFeedCache`, `newsMediaCache`.
+**Storage:** sync — `newsEnabled` (default `true` since v2.8; `newsStore.loadState()` and `newsFetcher.getNews()` treat only an explicit `false` as off), `newsAudiences`, `newsRead`, `newsFirstShown`, `newsAutoOpened` (+ `lastPeekAt`), `newsSkipped`, `newsOnboardedAt`; local — `newsNoticed`, `newsFeedCache`, `newsMediaCache`.
 
 **Key decisions:**
 - One bundle, two surfaces: `content.js` already runs on login pages, so `src/index.js` calls `initLoginNews()` there instead of returning; validation and state logic exist once.

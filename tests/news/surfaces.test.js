@@ -22,7 +22,7 @@ function readLocal(keys) {
 }
 
 beforeEach(async () => {
-  // News are a preview feature, off by default; these tests cover the turned-on state
+  // News are on by default; tests set newsEnabled explicitly to cover both states
   await storeSync({ newsEnabled: true });
   _resetLoginNews();
   _resetShellNews();

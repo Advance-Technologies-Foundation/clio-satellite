@@ -2,7 +2,7 @@
 // never throws: when the extension context is gone (extension reloaded), news silently stay hidden.
 
 export const SYNC_DEFAULTS = {
-  newsEnabled: false,      // preview feature: off until turned on in Options
+  newsEnabled: true,       // on by default; only an explicit false (Options switch) turns news off
   newsAudiences: ['admin', 'developer', 'other'],
   newsRead: {},
   newsFirstShown: {},
@@ -54,7 +54,7 @@ function set(area, data) {
 export async function loadState() {
   const [sync, local] = await Promise.all([syncGet(SYNC_DEFAULTS), localGet(LOCAL_DEFAULTS)]);
   return {
-    enabled: sync.newsEnabled === true,
+    enabled: sync.newsEnabled !== false,
     audiences: Array.isArray(sync.newsAudiences) && sync.newsAudiences.length ? sync.newsAudiences : SYNC_DEFAULTS.newsAudiences,
     read: sync.newsRead || {},
     firstShown: sync.newsFirstShown || {},

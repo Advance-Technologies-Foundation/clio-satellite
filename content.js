@@ -747,8 +747,8 @@
 
   // src/news/newsStore.js
   var SYNC_DEFAULTS = {
-    newsEnabled: false,
-    // preview feature: off until turned on in Options
+    newsEnabled: true,
+    // on by default; only an explicit false (Options switch) turns news off
     newsAudiences: ["admin", "developer", "other"],
     newsRead: {},
     newsFirstShown: {},
@@ -797,7 +797,7 @@
   async function loadState() {
     const [sync, local] = await Promise.all([syncGet(SYNC_DEFAULTS), localGet(LOCAL_DEFAULTS)]);
     return {
-      enabled: sync.newsEnabled === true,
+      enabled: sync.newsEnabled !== false,
       audiences: Array.isArray(sync.newsAudiences) && sync.newsAudiences.length ? sync.newsAudiences : SYNC_DEFAULTS.newsAudiences,
       read: sync.newsRead || {},
       firstShown: sync.newsFirstShown || {},
