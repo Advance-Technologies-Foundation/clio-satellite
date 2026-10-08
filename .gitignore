@@ -10,3 +10,5 @@ coverage/
 # Playwright output
 test-results/
 playwright-report/
+
+.DS_Store
