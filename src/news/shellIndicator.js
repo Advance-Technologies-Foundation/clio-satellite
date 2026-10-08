@@ -10,6 +10,10 @@ const RERENDER_MS = 10 * 60 * 1000;
 const PEEK_MS = 10000;
 const PEEK_AFTER_HOVER_MS = 3000;
 const FLYOUT_WIDTH = 320;
+// The flyout grows with its cards up to this share of the window height, then the list scrolls
+export const FLYOUT_MAX_SHARE = 0.8;
+const FLYOUT_MIN_LIST = 120;
+const FLYOUT_EDGE = 16;
 
 const ui = {
   menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell',
@@ -79,6 +83,28 @@ function placeFlyout() {
   const rect = ui.menuContainer.getBoundingClientRect();
   const roomRight = window.innerWidth - rect.right;
   ui.flyout.classList.toggle('csl-news-flyout--left', roomRight < FLYOUT_WIDTH + 16);
+  fitFlyoutHeight();
+}
+
+// Few news → the flyout is as tall as its cards; many → up to 80% of the window, and never
+// below its bottom edge. Only the list scrolls, the head and foot stay in place.
+export function flyoutListMaxHeight({ viewportHeight, flyoutTop, chromeHeight }) {
+  const flyoutMax = Math.min(viewportHeight * FLYOUT_MAX_SHARE, viewportHeight - Math.max(0, flyoutTop) - FLYOUT_EDGE);
+  return Math.max(FLYOUT_MIN_LIST, Math.floor(flyoutMax - chromeHeight));
+}
+
+function fitFlyoutHeight() {
+  if (!ui.flyout || ui.flyout.hidden || !ui.list) return;
+  const chromeHeight = ui.flyout.offsetHeight - ui.list.offsetHeight;
+  ui.list.style.maxHeight = `${flyoutListMaxHeight({
+    viewportHeight: window.innerHeight,
+    flyoutTop: ui.flyout.getBoundingClientRect().top,
+    chromeHeight,
+  })}px`;
+}
+
+function onWindowResize() {
+  if (ui.flyoutOpen) fitFlyoutHeight();
 }
 
 async function setFlyout(open) {
@@ -238,6 +264,7 @@ export function attachShellNews({ menuButton, menuContainer, buttonWrapper, page
     ui.subscribed = true;
     onNewsStorageChange(() => render());
     setInterval(render, RERENDER_MS);
+    window.addEventListener('resize', onWindowResize);
   }
   return render();
 }

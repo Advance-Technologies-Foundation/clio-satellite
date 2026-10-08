@@ -337,7 +337,8 @@
   line-height: 1.4 !important;
 }
 .creatio-satelite-extension-container .csl-news-flyout--left { left: auto !important; right: calc(100% + 8px) !important; }
-.creatio-satelite-extension-container .csl-news-flyout .csl-news-list { max-height: 360px; }
+.creatio-satelite-extension-container .csl-news-flyout .csl-news-list { max-height: calc(80vh - 96px); }
+/* shellIndicator.js refines it on open: up to 80% of the window, never past its bottom edge */
 
 .creatio-satelite-extension-container .csl-news-peek {
   position: fixed !important;

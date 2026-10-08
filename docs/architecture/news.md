@@ -31,6 +31,7 @@
 - `movedTo` is followed only to `FEED_HOSTS`; after three failed refreshes the compiled URL is used again.
 - Every state write is followed by an explicit re-render; `storage.onChanged` additionally syncs other tabs.
 - The flyout lives inside the menu container (absolute, `left: 100%`/`right: 100%`), so the existing outside-click logic keeps the menu open while reading and closing the menu closes the flyout.
+- Flyout height follows its cards: on open (and on window resize) `fitFlyoutHeight()` caps the list so the whole flyout is at most `FLYOUT_MAX_SHARE` (80%) of the window height and never past its bottom edge (`flyoutListMaxHeight`, min 120 px). Few news → no scrollbar; many → only the list scrolls, head and foot stay. CSS keeps `calc(80vh - 96px)` as the fallback.
 - CSS: `.csl-news-*` classes; Shell rules carry `!important` because Creatio styles are aggressive, and `[hidden]` rules come after them so `hidden` still wins.
 - Not implemented yet (see spec): the extension-page player fallback (step 2, needs a spike), reactions (needs the API).
 

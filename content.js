@@ -1175,6 +1175,9 @@
   var PEEK_MS = 1e4;
   var PEEK_AFTER_HOVER_MS = 3e3;
   var FLYOUT_WIDTH = 320;
+  var FLYOUT_MAX_SHARE = 0.8;
+  var FLYOUT_MIN_LIST = 120;
+  var FLYOUT_EDGE = 16;
   var ui = {
     menuButton: null,
     menuContainer: null,
@@ -1257,6 +1260,23 @@
     const rect = ui.menuContainer.getBoundingClientRect();
     const roomRight = window.innerWidth - rect.right;
     ui.flyout.classList.toggle("csl-news-flyout--left", roomRight < FLYOUT_WIDTH + 16);
+    fitFlyoutHeight();
+  }
+  function flyoutListMaxHeight({ viewportHeight, flyoutTop, chromeHeight }) {
+    const flyoutMax = Math.min(viewportHeight * FLYOUT_MAX_SHARE, viewportHeight - Math.max(0, flyoutTop) - FLYOUT_EDGE);
+    return Math.max(FLYOUT_MIN_LIST, Math.floor(flyoutMax - chromeHeight));
+  }
+  function fitFlyoutHeight() {
+    if (!ui.flyout || ui.flyout.hidden || !ui.list) return;
+    const chromeHeight = ui.flyout.offsetHeight - ui.list.offsetHeight;
+    ui.list.style.maxHeight = `${flyoutListMaxHeight({
+      viewportHeight: window.innerHeight,
+      flyoutTop: ui.flyout.getBoundingClientRect().top,
+      chromeHeight
+    })}px`;
+  }
+  function onWindowResize() {
+    if (ui.flyoutOpen) fitFlyoutHeight();
   }
   async function setFlyout(open2) {
     if (!ui.flyout) return;
@@ -1408,6 +1428,7 @@
       ui.subscribed = true;
       onNewsStorageChange(() => render());
       setInterval(render, RERENDER_MS);
+      window.addEventListener("resize", onWindowResize);
     }
     return render();
   }

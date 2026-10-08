@@ -177,6 +177,33 @@ test.describe('Developer news in Shell', () => {
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
   });
 
+  test('the flyout is as tall as its news when there are few, without a scrollbar', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await loadShell(page);
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const list = page.locator('.csl-news-flyout .csl-news-list');
+    await expect(list.locator('.csl-news-card')).toHaveCount(2);
+    const { scroll, client } = await list.evaluate(el => ({ scroll: el.scrollHeight, client: el.clientHeight }));
+    expect(scroll).toBeLessThanOrEqual(client);
+  });
+
+  test('with many news the flyout stops at 80% of the window height and the list scrolls', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    const many = feed(Array.from({ length: 5 }, (_, i) => item(`m${i}`)));
+    await loadShell(page, { newsFeed: many, syncData: { newsOnboardedAt: 1 } });
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const flyout = page.locator('.csl-news-flyout');
+    await expect(flyout.locator('.csl-news-card')).toHaveCount(5);
+    const box = await flyout.boundingBox();
+    expect(box.height).toBeLessThanOrEqual(500 * 0.8 + 1);
+    expect(box.y + box.height).toBeLessThanOrEqual(500);
+    expect(box.height).toBeGreaterThan(500 * 0.5);
+    const scrolls = await flyout.locator('.csl-news-list').evaluate(el => el.scrollHeight > el.clientHeight);
+    expect(scrolls).toBe(true);
+  });
+
   test('closing the menu marks the flyout news read; the row stays without a count until reload', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
