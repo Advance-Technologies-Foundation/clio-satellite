@@ -18,4 +18,5 @@
 
 - `createScriptsMenu()` attaches the developer news indicator (`attachShellNews`) last and isolates it: a sync throw or async rejection is logged and never marks the menu as failed, so news can not trigger the menu re-creation loop.
 
-**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`
+**Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`, `analytics.js` (usage events)
+- Usage statistics: opening either menu sends `menu_open {menu}` and every item click sends `menu_click {menu, item}` through `src/analytics.js` (see `analytics.md`).

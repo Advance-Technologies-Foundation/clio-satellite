@@ -5,6 +5,7 @@ import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuC
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
+import { track } from './analytics.js';
 
 // Guard against "Extension context invalidated" errors that occur when the
 // extension is reloaded while a content script is still alive on the page.
@@ -121,6 +122,7 @@ function buildNavMenu() {
 
     const menuItem = createMenuItem(scriptName);
     menuItem.addEventListener('click', () => {
+      track('menu_click', { menu: 'navigation', item: scriptName });
       if (scriptName === 'Settings') {
         safeSendMessage({ action: 'openOptionsPage' });
       } else {
@@ -191,6 +193,7 @@ function buildActionsMenu(actionsMenuContainer) {
       menuItem.appendChild(menuButtonEl);
 
       menuItem.addEventListener('click', () => {
+        track('menu_click', { menu: 'actions', item: name });
         if (name === 'EnableAutologin') {
           chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, ds => {
             const err = getLastError();
@@ -303,6 +306,7 @@ export function createScriptsMenu() {
     hideMenuContainer(menuContainer);
     buildActionsMenu(actionsMenuContainer);
     showMenuContainer(actionsMenuContainer);
+    track('menu_open', { menu: 'actions' });
     adjustMenuPosition(actionsButton, actionsMenuContainer);
   });
 
@@ -314,6 +318,7 @@ export function createScriptsMenu() {
     }
     hideMenuContainer(actionsMenuContainer);
     showMenuContainer(menuContainer);
+    track('menu_open', { menu: 'navigation' });
     adjustMenuPosition(menuButton, menuContainer);
   });
 

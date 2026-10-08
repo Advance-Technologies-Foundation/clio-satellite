@@ -232,6 +232,51 @@ test.describe('Developer news in Shell', () => {
   });
 });
 
+test.describe('Developer news usage events', () => {
+  const tracked = page => page.evaluate(() => window.__sentMessages.filter(m => m.action === 'trackEvent').map(m => [m.name, m.params]));
+
+  test('opening the Shell flyout, a card link and the panel controls are reported', async ({ page }) => {
+    await loadShell(page);
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const flyout = page.locator('.csl-news-flyout');
+    await flyout.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').evaluate(a => a.addEventListener('click', e => e.preventDefault()));
+    await flyout.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').click();
+    await flyout.getByRole('link', { name: 'All news →' }).evaluate(a => a.addEventListener('click', e => e.preventDefault()));
+    await flyout.getByRole('link', { name: 'All news →' }).click();
+    await flyout.getByRole('button', { name: 'Choose topics' }).click();
+    await flyout.getByRole('button', { name: 'Mark all as read' }).click();
+    expect((await tracked(page)).filter(([name]) => name.startsWith('news_'))).toEqual([
+      ['news_open', { surface: 'shell' }],
+      ['news_cta_click', { surface: 'shell', news_id: 'a' }],
+      ['news_archive_open', { surface: 'shell' }],
+      ['news_topics_open', { surface: 'shell' }],
+      ['news_mark_all_read', { surface: 'shell' }],
+    ]);
+  });
+
+  test('opening the login news list is reported once per opening', async ({ page }) => {
+    await loadLogin(page);
+    await page.locator('.csl-news-strip').click();
+    await page.locator('.csl-news-strip').click();
+    await page.locator('.csl-news-strip').click();
+    expect((await tracked(page)).filter(([name]) => name === 'news_open')).toEqual([
+      ['news_open', { surface: 'login' }],
+      ['news_open', { surface: 'login' }],
+    ]);
+  });
+});
+
+test.describe('Usage statistics settings', () => {
+  test('on by default; the switch stores an explicit false', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#analytics-enabled')).toBeChecked();
+    await page.locator('#analytics-enabled').uncheck();
+    expect(await page.evaluate(() => new Promise(r => chrome.storage.sync.get({ analyticsEnabled: true }, d => r(d.analyticsEnabled))))).toBe(false);
+  });
+});
+
 test.describe('Developer news settings', () => {
   test('news are on by default with all roles on; at least one role stays on', async ({ page }) => {
     await setupChromeMock(page);

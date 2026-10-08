@@ -52,12 +52,19 @@ describe('Extension packaging', () => {
     const workflow = readFile('.github/workflows/release.yml');
     const excluded = [...workflow.matchAll(/-x "([^"]+)"/g)].map(m => m[1]);
     const imported = [...background.matchAll(/importScripts\(['"]([^'"]+)['"]\)/g)].map(m => m[1]);
-    expect(imported).toContain('news/newsFetcher.js');
+    expect(imported).toEqual(expect.arrayContaining(['news/newsFetcher.js', 'analytics/config.js', 'analytics/analytics.js']));
     for (const file of imported) {
       expect(existsSync(resolve(ROOT, file)), `${file} is imported but does not exist`).toBe(true);
       const dir = file.split('/')[0] + '/*';
       expect(excluded, `${file} would be left out of the release ZIP`).not.toContain(dir);
     }
+  });
+
+  it('the analytics config in git has no GA4 property: only the release workflow fills it', () => {
+    const config = readFile('analytics/config.js');
+    expect(config).toMatch(/measurementId: ''/);
+    expect(config).toMatch(/apiSecret: ''/);
+    expect(readFile('.github/workflows/release.yml')).toMatch(/secrets\.GA_MEASUREMENT_ID/);
   });
 
   it('news styles are injected on login and Shell pages', () => {

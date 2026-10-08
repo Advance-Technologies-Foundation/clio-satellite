@@ -4,7 +4,8 @@
 import { shouldShowDot, pickPeek } from './newsCore.js';
 import { loadSurface } from './newsModel.js';
 import { markRead, markNoticed, recordDotShown, recordFirstShown, markAutoOpened, onNewsStorageChange, openOptions } from './newsStore.js';
-import { renderCards, newsIcon, ARCHIVE_URL } from './newsCards.js';
+import { renderCards, newsIcon, trackPanelClicks, ARCHIVE_URL } from './newsCards.js';
+import { track } from '../analytics.js';
 
 const RERENDER_MS = 10 * 60 * 1000;
 const PEEK_MS = 10000;
@@ -61,6 +62,7 @@ function buildFlyout() {
   const head = el('div', 'csl-news-panel__head');
   const markAll = el('button', 'csl-news-linkbtn', 'Mark all as read');
   markAll.type = 'button';
+  markAll.dataset.track = 'news_mark_all_read';
   head.append(el('strong', '', 'Dev tools news'), markAll);
   const list = el('ul', 'csl-news-list');
   const foot = el('div', 'csl-news-panel__foot');
@@ -68,10 +70,13 @@ function buildFlyout() {
   all.href = ARCHIVE_URL;
   all.target = '_blank';
   all.rel = 'noopener noreferrer';
+  all.dataset.track = 'news_archive_open';
   const topics = el('button', 'csl-news-linkbtn', 'Choose topics');
   topics.type = 'button';
+  topics.dataset.track = 'news_topics_open';
   foot.append(all, topics);
   flyout.append(head, list, foot);
+  trackPanelClicks(flyout, 'shell');
   flyout.addEventListener('click', event => event.stopPropagation());
   markAll.addEventListener('click', () => { if (ui.model) markRead(ui.model.visible.map(i => i.id)).then(render); });
   topics.addEventListener('click', () => openOptions());
@@ -114,6 +119,7 @@ async function setFlyout(open) {
   ui.flyout.hidden = !open;
   ui.row?.setAttribute('aria-expanded', String(open));
   if (open) {
+    if (!wasOpen) track('news_open', { surface: 'shell' });
     placeFlyout();
     if (ui.model) recordFirstShown(ui.model.visible.map(i => i.id));
   } else if (wasOpen && ui.model) {

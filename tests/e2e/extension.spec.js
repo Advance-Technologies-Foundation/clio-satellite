@@ -52,6 +52,23 @@ test.describe('Shell page', () => {
     await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
+  test('menu opens and item clicks are reported as anonymous usage events', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    await page.locator('.scripts-menu-button').click();
+    // Unstyled test page: the items exist but are not laid out, so dispatch the clicks
+    await page.locator('[data-item-marker="SysSettings"]').dispatchEvent('click');
+    await page.locator('.actions-button').click();
+    await page.locator('.actions-menu-container [data-item-marker="RestartApp"]').dispatchEvent('click');
+    const events = await page.evaluate(() => window.__sentMessages.filter(m => m.action === 'trackEvent').map(m => [m.name, m.params]));
+    expect(events).toEqual([
+      ['menu_open', { menu: 'navigation' }],
+      ['menu_click', { menu: 'navigation', item: 'SysSettings' }],
+      ['menu_open', { menu: 'actions' }],
+      ['menu_click', { menu: 'actions', item: 'RestartApp' }],
+    ]);
+  });
+
   test('menu items and buttons show duotone SVG icons that follow the hover colour', async ({ page }) => {
     await load(page, '/shell/');
     await page.addStyleTag({ url: '/styles/shell.css' });

@@ -36,3 +36,4 @@
 - Not implemented yet (see spec): the extension-page player fallback (step 2, needs a spike), reactions (needs the API).
 
 **Dependencies:** `newsCore` ← `newsStore` ← `newsModel` ← `newsCards`/`videoDialog` ← `loginStrip`/`shellIndicator`; `menuBuilder.js` imports `attachShellNews`; `index.js` imports `initLoginNews`.
+- Usage statistics: `news_open` when a panel is opened by the user, and panel clicks via `newsCards.trackPanelClicks(panel, surface)` (card links, videos, `data-track` controls). See `analytics.md`.

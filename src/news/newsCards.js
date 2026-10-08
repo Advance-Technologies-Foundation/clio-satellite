@@ -3,6 +3,7 @@
 import { isTrendingNow, isUnreadSignal, youtubePosterUrl, youtubeWatchUrl } from './newsCore.js';
 import { requestMedia } from './newsStore.js';
 import { openVideoDialog } from './videoDialog.js';
+import { track } from '../analytics.js';
 
 const TAGS = { release: 'Release', tip: 'Tip', event: 'Event', breaking: 'Breaking' };
 const TRENDING_ICON = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1.5 8.5l3-3 2 2 4-4M7.5 3.5h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -93,6 +94,23 @@ export function renderCards(list, items, state, { onVideoStart } = {}) {
     card.append(dot, body);
     list.appendChild(card);
   }
+}
+
+// Usage statistics for a news panel: card links and videos, plus the head/foot controls marked
+// with data-track. Capture phase, because the video poster stops propagation of its click.
+// One listener per panel, so re-rendering the cards needs nothing extra.
+export function trackPanelClicks(panel, surface) {
+  panel.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    const newsId = target.closest('.csl-news-card')?.dataset.newsId;
+    if (target.closest('.csl-news-card__cta')) track('news_cta_click', { surface, news_id: newsId });
+    else if (target.closest('.csl-news-media--video')) track('news_video_play', { surface, news_id: newsId });
+    else {
+      const action = target.closest('[data-track]')?.dataset.track;
+      if (action) track(action, { surface });
+    }
+  }, true);
 }
 
 export function newsIcon() {
