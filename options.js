@@ -201,19 +201,26 @@ function loadHistory() {
           ? (profile.alias && profile.alias.trim() ? `${profile.alias} (${profile.username})` : profile.username)
           : username;
 
+        // Keys come from storage (synced, importable): treat them as untrusted text
         let hostname = origin;
-        try { hostname = new URL(origin).hostname; } catch {}
+        let safeHref = '';
+        try {
+          const url = new URL(origin);
+          hostname = url.hostname || origin;
+          if (url.protocol === 'http:' || url.protocol === 'https:') safeHref = url.origin;
+        } catch {}
 
         const li = document.createElement('li');
         li.className = 'history-item';
 
         const link = document.createElement('a');
         link.className = 'history-item__site';
-        link.href = origin;
+        if (safeHref) link.href = safeHref;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.title = origin;
-        link.innerHTML = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${hostname}`;
+        link.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4M10 2h4m0 0v4m0-4L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        link.appendChild(document.createTextNode(hostname));
 
         const profileEl = document.createElement('span');
         profileEl.className = 'history-item__profile';
