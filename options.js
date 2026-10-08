@@ -450,7 +450,7 @@ function initNewsSettings() {
   const boxes = [...document.querySelectorAll('input[name="news-audience"]')];
   if (!enabled || !fieldset) return;
 
-  // Preview feature: off until the user turns it on here
+  // On by default; only an explicit false turns news off
   chrome.storage.sync.get({ newsEnabled: true, newsAudiences: NEWS_AUDIENCES }, (data) => {
     enabled.checked = data.newsEnabled !== false;
     const chosen = Array.isArray(data.newsAudiences) && data.newsAudiences.length ? data.newsAudiences : NEWS_AUDIENCES;
@@ -461,6 +461,7 @@ function initNewsSettings() {
   enabled.addEventListener('change', () => {
     fieldset.disabled = !enabled.checked;
     chrome.storage.sync.set({ newsEnabled: enabled.checked });
+    chrome.runtime.sendMessage({ action: 'trackEvent', name: 'news_toggle', params: { enabled: enabled.checked } });
   });
 
   document.getElementById('news-open-all')?.addEventListener('click', () => {
@@ -553,6 +554,18 @@ function renderNewsDebug() {
   });
 }
 
+// Anonymous usage statistics: on by default; only an explicit false stops sending (analytics/analytics.js)
+function initAnalyticsSettings() {
+  const enabled = document.getElementById('analytics-enabled');
+  if (!enabled) return;
+  chrome.storage.sync.get({ analyticsEnabled: true }, (data) => {
+    enabled.checked = data.analyticsEnabled !== false;
+  });
+  enabled.addEventListener('change', () => {
+    chrome.storage.sync.set({ analyticsEnabled: enabled.checked });
+  });
+}
+
 function initNewsDebug() {
   const details = document.getElementById('news-debug');
   const status = document.getElementById('news-debug-status');
@@ -591,6 +604,7 @@ function initNewsDebug() {
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
   initNewsSettings();
+  initAnalyticsSettings();
 
   loadProfiles();
   loadHistory();

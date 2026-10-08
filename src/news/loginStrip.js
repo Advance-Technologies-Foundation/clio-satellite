@@ -2,7 +2,8 @@
 import { pickAutoExpand } from './newsCore.js';
 import { loadSurface } from './newsModel.js';
 import { markRead, recordFirstShown, markAutoOpened, onNewsStorageChange, openOptions } from './newsStore.js';
-import { renderCards, newsIcon, ARCHIVE_URL } from './newsCards.js';
+import { renderCards, newsIcon, trackPanelClicks, ARCHIVE_URL } from './newsCards.js';
+import { track } from '../analytics.js';
 
 const ROW_SELECTOR = '.creatio-satelite-login-profiles-container';
 const RERENDER_MS = 10 * 60 * 1000;   // trending windows can end while the page stays open
@@ -54,6 +55,7 @@ function build(row) {
   const head = el('div', 'csl-news-panel__head');
   const markAll = el('button', 'csl-news-linkbtn', 'Mark all as read');
   markAll.type = 'button';
+  markAll.dataset.track = 'news_mark_all_read';
   head.append(el('strong', '', 'Dev tools news'), markAll);
   const list = el('ul', 'csl-news-list');
   const foot = el('div', 'csl-news-panel__foot');
@@ -61,11 +63,14 @@ function build(row) {
   all.href = ARCHIVE_URL;
   all.target = '_blank';
   all.rel = 'noopener noreferrer';
+  all.dataset.track = 'news_archive_open';
   const topics = el('button', 'csl-news-linkbtn', 'Choose topics');
   topics.type = 'button';
+  topics.dataset.track = 'news_topics_open';
   foot.append(all, topics);
   panel.append(head, list, foot);
   root.append(strip, panel);
+  trackPanelClicks(panel, 'login');
 
   strip.addEventListener('click', () => setOpen(!ui.open));
   markAll.addEventListener('click', () => {
@@ -80,6 +85,7 @@ function build(row) {
 async function setOpen(open) {
   const wasOpen = ui.open;
   ui.open = open;
+  if (open && !wasOpen) track('news_open', { surface: 'login' });
   // Facebook-style: the list counts as read once it has been opened and closed again
   if (wasOpen && !open && ui.model) await markRead(ui.model.visible.map(i => i.id));
   return render();

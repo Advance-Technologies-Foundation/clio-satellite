@@ -11,6 +11,20 @@ const newsFetcher = self.ClioNewsFetcher.createNewsFetcher({
     syncGet: (defaults) => chrome.storage.sync.get(defaults),
 });
 
+// Anonymous usage statistics, on by default with a switch in Options (see docs/architecture/analytics.md)
+importScripts('analytics/config.js');
+importScripts('analytics/analytics.js');
+const analytics = self.ClioAnalytics.createAnalytics({
+    fetchFn: (url, init) => fetch(url, init),
+    local: {
+        get: (defaults) => chrome.storage.local.get(defaults),
+        set: (data) => chrome.storage.local.set(data),
+    },
+    syncGet: (defaults) => chrome.storage.sync.get(defaults),
+    config: self.ClioAnalyticsConfig,
+    version: chrome.runtime.getManifest().version,
+});
+
 // Define default profile
 const defaultProfiles = [
     { username: 'Supervisor', password: 'Supervisor', alias: '' }
@@ -97,6 +111,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     else if (message.action === 'getNewsMedia') {
         newsFetcher.getNewsMedia(message.url).then(sendResponse, () => sendResponse({ ok: false }));
+        return true;
+    }
+    else if (message.action === 'trackEvent') {
+        analytics.track(message.name, message.params).then(sendResponse, () => sendResponse({ ok: false }));
         return true;
     }
     else if (message.action === 'openNewsArchive') {

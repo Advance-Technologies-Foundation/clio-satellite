@@ -1,6 +1,6 @@
 # Privacy Policy for Clio Satellite Extension
 
-**Last updated: June 16, 2025**
+**Last updated: October 9, 2026**
 
 ## Introduction
 
@@ -18,7 +18,7 @@ The Clio Satellite Extension stores the following information **locally in your 
 - Autologin preferences for different sites
 - Last used profile information
 
-**Important**: All information is stored locally using Chrome's storage API and is never transmitted to any external servers.
+**Important**: All of this information is stored locally using Chrome's storage API and is never transmitted to any external servers.
 
 ## Developer News
 
@@ -28,6 +28,14 @@ The Extension shows short news about clio and Creatio developer tools on the Cre
 - Which news you have read, when you first saw them, and the roles you chose (Administration, Development, Other) are stored in Chrome storage in your browser only.
 - YouTube previews may be loaded from `i.ytimg.com` (Google) when you open the news list. A video plays from `youtube-nocookie.com` only after you press play; "Watch on YouTube" opens youtube.com.
 - Developer news are on by default. You can turn them off in the Extension options; while they are off, the Extension makes no news requests.
+
+## Usage Statistics
+
+- The Extension sends anonymous usage events to Google Analytics 4 (Google) so we can see which Clio satellite menu items and developer news features are used.
+- An event contains only: the event name (for example opening the menu, clicking a menu item, opening the news list, opening a news link), the name of the clicked menu item or the news id, where it happened (login page or inside Creatio), the Extension version, and a random identifier generated for this browser profile. It is not linked to your Google account.
+- Site addresses, Creatio URLs, user names, passwords, profile names and page contents are never sent. Events with any other data are dropped by the Extension before sending.
+- Usage statistics are on by default. You can turn them off in the Extension options (Usage statistics); while they are off, nothing is sent.
+- Google processes these events under the [Google Privacy Policy](https://policies.google.com/privacy). We use them only to improve the Extension and do not share them with anyone else.
 
 ## How We Use Information
 
@@ -39,11 +47,11 @@ The collected information is used solely to:
 
 ## Data Sharing and Disclosure
 
-We do not share, sell, rent, or trade your information with any third parties.
+We do not share, sell, rent, or trade your information with any third parties. Anonymous usage events (see Usage Statistics) are processed by Google Analytics on our behalf.
 
 ## Data Security
 
-All credentials and settings are stored locally in your browser using Chrome's secure storage mechanisms. No user data is transmitted over the internet; the only outgoing requests are the developer news downloads described above, which carry no user data.
+All credentials and settings are stored locally in your browser using Chrome's secure storage mechanisms. Credentials, site addresses and profiles are never transmitted over the internet. The only outgoing requests are the developer news downloads and the anonymous usage events described above.
 
 ## Changes To This Privacy Policy
 

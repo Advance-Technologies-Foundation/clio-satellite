@@ -59,6 +59,25 @@ jobs:
       - name: Install dependencies and build
         run: npm ci && npm run build
 
+      - name: Fill analytics config
+        env:
+          GA_MEASUREMENT_ID: ${{ secrets.GA_MEASUREMENT_ID }}
+          GA_API_SECRET: ${{ secrets.GA_API_SECRET }}
+        run: |
+          if [ -z "$GA_MEASUREMENT_ID" ] || [ -z "$GA_API_SECRET" ]; then
+            echo "GA_MEASUREMENT_ID / GA_API_SECRET not set: usage statistics stay off in this build"
+            exit 0
+          fi
+          node -e '
+            const fs = require("fs");
+            const file = "analytics/config.js";
+            const src = fs.readFileSync(file, "utf8")
+              .replace(/measurementId: "[^"]*"|measurementId: \x27[^\x27]*\x27/, "measurementId: " + JSON.stringify(process.env.GA_MEASUREMENT_ID))
+              .replace(/apiSecret: "[^"]*"|apiSecret: \x27[^\x27]*\x27/, "apiSecret: " + JSON.stringify(process.env.GA_API_SECRET));
+            fs.writeFileSync(file, src);
+          '
+          grep -q "measurementId: \"G-" analytics/config.js && echo "Analytics config filled"
+
       - name: Build zip
         run: |
           VERSION="${{ steps.version.outputs.version }}"

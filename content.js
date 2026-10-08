@@ -1085,6 +1085,20 @@
     return backdrop;
   }
 
+  // src/analytics.js
+  function track(name, params = {}) {
+    try {
+      if (!(chrome?.runtime?.id ?? chrome?.storage)) return;
+      chrome.runtime.sendMessage({ action: "trackEvent", name, params }, () => {
+        try {
+          void chrome.runtime.lastError;
+        } catch {
+        }
+      });
+    } catch {
+    }
+  }
+
   // src/news/newsCards.js
   var TAGS = { release: "Release", tip: "Tip", event: "Event", breaking: "Breaking" };
   var TRENDING_ICON = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1.5 8.5l3-3 2 2 4-4M7.5 3.5h3v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1165,6 +1179,19 @@
       list.appendChild(card);
     }
   }
+  function trackPanelClicks(panel, surface) {
+    panel.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      const newsId = target.closest(".csl-news-card")?.dataset.newsId;
+      if (target.closest(".csl-news-card__cta")) track("news_cta_click", { surface, news_id: newsId });
+      else if (target.closest(".csl-news-media--video")) track("news_video_play", { surface, news_id: newsId });
+      else {
+        const action = target.closest("[data-track]")?.dataset.track;
+        if (action) track(action, { surface });
+      }
+    }, true);
+  }
   function newsIcon() {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5"/><path d="M8 13h5"/><path d="M8 16h3"/></svg>';
   }
@@ -1238,6 +1265,7 @@
     const head = el3("div", "csl-news-panel__head");
     const markAll = el3("button", "csl-news-linkbtn", "Mark all as read");
     markAll.type = "button";
+    markAll.dataset.track = "news_mark_all_read";
     head.append(el3("strong", "", "Dev tools news"), markAll);
     const list = el3("ul", "csl-news-list");
     const foot = el3("div", "csl-news-panel__foot");
@@ -1245,10 +1273,13 @@
     all.href = ARCHIVE_URL;
     all.target = "_blank";
     all.rel = "noopener noreferrer";
+    all.dataset.track = "news_archive_open";
     const topics = el3("button", "csl-news-linkbtn", "Choose topics");
     topics.type = "button";
+    topics.dataset.track = "news_topics_open";
     foot.append(all, topics);
     flyout.append(head, list, foot);
+    trackPanelClicks(flyout, "shell");
     flyout.addEventListener("click", (event) => event.stopPropagation());
     markAll.addEventListener("click", () => {
       if (ui.model) markRead(ui.model.visible.map((i) => i.id)).then(render);
@@ -1285,6 +1316,7 @@
     ui.flyout.hidden = !open2;
     ui.row?.setAttribute("aria-expanded", String(open2));
     if (open2) {
+      if (!wasOpen) track("news_open", { surface: "shell" });
       placeFlyout();
       if (ui.model) recordFirstShown(ui.model.visible.map((i) => i.id));
     } else if (wasOpen && ui.model) {
@@ -1526,6 +1558,7 @@
       }
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
+        track("menu_click", { menu: "navigation", item: scriptName });
         if (scriptName === "Settings") {
           safeSendMessage({ action: "openOptionsPage" });
         } else {
@@ -1580,6 +1613,7 @@
         menuButtonEl.appendChild(caption);
         menuItem.appendChild(menuButtonEl);
         menuItem.addEventListener("click", () => {
+          track("menu_click", { menu: "actions", item: name });
           if (name === "EnableAutologin") {
             chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
               const err2 = getLastError();
@@ -1671,6 +1705,7 @@
       hideMenuContainer(menuContainer);
       buildActionsMenu(actionsMenuContainer);
       showMenuContainer(actionsMenuContainer);
+      track("menu_open", { menu: "actions" });
       adjustMenuPosition(actionsButton, actionsMenuContainer);
     });
     menuButton.addEventListener("click", (event) => {
@@ -1681,6 +1716,7 @@
       }
       hideMenuContainer(actionsMenuContainer);
       showMenuContainer(menuContainer);
+      track("menu_open", { menu: "navigation" });
       adjustMenuPosition(menuButton, menuContainer);
     });
     state.clickAbortController?.abort();
@@ -1867,6 +1903,7 @@
     const head = el4("div", "csl-news-panel__head");
     const markAll = el4("button", "csl-news-linkbtn", "Mark all as read");
     markAll.type = "button";
+    markAll.dataset.track = "news_mark_all_read";
     head.append(el4("strong", "", "Dev tools news"), markAll);
     const list = el4("ul", "csl-news-list");
     const foot = el4("div", "csl-news-panel__foot");
@@ -1874,11 +1911,14 @@
     all.href = ARCHIVE_URL;
     all.target = "_blank";
     all.rel = "noopener noreferrer";
+    all.dataset.track = "news_archive_open";
     const topics = el4("button", "csl-news-linkbtn", "Choose topics");
     topics.type = "button";
+    topics.dataset.track = "news_topics_open";
     foot.append(all, topics);
     panel.append(head, list, foot);
     root.append(strip, panel);
+    trackPanelClicks(panel, "login");
     strip.addEventListener("click", () => setOpen(!ui2.open));
     markAll.addEventListener("click", () => {
       if (ui2.model) markRead(ui2.model.visible.map((i) => i.id)).then(render2);
@@ -1890,6 +1930,7 @@
   async function setOpen(open2) {
     const wasOpen = ui2.open;
     ui2.open = open2;
+    if (open2 && !wasOpen) track("news_open", { surface: "login" });
     if (wasOpen && !open2 && ui2.model) await markRead(ui2.model.visible.map((i) => i.id));
     return render2();
   }
