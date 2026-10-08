@@ -16,13 +16,13 @@ The news are managed on a shared server, so publishing or removing an item does 
 
 Constraints:
 - Takes almost no space: one 32 px line on the login page, one 8 px dot inside Creatio.
-- The login line cannot be collapsed, so users can always see that something new arrived.
+- Nothing is shown when there is nothing new: no unread items → no strip on the login page, no dot, no menu entries in Creatio.
 - The feed panel is collapsed by default and opens on click.
 - Follows the announcement patterns of large products (see Research) and avoids banner blindness.
 
 ## Login surface
 
-### Collapsed strip (always visible)
+### Collapsed strip (only while there are unread items)
 
 A 32 px button, full width of the login form, placed 6 px under the profile selector row.
 
@@ -30,8 +30,10 @@ A 32 px button, full width of the login form, placed 6 px under the profile sele
 |---|---|
 | Icon | 16 px news icon; pulses 3 times when there are unread items, then stops |
 | Counter pill | `N new`, shown only when there are unread items |
-| Headline | Title of the newest unread item; when all are read: `What's new · <latest title>` |
+| Headline | Title of the newest unread item |
 | Chevron | Rotates when the panel is open |
+
+The strip is hidden when every visible item is read. An open panel stays until the user closes it; closing it (or `Mark all as read`, which also closes it) marks the items read, so the strip then disappears.
 
 ### Expanded panel
 
@@ -101,18 +103,16 @@ A new user should not be greeted by the whole backlog. The first time a browser 
 - Items published after the first run are not affected; they appear as usual.
 - `newsOnboardedAt` is stored in `chrome.storage.sync`, so a second machine with the same Chrome profile does not repeat it.
 
-## The full feed is always one click away
+## The full feed
 
-Everything ever published stays readable on the public feed site (archive page of `clio-news-feed`), outside the extension, in a new tab. Entry points that are always present, even when the strip is hidden or nothing is new:
+Everything ever published stays readable on the public feed site (archive page of `clio-news-feed`), outside the extension, in a new tab. When nothing is new, the pages themselves show no news entry points; the archive stays reachable from Options.
 
 | Where | Entry |
 |---|---|
-| Login page | Profile dropdown → *Clio satellite* group → **All developer news…** |
-| Shell / Configuration | Clio satellite menu → **All developer news ↗** (last item) |
-| Options | Developer news → **Open all developer news ↗** |
-| News panel / flyout | Footer link **All news →** |
+| Options | Developer news → **Open all developer news ↗** (always) |
+| News panel / flyout | Footer link **All news →** (while there are unread items) |
 
-All of them open `https://advance-technologies-foundation.github.io/clio-news-feed/` in a new tab (`openNewsArchive` message → `chrome.tabs.create`, or a `target="_blank"` link).
+Both open `https://advance-technologies-foundation.github.io/clio-news-feed/` in a new tab (`openNewsArchive` message → `chrome.tabs.create`, or a `target="_blank"` link).
 
 ## Shared state model
 

@@ -70,9 +70,13 @@ test.describe('Developer news on the login page', () => {
     await expect(page.locator('.csl-news-card')).toHaveCount(2);
     await expect(page.locator('.csl-news-card__cta').first()).toHaveAttribute('target', '_blank');
     await page.locator('.csl-news-strip').click();
-    await expect(page.locator('.csl-news-panel')).toBeHidden();
-    await expect(page.locator('.csl-news-strip__count')).toHaveText('');
-    await expect(page.locator('.csl-news-strip__headline')).toHaveText(/^What's new · /);
+    // Nothing new is left, so the whole strip goes away
+    await expect(page.locator('.csl-news')).toBeHidden();
+  });
+
+  test('nothing is shown when all news are read', async ({ page }) => {
+    await loadLogin(page, { syncData: { newsRead: { a: 1, b: 1 } } });
+    await expect(page.locator('.csl-news')).toBeHidden();
   });
 
   test('role filter from Options hides news for other roles', async ({ page }) => {
@@ -110,13 +114,12 @@ test.describe('First run and the full feed', () => {
     await expect(page.locator('.csl-news-card')).toHaveCount(3);
   });
 
-  test('the full feed is always one click away and opens outside the extension', async ({ page }) => {
-    await loadShell(page, { newsFeed: null });
+  test('the Shell menu has no news entries when nothing is new', async ({ page }) => {
+    await loadShell(page, { syncData: { newsRead: { a: 1, b: 1 } } });
     await page.locator('.scripts-menu-button').click();
-    const all = page.locator('.csl-news-all');
-    await expect(all).toBeVisible();
-    await all.click();
-    expect(await page.evaluate(() => window.__sentMessages.map(m => m.action))).toContain('openNewsArchive');
+    await expect(page.locator('.csl-news-row')).toBeHidden();
+    await expect(page.locator('.csl-news-all')).toHaveCount(0);
+    await expect(page.locator('.csl-news-dot')).toBeHidden();
   });
 
   test('the panel footer links to the archive in a new tab', async ({ page }) => {

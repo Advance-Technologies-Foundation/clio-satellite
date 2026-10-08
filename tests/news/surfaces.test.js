@@ -99,11 +99,28 @@ describe('login news strip', () => {
     expect(root.querySelector('.csl-news-card img')).toBeNull();
   });
 
-  it('shows "What\'s new" without a count when everything is read', async () => {
+  it('stays hidden when everything is read', async () => {
     await storeSync({ newsRead: { a: 1, b: 1 } });
     const root = await mountLogin();
-    expect(root.classList.contains('csl-news--unread')).toBe(false);
-    expect(root.querySelector('.csl-news-strip__headline').textContent).toMatch(/^What's new · /);
+    expect(root.hidden).toBe(true);
+  });
+
+  it('disappears after the list is read and closed', async () => {
+    const root = await mountLogin();
+    root.querySelector('.csl-news-strip').click();
+    await vi.waitFor(() => expect(root.querySelector('.csl-news-panel').hidden).toBe(false));
+    expect(root.hidden).toBe(false);
+    root.querySelector('.csl-news-strip').click();
+    await vi.waitFor(() => expect(root.hidden).toBe(true));
+  });
+
+  it('"Mark all as read" closes the list and hides the strip', async () => {
+    const root = await mountLogin();
+    root.querySelector('.csl-news-strip').click();
+    await vi.waitFor(() => expect(root.querySelector('.csl-news-panel').hidden).toBe(false));
+    root.querySelector('.csl-news-panel__head .csl-news-linkbtn').click();
+    await vi.waitFor(() => expect(root.hidden).toBe(true));
+    expect(root.querySelector('.csl-news-panel').hidden).toBe(true);
   });
 
   it('filters by the roles chosen in Options', async () => {
@@ -226,14 +243,14 @@ describe('shell news indicator', () => {
     expect(host.querySelector('.csl-news-peek')).toBeNull();
   });
 
-  it('always offers the full feed in a new tab, even when nothing is new', async () => {
-    chrome.runtime.sendMessage.mockImplementation((m, cb) => { sent.push(m); cb?.({ ok: false }); });
-    const { menuContainer, done } = mountShell();
+  it('adds nothing to the menu when everything is read', async () => {
+    await storeSync({ newsRead: { a: 1, b: 1 } });
+    const { buttonWrapper, menuContainer, done } = mountShell();
     await done;
-    const all = menuContainer.querySelector('.csl-news-all');
-    expect(all.hidden).toBe(false);
-    all.click();
-    expect(sent.some(m => m.action === 'openNewsArchive')).toBe(true);
+    expect(buttonWrapper.querySelector('.csl-news-dot').hidden).toBe(true);
+    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(true);
+    expect(menuContainer.querySelector('.csl-news-row-sep').hidden).toBe(true);
+    expect(menuContainer.querySelector('.csl-news-all')).toBeNull();
   });
 
   it('shows nothing when the feed is unavailable', async () => {

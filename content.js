@@ -914,9 +914,6 @@
   function openOptions() {
     return send({ action: "openOptionsPage" });
   }
-  function openNewsArchive() {
-    return send({ action: "openNewsArchive" });
-  }
 
   // src/news/newsModel.js
   function extensionVersion() {
@@ -1380,19 +1377,6 @@
     const rowSep = el3("div", "csl-news-row-sep");
     rowSep.hidden = true;
     menuContainer.prepend(row, rowSep);
-    const allNews = el3("button", "csl-news-all");
-    allNews.type = "button";
-    allNews.setAttribute("role", "menuitem");
-    const allIcon = el3("span", "csl-news-row__icon");
-    allIcon.innerHTML = newsIcon();
-    allNews.append(allIcon, el3("span", "csl-news-all__label", "All developer news"), el3("span", "csl-news-all__ext", "\u2197"));
-    allNews.addEventListener("click", (event) => {
-      event.stopPropagation();
-      openNewsArchive();
-      menuContainer.classList.remove("visible");
-      menuContainer.classList.add("hidden");
-    });
-    menuContainer.appendChild(allNews);
     const { flyout, list } = buildFlyout();
     menuContainer.appendChild(flyout);
     Object.assign(ui, { dot, row, rowSep, pill, preview, flyout, list });
@@ -1850,7 +1834,9 @@
     root.append(strip, panel);
     strip.addEventListener("click", () => setOpen(!ui2.open));
     markAll.addEventListener("click", () => {
-      if (ui2.model) markRead(ui2.model.visible.map((i) => i.id)).then(render2);
+      if (!ui2.model) return;
+      ui2.open = false;
+      markRead(ui2.model.visible.map((i) => i.id)).then(render2);
     });
     topics.addEventListener("click", () => openOptions());
     Object.assign(ui2, { root, strip, count, headline, panel, list });
@@ -1883,6 +1869,11 @@
           ui2.open = true;
           markAutoOpened(critical.id);
         }
+      }
+      if (!unread.length && !ui2.open) {
+        root.hidden = true;
+        ui2.panel.hidden = true;
+        return;
       }
       const lead = unread[0] || visible[0];
       root.hidden = false;

@@ -3,7 +3,7 @@
 // Inside Creatio people are working, so normal news never go beyond the dot and the row.
 import { shouldShowDot, pickPeek } from './newsCore.js';
 import { loadSurface } from './newsModel.js';
-import { markRead, markNoticed, recordDotShown, recordFirstShown, markAutoOpened, onNewsStorageChange, openOptions, openNewsArchive } from './newsStore.js';
+import { markRead, markNoticed, recordDotShown, recordFirstShown, markAutoOpened, onNewsStorageChange, openOptions } from './newsStore.js';
 import { renderCards, newsIcon, ARCHIVE_URL } from './newsCards.js';
 
 const RERENDER_MS = 10 * 60 * 1000;
@@ -220,21 +220,6 @@ export function attachShellNews({ menuButton, menuContainer, buttonWrapper, page
   const rowSep = el('div', 'csl-news-row-sep');
   rowSep.hidden = true;
   menuContainer.prepend(row, rowSep);
-
-  // Permanent entry: the full feed opens in a new tab even when nothing is new
-  const allNews = el('button', 'csl-news-all');
-  allNews.type = 'button';
-  allNews.setAttribute('role', 'menuitem');
-  const allIcon = el('span', 'csl-news-row__icon');
-  allIcon.innerHTML = newsIcon();
-  allNews.append(allIcon, el('span', 'csl-news-all__label', 'All developer news'), el('span', 'csl-news-all__ext', '↗'));
-  allNews.addEventListener('click', (event) => {
-    event.stopPropagation();
-    openNewsArchive();
-    menuContainer.classList.remove('visible');
-    menuContainer.classList.add('hidden');
-  });
-  menuContainer.appendChild(allNews);
 
   const { flyout, list } = buildFlyout();
   menuContainer.appendChild(flyout);

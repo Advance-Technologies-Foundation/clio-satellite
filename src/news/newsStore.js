@@ -194,8 +194,3 @@ export async function requestMedia(url) {
 export function openOptions() {
   return send({ action: 'openOptionsPage' });
 }
-
-// Full list of published news, outside the extension, in a new tab
-export function openNewsArchive() {
-  return send({ action: 'openNewsArchive' });
-}

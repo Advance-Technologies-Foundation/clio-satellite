@@ -69,7 +69,9 @@ function build(row) {
 
   strip.addEventListener('click', () => setOpen(!ui.open));
   markAll.addEventListener('click', () => {
-    if (ui.model) markRead(ui.model.visible.map(i => i.id)).then(render);
+    if (!ui.model) return;
+    ui.open = false;
+    markRead(ui.model.visible.map(i => i.id)).then(render);
   });
   topics.addEventListener('click', () => openOptions());
 
@@ -100,6 +102,9 @@ async function render() {
       const critical = pickAutoExpand(unread, state);
       if (critical) { ui.open = true; markAutoOpened(critical.id); }
     }
+
+    // Nothing new → nothing on the page; an open list stays until the user closes it
+    if (!unread.length && !ui.open) { root.hidden = true; ui.panel.hidden = true; return; }
 
     const lead = unread[0] || visible[0];
     root.hidden = false;

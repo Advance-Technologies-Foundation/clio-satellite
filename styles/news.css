@@ -256,8 +256,7 @@
 
 /* Same face as the Clio satellite menu items; the Shell page font does not reach our nodes */
 .creatio-satelite-extension-container .csl-news,
-.creatio-satelite-extension-container .csl-news-row,
-.creatio-satelite-extension-container .csl-news-all {
+.creatio-satelite-extension-container .csl-news-row {
   font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
 }
 
@@ -301,27 +300,6 @@
 .creatio-satelite-extension-container .csl-news-row__chevron { display: grid; margin-top: 2px; color: #a3a9b4; }
 .creatio-satelite-extension-container .csl-news-row__chevron svg { width: 12px; height: 12px; }
 .creatio-satelite-extension-container .csl-news-row-sep { height: 1px; margin: 4px 8px; background: rgba(255, 255, 255, 0.1); }
-.creatio-satelite-extension-container .csl-news-all {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  width: 100% !important;
-  min-height: 36px !important;
-  margin: 0 !important;
-  padding: 0 10px !important;
-  border: 0 !important;
-  border-radius: 8px !important;
-  background: none !important;
-  color: #e5e7eb !important;
-  font-size: 13px !important;
-  text-align: left !important;
-  cursor: pointer !important;
-}
-.creatio-satelite-extension-container .csl-news-all:hover,
-.creatio-satelite-extension-container .csl-news-all:focus-visible { background: rgba(255, 255, 255, 0.08) !important; outline: none !important; }
-.creatio-satelite-extension-container .csl-news-all .csl-news-row__icon { color: #9aa4b2; }
-.creatio-satelite-extension-container .csl-news-all__label { flex: 1; }
-.creatio-satelite-extension-container .csl-news-all__ext { color: #a3a9b4; font-size: 12px; }
 
 /* After the display rules above, so `hidden` wins over display: flex !important */
 .creatio-satelite-extension-container .csl-news-row[hidden],

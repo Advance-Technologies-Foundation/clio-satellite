@@ -321,7 +321,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
   <h2>States</h2>
   <div class="states">
     <div class="state"><span class="label">unread</span><h3>New items</h3><p>Light blue tint, blue "3 new" pill, newspaper icon, headline of the newest item; the icon pulses three times and stops.</p></div>
-    <div class="state"><span class="label">read</span><h3>All read</h3><p>White strip, grey "What's new · headline". Stays findable without pulling attention.</p></div>
+    <div class="state"><span class="label">read</span><h3>All read</h3><p>Nothing new, nothing shown: the strip is hidden. An open list stays until it is closed; the archive stays reachable from Options.</p></div>
     <div class="state"><span class="label">critical</span><h3>Breaking change</h3><p>Red tone. Auto-expanded on first display only, then behaves like a normal unread item.</p></div>
     <div class="state"><span class="label">none</span><h3>No feed</h3><p>No data or feed disabled: the block is not rendered and the page looks as it does today.</p></div>
   </div>
@@ -454,8 +454,8 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
   }
 
   function render() {
-    news.hidden = sorted().length === 0;
     var u = unread();
+    news.hidden = u.length === 0 && !state.open;
     var hasCrit = u.some(function (i) { return i.crit; });
     news.classList.toggle('unread', u.length > 0);
     news.classList.toggle('critical', hasCrit);
@@ -463,7 +463,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
     strip.setAttribute('aria-expanded', String(state.open));
     count.textContent = u.length + ' new';
     var lead = u[0] || sorted()[0];
-    headline.textContent = lead ? (u.length ? lead.title : "What's new · " + lead.title) : '';
+    headline.textContent = lead ? lead.title : '';
     list.textContent = '';
     sorted().forEach(function (i) {
       var li = document.createElement('li');
@@ -504,7 +504,7 @@ ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column;
     // Facebook-style: the badge clears once the list has been opened, dots fade on close
     if (wasOpen) { markAllSeen(); render(); }
   });
-  document.getElementById('markall').addEventListener('click', function () { markAllSeen(); render(); });
+  document.getElementById('markall').addEventListener('click', function () { markAllSeen(); state.open = false; render(); });
 
   function scenario(v) {
     state.seen = {};

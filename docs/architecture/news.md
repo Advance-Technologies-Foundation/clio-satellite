@@ -14,8 +14,8 @@
 - `src/news/newsModel.js` — `loadSurface(surface) → { visible, unread, ctx, state } | null`; runs onboarding on the first feed of a profile and prunes state of items that left the feed.
 - `src/news/newsCards.js` — `renderCards(list, items, ctx, { onVideoStart })`; text via `textContent` only; images and posters through `requestMedia` (data URLs from the worker).
 - `src/news/videoDialog.js` — `openVideoDialog(media, { returnFocus })`, `closeVideoDialog()`: modal on `<html>`, focus trap, Esc, iframe removed on close; falls back to "Watch on YouTube" on a CSP violation or a player `onError` (postMessage protocol, no `iframe_api` script).
-- `src/news/loginStrip.js` — `initLoginNews()`: waits for `.creatio-satelite-login-profiles-container` (built by `login/login.js`), inserts the strip after it, re-renders on storage changes and every 10 min.
-- `src/news/shellIndicator.js` — `attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })`, called by `menuBuilder.createScriptsMenu()` on every (re)build: dot in the button wrapper, row + separator prepended to the menu, permanent "All developer news" item, flyout inside the menu container, peek in the extension container.
+- `src/news/loginStrip.js` — `initLoginNews()`: waits for `.creatio-satelite-login-profiles-container` (built by `login/login.js`), inserts the strip after it (hidden while nothing is unread, unless the panel is open), re-renders on storage changes and every 10 min.
+- `src/news/shellIndicator.js` — `attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })`, called by `menuBuilder.createScriptsMenu()` on every (re)build: dot in the button wrapper, row + separator prepended to the menu, flyout inside the menu container, peek in the extension container.
 - `news/newsFetcher.js` — classic script for the service worker (`importScripts` in `background.js`), exposes `self.ClioNewsFetcher.createNewsFetcher({ fetchFn, storage, syncGet, now })` with `getNews()` and `getNewsMedia(url)`, plus `ARCHIVE_URL`.
 
 **Background messages:** `getNews` → `{ ok, raw }`; `getNewsMedia { url }` → `{ ok, dataUrl }`; `openNewsArchive` → opens the public feed site in a new tab.
