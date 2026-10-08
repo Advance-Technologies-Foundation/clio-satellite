@@ -7,7 +7,7 @@ import { renderCards, newsIcon, ARCHIVE_URL } from './newsCards.js';
 const ROW_SELECTOR = '.creatio-satelite-login-profiles-container';
 const RERENDER_MS = 10 * 60 * 1000;   // trending windows can end while the page stays open
 
-const ui = { root: null, open: false, model: null, autoChecked: false, pulsed: false, rendering: null, pending: false };
+const ui = { root: null, open: false, model: null, autoChecked: false, pulsed: false, seen: false, rendering: null, pending: false };
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -69,9 +69,7 @@ function build(row) {
 
   strip.addEventListener('click', () => setOpen(!ui.open));
   markAll.addEventListener('click', () => {
-    if (!ui.model) return;
-    ui.open = false;
-    markRead(ui.model.visible.map(i => i.id)).then(render);
+    if (ui.model) markRead(ui.model.visible.map(i => i.id)).then(render);
   });
   topics.addEventListener('click', () => openOptions());
 
@@ -103,8 +101,10 @@ async function render() {
       if (critical) { ui.open = true; markAutoOpened(critical.id); }
     }
 
-    // Nothing new → nothing on the page; an open list stays until the user closes it
-    if (!unread.length && !ui.open) { root.hidden = true; ui.panel.hidden = true; return; }
+    // Nothing new → nothing on the page. Once shown, the strip stays until the page reloads,
+    // so collapsing the list (which marks it read) does not make it vanish under the cursor.
+    if (unread.length) ui.seen = true;
+    if (!unread.length && !ui.seen) { root.hidden = true; ui.panel.hidden = true; return; }
 
     const lead = unread[0] || visible[0];
     root.hidden = false;
@@ -143,5 +143,5 @@ export async function initLoginNews() {
 
 // For tests
 export function _resetLoginNews() {
-  Object.assign(ui, { root: null, open: false, model: null, autoChecked: false, pulsed: false, rendering: null, pending: false });
+  Object.assign(ui, { root: null, open: false, model: null, autoChecked: false, pulsed: false, seen: false, rendering: null, pending: false });
 }

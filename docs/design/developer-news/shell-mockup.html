@@ -263,7 +263,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
         <label><input type="radio" name="scn" id="s-noticed" value="noticed"><span>Noticed, not read<small>Menu was opened earlier: dot gone, count stays in the row</small></span></label>
         <label><input type="radio" name="scn" id="s-crit" value="crit"><span>Critical item<small>Red dot + one-time peek card, 10 s, pauses on hover</small></span></label>
         <label><input type="radio" name="scn" id="s-ended" value="ended"><span>Trending windows over<small>Unread but out of window: no dot, no row, no chip</small></span></label>
-        <label><input type="radio" name="scn" id="s-read" value="read"><span>All read<small>No dot; What's new row hidden, news reachable from Options</small></span></label>
+        <label><input type="radio" name="scn" id="s-read" value="read"><span>All read<small>No dot, no row (after reload). Read during the visit: row stays without a count until reload</small></span></label>
       </fieldset>
       <fieldset>
         <legend>Options · show news for</legend>
@@ -438,11 +438,14 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
     sat.classList.toggle('has-badge', u.length > 0 && !st.noticed);
     sat.classList.toggle('has-crit', hasCrit);
     btn.setAttribute('aria-label', u.length && !st.noticed ? 'Clio satellite, ' + u.length + ' unread news' : 'Clio satellite');
-    $('wnRow').hidden = u.length === 0;
-    $('wnSep').hidden = u.length === 0;
+    // Shown once on this page → the row stays (without a count) until reload; a scenario switch acts as a reload
+    if (u.length) st.rowSeen = true;
+    $('wnRow').hidden = u.length === 0 && !st.rowSeen;
+    $('wnSep').hidden = $('wnRow').hidden;
+    $('wnPill').hidden = u.length === 0;
     $('wnPill').textContent = u.length;
     $('wnPill').classList.toggle('crit', hasCrit);
-    $('wnPrev').textContent = u[0] ? u[0].title : '';
+    $('wnPrev').textContent = u[0] ? u[0].title : (sorted()[0] ? sorted()[0].title : '');
     var list = $('list'); list.textContent = '';
     sorted().forEach(function (i) {
       var li = document.createElement('li');
@@ -521,6 +524,7 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--code-b
   });
 
   function scenario(v) {
+    st.rowSeen = false;
     closeAll(); hidePeek(); st.read = {}; st.ended = {}; st.noticed = false; log.textContent = '—';
     st.feed = items.slice();
     if (v === 'noticed') st.noticed = true;

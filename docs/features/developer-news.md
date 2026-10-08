@@ -16,7 +16,7 @@ The news are managed on a shared server, so publishing or removing an item does 
 
 Constraints:
 - Takes almost no space: one 32 px line on the login page, one 8 px dot inside Creatio.
-- Nothing is shown when there is nothing new: no unread items → no strip on the login page, no dot, no menu entries in Creatio.
+- Nothing is shown when there is nothing new: no unread items on page load → no strip on the login page, no dot, no menu entries in Creatio. Items read during a visit keep their entry (without a count) until the page reloads.
 - The feed panel is collapsed by default and opens on click.
 - Follows the announcement patterns of large products (see Research) and avoids banner blindness.
 
@@ -33,7 +33,7 @@ A 32 px button, full width of the login form, placed 6 px under the profile sele
 | Headline | Title of the newest unread item |
 | Chevron | Rotates when the panel is open |
 
-The strip is hidden when every visible item is read. An open panel stays until the user closes it; closing it (or `Mark all as read`, which also closes it) marks the items read, so the strip then disappears.
+The strip is not rendered when the page loads with every visible item read. Collapsing the panel (or `Mark all as read`) marks the items read; the strip then stays for the rest of the visit as a grey `What's new · <latest title>` without a count, so it does not vanish under the cursor, and is gone on the next page load.
 
 ### Expanded panel
 
@@ -80,7 +80,7 @@ Inside Creatio the user is in the middle of a task. The rule here: **inform, nev
 
 ### What's new row and flyout (level 2)
 
-- The row is shown only while there are unread items; when everything is read it disappears and the menu looks as today. All news stay reachable from Options and the `All news →` page.
+- The row appears only when there are unread items. Closing the flyout marks them read; the row then stays for the rest of the page's life without a count (it survives Creatio rebuilding the menu) and is gone after a reload, when the menu looks as today. All news stay reachable from Options and the `All news →` page.
 - The flyout uses the same glass as the menu (`--crt-glass-color-dark-800`), 320 px wide, opens beside the menu when there is room and over it otherwise (same logic as `adjustMenuPosition`).
 - Cards are the same as on the login page, in a dark variant: unread dot, tag, date, title, body, one CTA.
 - Closing the flyout (click outside, Esc, menu closes) marks the shown items read. `Mark all as read` does it immediately.

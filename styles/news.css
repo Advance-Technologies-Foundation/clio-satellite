@@ -31,7 +31,8 @@
 .csl-news [hidden],
 .csl-news-dot[hidden],
 .csl-news-row[hidden],
-.csl-news-row-sep[hidden] { display: none !important; }
+.csl-news-row-sep[hidden],
+.csl-news-pill[hidden] { display: none !important; }
 
 .csl-news--dark {
   --csl-news-blue: #7cb2ff;

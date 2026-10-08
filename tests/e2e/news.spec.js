@@ -71,8 +71,10 @@ test.describe('Developer news on the login page', () => {
     await expect(page.locator('.csl-news-card')).toHaveCount(2);
     await expect(page.locator('.csl-news-card__cta').first()).toHaveAttribute('target', '_blank');
     await page.locator('.csl-news-strip').click();
-    // Nothing new is left, so the whole strip goes away
-    await expect(page.locator('.csl-news')).toBeHidden();
+    await expect(page.locator('.csl-news-panel')).toBeHidden();
+    // Read, but the strip stays until the page reloads
+    await expect(page.locator('.csl-news-strip__count')).toHaveText('');
+    await expect(page.locator('.csl-news-strip__headline')).toHaveText(/^What's new · /);
   });
 
   test('nothing is shown until news are turned on in Options', async ({ page }) => {
@@ -175,7 +177,7 @@ test.describe('Developer news in Shell', () => {
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
   });
 
-  test('closing the menu marks the flyout news read and hides the row', async ({ page }) => {
+  test('closing the menu marks the flyout news read; the row stays without a count until reload', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
     await page.locator('.csl-news-row').click();
@@ -183,7 +185,8 @@ test.describe('Developer news in Shell', () => {
     await page.mouse.click(900, 600);
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.csl-news-row')).toBeHidden();
+    await expect(page.locator('.csl-news-row')).toBeVisible();
+    await expect(page.locator('.csl-news-pill')).toBeHidden();
   });
 
   test('a critical item shows a one-time peek card', async ({ page }) => {

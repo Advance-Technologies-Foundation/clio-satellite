@@ -15,6 +15,7 @@ const ui = {
   menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell',
   dot: null, row: null, rowSep: null, pill: null, preview: null, flyout: null, list: null, peek: null,
   model: null, flyoutOpen: false, loadCounted: false, peekChecked: false, subscribed: false, observer: null, peekTimer: null,
+  rowSeen: false,   // the row had unread items on this page; survives menu rebuilds, not reloads
 };
 
 function el(tag, className, text) {
@@ -176,11 +177,16 @@ export async function render() {
     }
     ui.menuButton.setAttribute('aria-label', showDot ? `Clio satellite, ${unread.length} unread news` : 'Clio satellite');
 
-    ui.row.hidden = unread.length === 0;
-    ui.rowSep.hidden = unread.length === 0;
+    // Nothing new → no row. Once shown, it stays until the page reloads, so closing the flyout
+    // (which marks it read) does not remove the row under the cursor.
+    if (unread.length) ui.rowSeen = true;
+    const showRow = Boolean(model) && (unread.length > 0 || ui.rowSeen);
+    ui.row.hidden = !showRow;
+    ui.rowSep.hidden = !showRow;
+    ui.pill.hidden = unread.length === 0;
     ui.pill.textContent = String(unread.length);
     ui.pill.classList.toggle('csl-news-pill--critical', hasCritical);
-    ui.preview.textContent = unread[0]?.title || '';
+    ui.preview.textContent = unread[0]?.title || model?.visible[0]?.title || '';
     if (!model && ui.flyoutOpen) { ui.flyoutOpen = false; ui.flyout.hidden = true; }
 
     if (model && ui.flyoutOpen) {
@@ -243,7 +249,7 @@ export function _resetShellNews() {
   Object.assign(ui, {
     menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell',
     dot: null, row: null, rowSep: null, pill: null, preview: null, flyout: null, list: null, peek: null,
-    model: null, flyoutOpen: false, loadCounted: false, peekChecked: false, observer: null,
+    model: null, flyoutOpen: false, loadCounted: false, peekChecked: false, observer: null, rowSeen: false,
   });
   rendering = null;
   pending = false;

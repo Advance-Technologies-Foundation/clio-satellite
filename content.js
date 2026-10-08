@@ -1178,7 +1178,9 @@
     peekChecked: false,
     subscribed: false,
     observer: null,
-    peekTimer: null
+    peekTimer: null,
+    rowSeen: false
+    // the row had unread items on this page; survives menu rebuilds, not reloads
   };
   function el3(tag, className, text) {
     const node = document.createElement(tag);
@@ -1334,11 +1336,14 @@
         ui.dot.style.left = `${btn.offsetLeft + btn.offsetWidth - 7}px`;
       }
       ui.menuButton.setAttribute("aria-label", showDot ? `Clio satellite, ${unread.length} unread news` : "Clio satellite");
-      ui.row.hidden = unread.length === 0;
-      ui.rowSep.hidden = unread.length === 0;
+      if (unread.length) ui.rowSeen = true;
+      const showRow = Boolean(model) && (unread.length > 0 || ui.rowSeen);
+      ui.row.hidden = !showRow;
+      ui.rowSep.hidden = !showRow;
+      ui.pill.hidden = unread.length === 0;
       ui.pill.textContent = String(unread.length);
       ui.pill.classList.toggle("csl-news-pill--critical", hasCritical);
-      ui.preview.textContent = unread[0]?.title || "";
+      ui.preview.textContent = unread[0]?.title || model?.visible[0]?.title || "";
       if (!model && ui.flyoutOpen) {
         ui.flyoutOpen = false;
         ui.flyout.hidden = true;
@@ -1770,7 +1775,7 @@
   // src/news/loginStrip.js
   var ROW_SELECTOR = ".creatio-satelite-login-profiles-container";
   var RERENDER_MS2 = 10 * 60 * 1e3;
-  var ui2 = { root: null, open: false, model: null, autoChecked: false, pulsed: false, rendering: null, pending: false };
+  var ui2 = { root: null, open: false, model: null, autoChecked: false, pulsed: false, seen: false, rendering: null, pending: false };
   function el4(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -1835,9 +1840,7 @@
     root.append(strip, panel);
     strip.addEventListener("click", () => setOpen(!ui2.open));
     markAll.addEventListener("click", () => {
-      if (!ui2.model) return;
-      ui2.open = false;
-      markRead(ui2.model.visible.map((i) => i.id)).then(render2);
+      if (ui2.model) markRead(ui2.model.visible.map((i) => i.id)).then(render2);
     });
     topics.addEventListener("click", () => openOptions());
     Object.assign(ui2, { root, strip, count, headline, panel, list });
@@ -1871,7 +1874,8 @@
           markAutoOpened(critical.id);
         }
       }
-      if (!unread.length && !ui2.open) {
+      if (unread.length) ui2.seen = true;
+      if (!unread.length && !ui2.seen) {
         root.hidden = true;
         ui2.panel.hidden = true;
         return;

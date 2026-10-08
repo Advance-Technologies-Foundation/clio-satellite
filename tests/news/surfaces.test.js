@@ -107,22 +107,27 @@ describe('login news strip', () => {
     expect(root.hidden).toBe(true);
   });
 
-  it('disappears after the list is read and closed', async () => {
+  it('stays until reload after the list is read and collapsed, without a count', async () => {
     const root = await mountLogin();
     root.querySelector('.csl-news-strip').click();
     await vi.waitFor(() => expect(root.querySelector('.csl-news-panel').hidden).toBe(false));
-    expect(root.hidden).toBe(false);
     root.querySelector('.csl-news-strip').click();
-    await vi.waitFor(() => expect(root.hidden).toBe(true));
+    await vi.waitFor(() => expect(root.classList.contains('csl-news--unread')).toBe(false));
+    expect(root.hidden).toBe(false);
+    expect(root.querySelector('.csl-news-strip__count').textContent).toBe('');
+    expect(root.querySelector('.csl-news-strip__headline').textContent).toMatch(/^What's new · /);
   });
 
-  it('"Mark all as read" closes the list and hides the strip', async () => {
+  it('is gone on the next page load once everything is read', async () => {
+    const first = await mountLogin();
+    first.querySelector('.csl-news-panel__head .csl-news-linkbtn').click();
+    await vi.waitFor(async () => expect(Object.keys((await readSync({ newsRead: {} })).newsRead)).toHaveLength(2));
+    expect(first.hidden).toBe(false);
+    first.remove();
+    document.querySelector('.creatio-satelite-login-profiles-container')?.remove();
+    _resetLoginNews();
     const root = await mountLogin();
-    root.querySelector('.csl-news-strip').click();
-    await vi.waitFor(() => expect(root.querySelector('.csl-news-panel').hidden).toBe(false));
-    root.querySelector('.csl-news-panel__head .csl-news-linkbtn').click();
-    await vi.waitFor(() => expect(root.hidden).toBe(true));
-    expect(root.querySelector('.csl-news-panel').hidden).toBe(true);
+    expect(root.hidden).toBe(true);
   });
 
   it('filters by the roles chosen in Options', async () => {
@@ -217,7 +222,9 @@ describe('shell news indicator', () => {
       const { newsRead } = await readSync({ newsRead: {} });
       expect(Object.keys(newsRead).sort()).toEqual(['a', 'b']);
     });
-    await vi.waitFor(() => expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(true));
+    // The row stays until reload, without a count
+    await vi.waitFor(() => expect(menuContainer.querySelector('.csl-news-pill').hidden).toBe(true));
+    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(false);
   });
 
   it('counts the Shell load for the dot decay once per page', async () => {
