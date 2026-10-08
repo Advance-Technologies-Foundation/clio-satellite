@@ -69,8 +69,14 @@ describe('newsFetcher.getNews', () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it('does not fetch until news are turned on in Options (off by default)', async () => {
+  it('fetches by default, when the user never touched the switch', async () => {
     const { fetcher, fetchFn } = setup({ sync: {} });
+    expect(await fetcher.getNews()).toEqual({ ok: true, raw: FEED });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fetch after news are turned off in Options', async () => {
+    const { fetcher, fetchFn } = setup({ sync: { newsEnabled: false } });
     expect(await fetcher.getNews()).toEqual({ ok: false, reason: 'disabled' });
     expect(fetchFn).not.toHaveBeenCalled();
   });

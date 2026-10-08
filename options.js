@@ -451,8 +451,8 @@ function initNewsSettings() {
   if (!enabled || !fieldset) return;
 
   // Preview feature: off until the user turns it on here
-  chrome.storage.sync.get({ newsEnabled: false, newsAudiences: NEWS_AUDIENCES }, (data) => {
-    enabled.checked = data.newsEnabled === true;
+  chrome.storage.sync.get({ newsEnabled: true, newsAudiences: NEWS_AUDIENCES }, (data) => {
+    enabled.checked = data.newsEnabled !== false;
     const chosen = Array.isArray(data.newsAudiences) && data.newsAudiences.length ? data.newsAudiences : NEWS_AUDIENCES;
     boxes.forEach(box => { box.checked = chosen.includes(box.value); });
     fieldset.disabled = !enabled.checked;
@@ -513,14 +513,14 @@ function renderNewsDebug() {
   const status = document.getElementById('news-debug-status');
   const list = document.getElementById('news-debug-list');
   if (!status || !list) return;
-  chrome.storage.sync.get({ newsEnabled: false, newsAudiences: NEWS_AUDIENCES, ...NEWS_READ_STATE }, (sync) => {
+  chrome.storage.sync.get({ newsEnabled: true, newsAudiences: NEWS_AUDIENCES, ...NEWS_READ_STATE }, (sync) => {
     chrome.storage.local.get({ newsFeedCache: {} }, (local) => {
       const cache = local.newsFeedCache || {};
       let items = [];
       try { items = cache.raw ? (JSON.parse(cache.raw).items || []) : []; } catch { items = []; }
       const refreshHours = cache.refreshHours || 6;
       const next = cache.fetchedAt ? cache.fetchedAt + refreshHours * 3600 * 1000 : 0;
-      status.textContent = sync.newsEnabled
+      status.textContent = sync.newsEnabled !== false
         ? `Cached feed: ${items.length} item(s), downloaded ${formatTime(cache.fetchedAt)}${next ? `, next check after ${formatTime(next)}` : ''}.`
         : 'News are turned off: nothing is downloaded.';
       const ctx = {

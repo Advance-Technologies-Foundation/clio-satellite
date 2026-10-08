@@ -30,7 +30,7 @@ function item(id, extra = {}) {
 
 const TWO = feed([item('a', { audiences: ['developer'] }), item('b', { type: 'tip', audiences: ['admin'] })]);
 
-// News are a preview feature, off by default; most tests cover the turned-on state
+// News are on by default; tests that cover the turned-off state set newsEnabled: false
 async function loadLogin(page, { newsFeed = TWO, syncData = {} } = {}) {
   await setupChromeMock(page, { syncData: { newsEnabled: true, userProfiles: PROFILES, ...syncData }, newsFeed });
   await page.goto(`${BASE}/login/`);
@@ -42,8 +42,8 @@ async function loadLogin(page, { newsFeed = TWO, syncData = {} } = {}) {
   await page.waitForSelector('.creatio-satelite-login-profiles-container');
 }
 
-async function loadShell(page, { newsFeed = TWO, syncData = {} } = {}) {
-  await setupChromeMock(page, { syncData: { newsEnabled: true, ...syncData }, newsFeed });
+async function loadShell(page, { newsFeed = TWO, syncData = { newsEnabled: true } } = {}) {
+  await setupChromeMock(page, { syncData, newsFeed });
   await page.goto(`${BASE}/shell/`);
   for (const css of ['styles/shell.css', 'menu-item.css', 'styles/news.css']) {
     await page.addStyleTag({ content: read(css) });
@@ -77,7 +77,7 @@ test.describe('Developer news on the login page', () => {
     await expect(page.locator('.csl-news-strip__headline')).toHaveText(/^What's new · /);
   });
 
-  test('nothing is shown until news are turned on in Options', async ({ page }) => {
+  test('news are shown by default, when the user never touched the switch', async ({ page }) => {
     await setupChromeMock(page, { syncData: { userProfiles: PROFILES }, newsFeed: TWO });
     await page.goto(`${BASE}/login/`);
     await page.addStyleTag({ content: read('styles/news.css') });
@@ -85,7 +85,7 @@ test.describe('Developer news on the login page', () => {
     await page.addScriptTag({ content: read('login/login.js') });
     await injectContentScript(page);
     await page.waitForSelector('.creatio-satelite-login-profiles-container');
-    await expect(page.locator('.csl-news')).toBeHidden();
+    await expect(page.locator('.csl-news')).toBeVisible();
   });
 
   test('nothing is shown when all news are read', async ({ page }) => {
@@ -153,6 +153,11 @@ test.describe('First run and the full feed', () => {
 });
 
 test.describe('Developer news in Shell', () => {
+  test('news are shown by default, when the user never touched the switch', async ({ page }) => {
+    await loadShell(page, { syncData: {} });
+    await expect(page.locator('.creatio-satelite .csl-news-dot')).toBeVisible();
+  });
+
   test('dot on the Clio satellite button, cleared when the menu opens', async ({ page }) => {
     await loadShell(page);
     const dot = page.locator('.creatio-satelite .csl-news-dot');
@@ -228,14 +233,12 @@ test.describe('Developer news in Shell', () => {
 });
 
 test.describe('Developer news settings', () => {
-  test('news are off by default; once on, all roles are on and at least one stays on', async ({ page }) => {
+  test('news are on by default with all roles on; at least one role stays on', async ({ page }) => {
     await setupChromeMock(page);
     await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
     const boxes = page.locator('input[name="news-audience"]');
-    await expect(page.locator('#news-enabled')).not.toBeChecked();
-    await expect(page.locator('#news-aud-admin')).toBeDisabled();
-    await page.locator('#news-enabled').check();
-    expect(await page.evaluate(() => new Promise(r => chrome.storage.sync.get({ newsEnabled: false }, d => r(d.newsEnabled))))).toBe(true);
+    await expect(page.locator('#news-enabled')).toBeChecked();
+    await expect(page.locator('#news-aud-admin')).toBeEnabled();
     await expect(boxes).toHaveCount(3);
     for (const box of await boxes.all()) await expect(box).toBeChecked();
 
@@ -298,7 +301,7 @@ test.describe('Developer news settings', () => {
   });
 
   test('troubleshooting says when news are turned off', async ({ page }) => {
-    await setupChromeMock(page, { newsFeed: null });
+    await setupChromeMock(page, { syncData: { newsEnabled: false }, newsFeed: null });
     await page.goto(`${BASE}/options.html`, { waitUntil: 'domcontentloaded' });
     await page.locator('#news-debug summary').click();
     await expect(page.locator('#news-debug-status')).toHaveText('News are turned off: nothing is downloaded.');
