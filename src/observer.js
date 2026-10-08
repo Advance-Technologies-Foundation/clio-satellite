@@ -2,7 +2,7 @@ import { debugLog } from './debug.js';
 import { state, resetState } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { createScriptsMenu } from './menuBuilder.js';
-import { positionFloatingContainerRelativeToSearch } from './positionManager.js';
+import { positionFloatingContainerRelativeToSearch, anchorRightEdge } from './positionManager.js';
 
 export function checkCreatioPageAndCreateMenu() {
   debugLog('Checking for Creatio page');
@@ -53,7 +53,7 @@ export function monitorButtons() {
       return;
     }
     const containerRect = floatingContainer.getBoundingClientRect();
-    const expectedLeft = searchRect.right + 20;
+    const expectedLeft = anchorRightEdge(searchElement, floatingContainer) + 20;
     if (Math.abs(containerRect.left - expectedLeft) > 50) {
       positionFloatingContainerRelativeToSearch(floatingContainer);
     }

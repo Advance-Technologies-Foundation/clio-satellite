@@ -345,7 +345,13 @@ export function createScriptsMenu() {
 
     state.actionsMenuCreated = true;
     state.menuCreating = false;
-    attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType });
+    // News are optional: a failure there must never take the menu down
+    try {
+      Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }))
+        .catch(error => console.error('[Clio Satellite] Developer news failed:', error));
+    } catch (error) {
+      console.error('[Clio Satellite] Developer news failed:', error);
+    }
     debugLog('Scripts menu created successfully');
     return true;
   } catch (error) {

@@ -6,7 +6,7 @@ import { initLoginNews } from './news/loginStrip.js';
 // On login pages only the developer news strip runs (login/login.js builds the profile row)
 const initialType = getCreatioPageType();
 if (initialType === 'login') {
-  initLoginNews();
+  initLoginNews().catch(error => console.error('[Clio Satellite] Developer news failed:', error));
 } else {
   // Initial check after page settles
   setTimeout(() => checkCreatioPageAndCreateMenu(), 1000);

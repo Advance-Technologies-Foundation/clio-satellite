@@ -269,7 +269,7 @@
     const rect = target.getBoundingClientRect();
     let right = rect.right;
     for (let sib = target.nextElementSibling; sib; sib = sib.nextElementSibling) {
-      if (floatingContainer && (sib === floatingContainer || sib.contains(floatingContainer))) break;
+      if (sib === floatingContainer || sib.contains(floatingContainer)) break;
       const b = sib.getBoundingClientRect();
       if (!b.width || !b.height) continue;
       if (b.bottom <= rect.top || b.top >= rect.bottom) continue;
@@ -320,7 +320,7 @@
       debugLog("Target element outside viewport");
       return false;
     }
-    const anchorRight = anchorRightEdge(targetElement, floatingContainer);
+    const anchorRight = searchElement ? anchorRightEdge(targetElement, floatingContainer) : targetRect.right;
     const rectKey = `${Math.round(targetRect.left)},${Math.round(anchorRight)},${Math.round(targetRect.top)}`;
     const now = Date.now();
     const seen = lastTargetRect.get(floatingContainer);
@@ -1684,7 +1684,11 @@
       document.documentElement.appendChild(extensionContainer);
       state.actionsMenuCreated = true;
       state.menuCreating = false;
-      attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType });
+      try {
+        Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
+      } catch (error) {
+        console.error("[Clio Satellite] Developer news failed:", error);
+      }
       debugLog("Scripts menu created successfully");
       return true;
     } catch (error) {
@@ -1737,7 +1741,7 @@
         return;
       }
       const containerRect = floatingContainer.getBoundingClientRect();
-      const expectedLeft = searchRect.right + 20;
+      const expectedLeft = anchorRightEdge(searchElement, floatingContainer) + 20;
       if (Math.abs(containerRect.left - expectedLeft) > 50) {
         positionFloatingContainerRelativeToSearch(floatingContainer);
       }
@@ -1938,7 +1942,7 @@
   // src/index.js
   var initialType = getCreatioPageType();
   if (initialType === "login") {
-    initLoginNews();
+    initLoginNews().catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
   } else {
     setTimeout(() => checkCreatioPageAndCreateMenu(), 1e3);
     document.addEventListener("DOMContentLoaded", () => {

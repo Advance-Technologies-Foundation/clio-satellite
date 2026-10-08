@@ -11,6 +11,7 @@ vi.mock('../src/menuBuilder.js', () => ({
 
 vi.mock('../src/positionManager.js', () => ({
   positionFloatingContainerRelativeToSearch: vi.fn(),
+  anchorRightEdge: vi.fn(target => target.getBoundingClientRect().right),
   saveMenuPosition: vi.fn(),
   loadMenuPosition: vi.fn((_pt, cb) => cb(null, null)),
   applySavedPosition: vi.fn(() => true),
@@ -19,7 +20,7 @@ vi.mock('../src/positionManager.js', () => ({
 import { checkCreatioPageAndCreateMenu, monitorButtons, setupObserver, initDebugHelper } from '../src/observer.js';
 import { getCreatioPageType } from '../src/pageDetection.js';
 import { createScriptsMenu } from '../src/menuBuilder.js';
-import { positionFloatingContainerRelativeToSearch } from '../src/positionManager.js';
+import { positionFloatingContainerRelativeToSearch, anchorRightEdge } from '../src/positionManager.js';
 import { state, resetState } from '../src/state.js';
 
 beforeEach(() => {
@@ -183,6 +184,28 @@ describe('monitorButtons', () => {
     fc.getBoundingClientRect = () => ({ left: 420, width: 100, height: 40 });
 
     monitorButtons();
+    expect(positionFloatingContainerRelativeToSearch).not.toHaveBeenCalled();
+  });
+
+  it('measures the expected spot after the controls that follow the search (CPQ operator status)', () => {
+    getCreatioPageType.mockReturnValue('shell');
+    document.body.innerHTML = `
+      <crt-global-search></crt-global-search>
+      <div class="creatio-satelite-extension-container">
+        <button class="scripts-menu-button"></button>
+        <button class="actions-button"></button>
+        <div class="creatio-satelite-floating"></div>
+      </div>
+    `;
+    const search = document.querySelector('crt-global-search');
+    const fc = document.querySelector('.creatio-satelite-floating');
+    // Search ends at 482, operator status ends at 606; buttons already sit at 626
+    search.getBoundingClientRect = () => ({ right: 482, width: 218, height: 32 });
+    fc.getBoundingClientRect = () => ({ left: 626, width: 206, height: 40 });
+    anchorRightEdge.mockReturnValueOnce(606);
+
+    monitorButtons();
+    expect(anchorRightEdge).toHaveBeenCalledWith(search, fc);
     expect(positionFloatingContainerRelativeToSearch).not.toHaveBeenCalled();
   });
 });

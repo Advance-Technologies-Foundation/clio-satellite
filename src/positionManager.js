@@ -12,7 +12,8 @@ export function anchorRightEdge(target, floatingContainer) {
   const rect = target.getBoundingClientRect();
   let right = rect.right;
   for (let sib = target.nextElementSibling; sib; sib = sib.nextElementSibling) {
-    if (floatingContainer && (sib === floatingContainer || sib.contains(floatingContainer))) break;
+    // Our own container can be a sibling when the search sits directly in <body>
+    if (sib === floatingContainer || sib.contains(floatingContainer)) break;
     const b = sib.getBoundingClientRect();
     if (!b.width || !b.height) continue;
     if (b.bottom <= rect.top || b.top >= rect.bottom) continue;   // not in the same row
@@ -85,7 +86,8 @@ export function positionFloatingContainerRelativeToSearch(
 
   // The search field animates its width when it appears; positioning against an
   // intermediate size makes the buttons jump. Move only once the rect is stable.
-  const anchorRight = anchorRightEdge(targetElement, floatingContainer);
+  // Only the search has Creatio controls glued to it; the action-button fallback keeps its old anchor
+  const anchorRight = searchElement ? anchorRightEdge(targetElement, floatingContainer) : targetRect.right;
   const rectKey = `${Math.round(targetRect.left)},${Math.round(anchorRight)},${Math.round(targetRect.top)}`;
   const now = Date.now();
   const seen = lastTargetRect.get(floatingContainer);

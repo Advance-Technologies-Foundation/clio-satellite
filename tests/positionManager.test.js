@@ -345,6 +345,30 @@ describe('the buttons do not cover Creatio controls next to the search', () => {
     expect(anchorRightEdge(search)).toBe(482);
   });
 
+  it('stops at its own container when the search sits directly in <body>', () => {
+    const search = toolbar([['crt-global-search', rect(264, 482)]]);
+    const fc = document.createElement('div');
+    fc.getBoundingClientRect = rect(502, 700);
+    search.parentElement.appendChild(fc);
+    expect(anchorRightEdge(search, fc)).toBe(482);
+  });
+
+  it('keeps the old anchor for the action-button fallback (no search on the page)', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div><button mat-button class="action-button"></button><span></span></div>';
+    const btn = document.querySelector('.action-button');
+    btn.getBoundingClientRect = rect(100, 200);
+    btn.nextElementSibling.getBoundingClientRect = rect(210, 300);
+    const el = document.createElement('div');
+    el.className = 'creatio-satelite-floating';
+    el.getBoundingClientRect = () => ({ width: 150, height: 40, top: 0, left: 0, right: 150, bottom: 40 });
+    document.body.appendChild(el);
+    positionFloatingContainerRelativeToSearch(el);
+    vi.advanceTimersByTime(150);
+    expect(el.style.left).toBe('220px');
+    vi.useRealTimers();
+  });
+
   it('positions the buttons after the whole group', () => {
     vi.useFakeTimers();
     const search = toolbar([['crt-global-search', rect(264, 482)], ['crt-operator-state', rect(498, 606, 16, 40)]]);

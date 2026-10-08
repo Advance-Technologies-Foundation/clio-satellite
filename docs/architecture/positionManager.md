@@ -14,7 +14,7 @@
 - `resetAutoPositionCache(): void` — test helper that forgets the last written value
 
 **Key decisions:**
-- The buttons go after the search's whole toolbar group, not after the search itself: some Creatio products put their own controls right after the search (CPQ: `crt-operator-state`, the chat operator status button). Only following siblings in the same row are counted, and a gap over 48 px ends the group, so the right-hand toolbar group is never included. The stability check keys on this edge, so a control that appears late moves the buttons once it settles.
+- The buttons go after the search's whole toolbar group, not after the search itself: some Creatio products put their own controls right after the search (CPQ: `crt-operator-state`, the chat operator status button). Only the search gets this treatment (the `action-button` fallback keeps `right + 20`), and `observer.monitorButtons()` uses the same edge for its drift check. Only following siblings in the same row are counted, and the extension's own container ends the walk, and a gap over 48 px ends the group, so the right-hand toolbar group is never included. The stability check keys on this edge, so a control that appears late moves the buttons once it settles.
 - 30-day TTL on saved positions prevents stale coordinates after layout changes.
 - Search-based positioning moves the container only after the search rect has stayed the same for 120 ms (it retries by itself). The search field animates its width when it appears; positioning against an intermediate size made the buttons jump.
 - While `data-auto-restored` is set and no anchor exists yet, the fallback (centre of the screen) is skipped, so the buttons stay where they appeared.
