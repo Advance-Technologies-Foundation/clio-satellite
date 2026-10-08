@@ -262,7 +262,22 @@
 
   // src/positionManager.js
   var STABLE_CHECK_MS = 120;
+  var ANCHOR_GAP = 20;
+  var GROUP_GAP_MAX = 48;
   var lastTargetRect = /* @__PURE__ */ new WeakMap();
+  function anchorRightEdge(target, floatingContainer) {
+    const rect = target.getBoundingClientRect();
+    let right = rect.right;
+    for (let sib = target.nextElementSibling; sib; sib = sib.nextElementSibling) {
+      if (floatingContainer && (sib === floatingContainer || sib.contains(floatingContainer))) break;
+      const b = sib.getBoundingClientRect();
+      if (!b.width || !b.height) continue;
+      if (b.bottom <= rect.top || b.top >= rect.bottom) continue;
+      if (b.left - right > GROUP_GAP_MAX) break;
+      right = Math.max(right, b.right);
+    }
+    return right;
+  }
   function positionFloatingContainerRelativeToSearch(floatingContainer = document.querySelector(".creatio-satelite-floating")) {
     if (!floatingContainer) {
       debugLog("Cannot position floating container - not found");
@@ -305,7 +320,8 @@
       debugLog("Target element outside viewport");
       return false;
     }
-    const rectKey = `${Math.round(targetRect.left)},${Math.round(targetRect.right)},${Math.round(targetRect.top)}`;
+    const anchorRight = anchorRightEdge(targetElement, floatingContainer);
+    const rectKey = `${Math.round(targetRect.left)},${Math.round(anchorRight)},${Math.round(targetRect.top)}`;
     const now = Date.now();
     const seen = lastTargetRect.get(floatingContainer);
     if (!seen || seen.key !== rectKey) {
@@ -318,7 +334,7 @@
       debugLog("Target element not stable long enough yet");
       return false;
     }
-    const leftPosition = targetRect.right + 20;
+    const leftPosition = anchorRight + ANCHOR_GAP;
     const topPosition = targetRect.top + (targetRect.height - containerRect.height) / 2 - 20;
     const finalLeft = Math.min(window.innerWidth - containerRect.width - 10, leftPosition);
     const finalTop = Math.max(10, Math.min(window.innerHeight - containerRect.height - 10, topPosition));

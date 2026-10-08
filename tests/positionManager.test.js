@@ -4,6 +4,7 @@ import {
   saveMenuPosition,
   loadMenuPosition,
   positionFloatingContainerRelativeToSearch,
+  anchorRightEdge,
   saveAutoPosition,
   loadAutoPosition,
   applyAutoPosition,
@@ -305,6 +306,56 @@ describe('positioning waits for the search field to stop moving', () => {
     expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
     vi.advanceTimersByTime(150);
     expect(el.style.left).toBe('420px');
+    vi.useRealTimers();
+  });
+});
+
+describe('the buttons do not cover Creatio controls next to the search', () => {
+  const rect = (left, right, top = 12, bottom = 44) => () => ({ left, right, top, bottom, width: right - left, height: bottom - top });
+
+  function toolbar(children) {
+    document.body.innerHTML = '';
+    const group = document.createElement('div');
+    children.forEach(([tag, r]) => {
+      const node = document.createElement(tag);
+      node.getBoundingClientRect = r;
+      group.appendChild(node);
+    });
+    document.body.appendChild(group);
+    return document.querySelector('crt-global-search');
+  }
+
+  it('goes past the controls Creatio puts right after the search (CPQ chat operator status)', () => {
+    const search = toolbar([['crt-global-search', rect(264, 482)], ['crt-operator-state', rect(498, 606, 16, 40)]]);
+    expect(anchorRightEdge(search)).toBe(606);
+  });
+
+  it('stays next to the search when nothing follows it', () => {
+    const search = toolbar([['crt-global-search', rect(264, 482)]]);
+    expect(anchorRightEdge(search)).toBe(482);
+  });
+
+  it('ignores hidden siblings and siblings of another toolbar group or row', () => {
+    const search = toolbar([
+      ['crt-global-search', rect(264, 482)],
+      ['span', () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 })],
+      ['div', rect(500, 560, 60, 90)],          // another row
+      ['div', rect(700, 900)],                  // far away: right-hand group
+    ]);
+    expect(anchorRightEdge(search)).toBe(482);
+  });
+
+  it('positions the buttons after the whole group', () => {
+    vi.useFakeTimers();
+    const search = toolbar([['crt-global-search', rect(264, 482)], ['crt-operator-state', rect(498, 606, 16, 40)]]);
+    const el = document.createElement('div');
+    el.className = 'creatio-satelite-floating';
+    el.getBoundingClientRect = () => ({ width: 200, height: 40, top: 0, left: 0, right: 200, bottom: 40 });
+    document.body.appendChild(el);
+    expect(search).not.toBeNull();
+    positionFloatingContainerRelativeToSearch(el);
+    vi.advanceTimersByTime(150);
+    expect(el.style.left).toBe('626px');
     vi.useRealTimers();
   });
 });
