@@ -470,8 +470,122 @@ function initNewsSettings() {
   boxes.forEach(box => box.addEventListener('change', () => {
     // At least one role stays on; to see nothing, turn news off above
     if (!boxes.some(b => b.checked)) box.checked = true;
-    chrome.storage.sync.set({ newsAudiences: boxes.filter(b => b.checked).map(b => b.value) });
+    chrome.storage.sync.set({ newsAudiences: boxes.filter(b => b.checked).map(b => b.value) }, renderNewsDebug);
   }));
+
+  initNewsDebug();
+}
+
+// ── Developer news troubleshooting ───────────────────────────────────────────
+// Shows what the extension has cached and why each news item is or is not shown,
+// and offers two resets so the feature can be checked without the DevTools console.
+
+const NEWS_READ_STATE = { newsRead: {}, newsFirstShown: {}, newsAutoOpened: {}, newsSkipped: {} };
+
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+function formatTime(ms) {
+  return ms ? new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never';
+}
+
+// Mirrors the checks of src/news/newsCore.js (selectVisible, isUnreadSignal) in plain words
+function newsItemState(item, ctx) {
+  const now = Date.now();
+  if (ctx.skipped[item.id]) return 'hidden: skipped at the first run';
+  if (Date.parse(item.publishedAt) > now) return 'hidden: not published yet';
+  if (Date.parse(item.expiresAt) <= now) return 'hidden: expired';
+  if (item.minVersion && compareVersions(ctx.version, item.minVersion) < 0) return `hidden: needs Clio Satellite ${item.minVersion}`;
+  const audiences = Array.isArray(item.audiences) && item.audiences.length ? item.audiences : NEWS_AUDIENCES;
+  if (item.priority !== 'critical' && !audiences.some(a => ctx.audiences.includes(a))) return 'hidden: topic is turned off above';
+  if (ctx.read[item.id]) return 'read';
+  return 'new';
+}
+
+function renderNewsDebug() {
+  const status = document.getElementById('news-debug-status');
+  const list = document.getElementById('news-debug-list');
+  if (!status || !list) return;
+  chrome.storage.sync.get({ newsEnabled: false, newsAudiences: NEWS_AUDIENCES, ...NEWS_READ_STATE }, (sync) => {
+    chrome.storage.local.get({ newsFeedCache: {} }, (local) => {
+      const cache = local.newsFeedCache || {};
+      let items = [];
+      try { items = cache.raw ? (JSON.parse(cache.raw).items || []) : []; } catch { items = []; }
+      const refreshHours = cache.refreshHours || 6;
+      const next = cache.fetchedAt ? cache.fetchedAt + refreshHours * 3600 * 1000 : 0;
+      status.textContent = sync.newsEnabled
+        ? `Cached feed: ${items.length} item(s), downloaded ${formatTime(cache.fetchedAt)}${next ? `, next check after ${formatTime(next)}` : ''}.`
+        : 'News are turned off: nothing is downloaded.';
+      const ctx = {
+        version: chrome.runtime.getManifest?.().version || '0',
+        audiences: Array.isArray(sync.newsAudiences) && sync.newsAudiences.length ? sync.newsAudiences : NEWS_AUDIENCES,
+        read: sync.newsRead || {},
+        skipped: sync.newsSkipped || {},
+      };
+      list.replaceChildren(...items.map(item => {
+        const li = document.createElement('li');
+        li.className = 'news-debug__item';
+        const state = document.createElement('span');
+        const text = newsItemState(item, ctx);
+        state.className = `news-debug__state news-debug__state--${text.split(':')[0]}`;
+        state.textContent = text;
+        const title = document.createElement('span');
+        title.className = 'news-debug__title';
+        title.textContent = String(item.title || item.id || '');
+        li.append(state, title);
+        const surfaces = Array.isArray(item.surfaces) && item.surfaces.length ? item.surfaces : ['login', 'shell'];
+        if (surfaces.length === 1) {
+          const where = document.createElement('span');
+          where.className = 'news-debug__where';
+          where.textContent = surfaces[0] === 'login' ? 'login page only' : 'inside Creatio only';
+          li.appendChild(where);
+        }
+        return li;
+      }));
+    });
+  });
+}
+
+function initNewsDebug() {
+  const details = document.getElementById('news-debug');
+  const status = document.getElementById('news-debug-status');
+  if (!details || !status) return;
+  details.addEventListener('toggle', () => { if (details.open) renderNewsDebug(); });
+
+  document.getElementById('news-refresh')?.addEventListener('click', (event) => {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    status.textContent = 'Downloading news…';
+    chrome.storage.local.remove(['newsFeedCache', 'newsMediaCache'], () => {
+      chrome.runtime.sendMessage({ action: 'getNews' }, (response) => {
+        try { void chrome.runtime.lastError; } catch { /* ignore */ }
+        btn.disabled = false;
+        if (!response?.ok) {
+          status.textContent = response?.reason === 'disabled'
+            ? 'News are turned off: turn them on above first.'
+            : 'Could not download news. Check the connection and try again.';
+          return;
+        }
+        renderNewsDebug();
+      });
+    });
+  });
+
+  document.getElementById('news-reset-read')?.addEventListener('click', () => {
+    chrome.storage.sync.set(NEWS_READ_STATE, () => {
+      chrome.storage.local.set({ newsNoticed: {} }, () => {
+        renderNewsDebug();
+        status.textContent += ' All news are unread again.';
+      });
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
