@@ -12,20 +12,20 @@ This Extension is intended for use by developers and administrators of Creatio p
 
 ## Information We Collect
 
-The Clio Satellite Extension stores the following information **locally in your browser only**:
+The Clio Satellite Extension stores the following information in Chrome storage:
 - User credentials (usernames and passwords) for Creatio platforms
 - Display aliases for profiles
 - Autologin preferences for different sites
 - Last used profile information
 
-**Important**: All of this information is stored locally using Chrome's storage API and is never transmitted to any external servers.
+**Important**: Profiles and settings are kept in Chrome sync storage, so when you are signed in to Chrome with sync turned on, Chrome syncs them between your own devices through your Google account (handled by Google under the Google Privacy Policy). This information is never sent to servers operated by the Extension developers or to any other third party.
 
 ## Developer News
 
 The Extension shows short news about clio and Creatio developer tools on the Creatio login page and inside Creatio.
 
 - The news are downloaded as plain text (JSON) and images from `https://advance-technologies-foundation.github.io/clio-news-feed/` at most every few hours. The request contains no personal data, no Creatio address and no identifiers.
-- Which news you have read, when you first saw them, and the roles you chose (Administration, Development, Other) are stored in Chrome storage in your browser only.
+- Which news you have read and when you first saw them are stored in your browser only. The roles you chose (Administration, Development, Other) and the news on/off switch are saved with your settings and synced like the other settings.
 - YouTube previews may be loaded from `i.ytimg.com` (Google) when you open the news list. A video plays from `youtube-nocookie.com` only after you press play; "Watch on YouTube" opens youtube.com.
 - Developer news are on by default. You can turn them off in the Extension options; while they are off, the Extension makes no news requests.
 
@@ -51,7 +51,7 @@ We do not share, sell, rent, or trade your information with any third parties. A
 
 ## Data Security
 
-All credentials and settings are stored locally in your browser using Chrome's secure storage mechanisms. Credentials, site addresses and profiles are never transmitted over the internet. The only outgoing requests are the developer news downloads and the anonymous usage events described above.
+All credentials and settings are stored with Chrome's storage API in your browser and, when Chrome sync is on, synced by Chrome through your Google account. The Extension itself never sends credentials, site addresses or profiles over the internet. The only outgoing requests the Extension makes are the developer news downloads and the anonymous usage events described above.
 
 ## Changes To This Privacy Policy
 

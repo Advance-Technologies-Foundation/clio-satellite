@@ -9,3 +9,6 @@ v2.9 started sending anonymous usage statistics to Google Analytics 4. Chrome We
 
 **Decision**
 GitHub Pages from `/docs` reuses the existing `docs/privacy-policy.html` without a separate deploy step, so the published page always matches `main`. The repository is already public, so publishing the rest of `docs/` exposes nothing new.
+
+**Follow-up: storage wording in the policy**
+The policy said profiles are stored "locally in your browser only" and "never transmitted", but profiles, autologin settings, news roles and the news switch live in `chrome.storage.sync` and are synced by Chrome between the user's devices. Both `docs/PRIVACY_POLICY.md` and `docs/privacy-policy.html` now say so, while keeping the statement that the extension never sends this data to its developers or third parties. News read state stays in `chrome.storage.local`.

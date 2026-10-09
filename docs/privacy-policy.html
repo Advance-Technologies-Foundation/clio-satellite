@@ -46,20 +46,20 @@
         </div>
 
         <h2>Information We Collect</h2>
-        <p>The Clio Satellite Extension stores the following information <strong>locally in your browser only</strong>:</p>
+        <p>The Clio Satellite Extension stores the following information in Chrome storage:</p>
         <ul>
             <li>User credentials (usernames and passwords) for Creatio platforms</li>
             <li>Display aliases for profiles</li>
             <li>Autologin preferences for different sites</li>
             <li>Last used profile information</li>
         </ul>
-        <p><strong>Important</strong>: All of this information is stored locally using Chrome's storage API and is never transmitted to any external servers.</p>
+        <p><strong>Important</strong>: Profiles and settings are kept in Chrome sync storage, so when you are signed in to Chrome with sync turned on, Chrome syncs them between your own devices through your Google account (handled by Google under the Google Privacy Policy). This information is never sent to servers operated by the Extension developers or to any other third party.</p>
 
         <h2>Developer News</h2>
         <p>The Extension shows short news about clio and Creatio developer tools on the Creatio login page and inside Creatio.</p>
         <ul>
             <li>News are downloaded as plain text (JSON) and images from <code>https://advance-technologies-foundation.github.io/clio-news-feed/</code> at most every few hours. The request contains no personal data, no Creatio address and no identifiers.</li>
-            <li>Which news you have read, when you first saw them, and the roles you chose are stored in Chrome storage in your browser only.</li>
+            <li>Which news you have read and when you first saw them are stored in your browser only. The roles you chose and the news on/off switch are saved with your settings and synced like the other settings.</li>
             <li>YouTube previews may be loaded from <code>i.ytimg.com</code> (Google) when you open the news list. A video plays from <code>youtube-nocookie.com</code> only after you press play.</li>
             <li>Developer news are on by default. You can turn them off in the Extension options; while they are off, the Extension makes no news requests.</li>
         </ul>
@@ -86,7 +86,7 @@
         <p>We do not share, sell, rent, or trade your information with any third parties. Anonymous usage events (see Usage Statistics) are processed by Google Analytics on our behalf.</p>
 
         <h2>Data Security</h2>
-        <p>All credentials and settings are stored locally in your browser using Chrome's secure storage mechanisms. Credentials, site addresses and profiles are never transmitted over the internet. The only outgoing requests are the developer news downloads and the anonymous usage events described above.</p>
+        <p>All credentials and settings are stored with Chrome's storage API in your browser and, when Chrome sync is on, synced by Chrome through your Google account. The Extension itself never sends credentials, site addresses or profiles over the internet. The only outgoing requests the Extension makes are the developer news downloads and the anonymous usage events described above.</p>
 
         <h2>Changes To This Privacy Policy</h2>
         <p>We may update our Privacy Policy from time to time. We will notify you of any changes by updating the "Last updated" date of this Privacy Policy.</p>
