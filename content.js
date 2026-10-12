@@ -433,7 +433,402 @@
     return true;
   }
 
+  // src/edgeBlob.js
+  var PRESS_DISTANCE = 20;
+  var EDGE_HOLD_MS = 600;
+  var TEAR_DISTANCE = 70;
+  var EDGE_GAP = 8;
+  var EDGES = ["left", "right", "top", "bottom"];
+  var BLOB_W = 36;
+  var BLOB_H = 54;
+  var BLOB_SCALE = 0.45;
+  var ROT = { left: 0, top: 90, right: 180, bottom: -90 };
+  var ORIGIN = { left: "left center", right: "right center", top: "center top", bottom: "center bottom" };
+  var STYLE_ID = "csl-edge-blob-style";
+  var FILTER_ID = "csl-edge-blob-goo";
+  function isVertical(edge) {
+    return edge === "left" || edge === "right";
+  }
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+  function pressedEdge(rawX, rawY, width, height, vw, vh) {
+    const over = { left: -rawX, right: rawX - (vw - width), top: -rawY, bottom: rawY - (vh - height) };
+    let edge = null;
+    for (const e of EDGES) if (over[e] > 0 && (!edge || over[e] > over[edge])) edge = e;
+    return edge ? { edge, over: over[edge] } : null;
+  }
+  function isCursorAtEdge(edge, x, y, vw, vh) {
+    return { left: x <= 1, right: x >= vw - 2, top: y <= 1, bottom: y >= vh - 2 }[edge];
+  }
+  function clampAlong(edge, along, vw, vh) {
+    const span = isVertical(edge) ? vh : vw;
+    return clamp(along, BLOB_H / 2, span - BLOB_H / 2);
+  }
+  function alongForRect(edge, rect, vw, vh) {
+    const along = isVertical(edge) ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
+    return clampAlong(edge, along, vw, vh);
+  }
+  function buttonsPositionFor(edge, along, width, height, vw, vh, gap = EDGE_GAP) {
+    const x = clamp(along - width / 2, 8, vw - width - 8);
+    const y = clamp(along - height / 2, 8, vh - height - 8);
+    if (edge === "left") return { x: gap, y };
+    if (edge === "right") return { x: vw - width - gap, y };
+    if (edge === "top") return { x, y: gap };
+    return { x, y: vh - height - gap };
+  }
+  var blobKey = (pageType) => `menuEdgeBlob_${pageType}_${window.location.origin}`;
+  function saveBlobState(pageType, edge, along) {
+    const span = isVertical(edge) ? window.innerHeight : window.innerWidth;
+    chrome.storage.local.set({ [blobKey(pageType)]: { edge, along: along / span, timestamp: Date.now() } }, () => {
+      const err = getLastError();
+      if (err) console.error("[Clio Satellite] Failed to save edge blob:", err.message);
+    });
+  }
+  function loadBlobState(pageType, callback) {
+    chrome.storage.local.get([blobKey(pageType)], (result) => {
+      const err = getLastError();
+      const saved = err ? null : result[blobKey(pageType)];
+      if (!saved || !EDGES.includes(saved.edge) || typeof saved.along !== "number") {
+        callback(null);
+        return;
+      }
+      const span = isVertical(saved.edge) ? window.innerHeight : window.innerWidth;
+      callback({ edge: saved.edge, along: clampAlong(saved.edge, saved.along * span, window.innerWidth, window.innerHeight) });
+    });
+  }
+  function clearBlobState(pageType) {
+    chrome.storage.local.remove([blobKey(pageType)], () => {
+      const err = getLastError();
+      if (err) console.error("[Clio Satellite] Failed to clear edge blob:", err.message);
+    });
+  }
+  var CSS = `
+.creatio-satelite-floating[data-edge-docked] { display: none !important; }
+.csl-edge-wet, .csl-edge-blob { position: fixed; width: ${BLOB_W}px; height: ${BLOB_H}px; pointer-events: none; }
+.csl-edge-wet { z-index: 1001; opacity: .9; }
+.csl-edge-blob { z-index: 1000; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+.csl-edge-wet[hidden], .csl-edge-blob[hidden] { display: none; }
+.csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
+.csl-edge-scale { position: absolute; left: 0; top: 0; width: 80px; height: 120px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
+.csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
+.csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
+.csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
+/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a shallow dome (core). */
+.csl-edge-base { left: 0; top: 50px; width: 44px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
+.csl-edge-wet .csl-edge-base { top: 40px; width: 46px; height: 80px; }
+.csl-edge-core { left: 16px; top: 54px; width: 34px; height: 52px; border-radius: 50%; }
+.csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
+.csl-edge-d1 { left: 6px; top: 42px; }
+.csl-edge-d2 { left: 6px; top: 102px; }
+.csl-edge-shine { position: absolute; left: 4px; top: 17px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
+/* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
+.csl-edge-hit { position: absolute; left: 0; top: 11px; width: 20px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+/* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
+.csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
+`;
+  function ensureStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+  function div(className, parent) {
+    const el5 = document.createElement("div");
+    el5.className = className;
+    parent?.appendChild(el5);
+    return el5;
+  }
+  function gooShapes(parent, withCore) {
+    const scale = div("csl-edge-scale", parent);
+    const goo = div("csl-edge-goo", scale);
+    const parts = { base: div("csl-edge-base", goo) };
+    if (withCore) parts.core = div("csl-edge-core", goo);
+    parts.d1 = div("csl-edge-drop csl-edge-d1", goo);
+    parts.d2 = div("csl-edge-drop csl-edge-d2", goo);
+    return parts;
+  }
+  function gooFilter() {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    svg.innerHTML = `<defs><filter id="${FILTER_ID}">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/>
+    <feComposite in="SourceGraphic" in2="goo" operator="atop"/></filter></defs>`;
+    return svg;
+  }
+  function animate(el5, keyframes, options, done) {
+    if (typeof el5.animate !== "function") {
+      done?.();
+      return null;
+    }
+    const a = el5.animate(keyframes, options);
+    if (done) a.onfinish = done;
+    return a;
+  }
+  function cancelAnimations(el5) {
+    if (typeof el5.getAnimations === "function") el5.getAnimations().forEach((a) => a.cancel());
+  }
+  function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, signal }) {
+    ensureStyles();
+    const svg = gooFilter();
+    const wet = div("csl-edge-wet");
+    wet.hidden = true;
+    const wetGrow = div("csl-edge-wet-grow", wet);
+    gooShapes(wetGrow, false);
+    div("csl-edge-shine", wetGrow);
+    const blob = div("csl-edge-blob");
+    blob.hidden = true;
+    const parts = gooShapes(blob, true);
+    const hit = div("csl-edge-hit", blob);
+    const dot = div("csl-edge-dot", blob);
+    hit.title = "Clio satellite";
+    root.append(svg, wet, blob);
+    let edge = null;
+    let along = 0;
+    let pull = null;
+    let edgeHoldTimer = null;
+    let lastPress = null;
+    let splatTimer = null;
+    const vw = () => window.innerWidth;
+    const vh = () => window.innerHeight;
+    function placeOnEdge(el5, ed, a) {
+      const half = BLOB_W / 2;
+      let cx, cy;
+      if (ed === "left") {
+        cx = half;
+        cy = a;
+      }
+      if (ed === "right") {
+        cx = vw() - half;
+        cy = a;
+      }
+      if (ed === "top") {
+        cx = a;
+        cy = half;
+      }
+      if (ed === "bottom") {
+        cx = a;
+        cy = vh() - half;
+      }
+      el5.style.left = cx - BLOB_W / 2 + "px";
+      el5.style.top = cy - BLOB_H / 2 + "px";
+      el5.style.transform = `rotate(${ROT[ed]}deg)`;
+    }
+    function placeBlob() {
+      placeOnEdge(blob, edge, along);
+      dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+    }
+    function resetParts() {
+      for (const el5 of Object.values(parts)) el5.style.transform = "";
+      dot.style.translate = "";
+    }
+    function showWet(ed, press, raw) {
+      cancelAnimations(wet);
+      placeOnEdge(wet, ed, alongForRect(ed, raw, vw(), vh()));
+      wet.hidden = false;
+      wet.style.setProperty("--csl-wy", Math.min(1, press * 1.6).toFixed(3));
+      wet.style.setProperty("--csl-wx", Math.min(1, 0.25 + press * 0.9).toFixed(3));
+    }
+    function dryWet() {
+      if (wet.hidden) return;
+      animate(wet, [{ opacity: 0.9 }, { opacity: 0 }], { duration: 220, easing: "ease-out" }, () => {
+        wet.hidden = true;
+      });
+    }
+    function clearEdgeHold() {
+      clearTimeout(edgeHoldTimer);
+      edgeHoldTimer = null;
+    }
+    function becomeBlob(container, ed, raw, clientX, clientY) {
+      clearEdgeHold();
+      lastPress = null;
+      edge = ed;
+      along = alongForRect(ed, raw, vw(), vh());
+      onBlob();
+      container.style.transformOrigin = ORIGIN[ed];
+      const end = isVertical(ed) ? "scale(.05,.4)" : "scale(.4,.05)";
+      const mid = isVertical(ed) ? "scale(.55,1.15)" : "scale(1.15,.55)";
+      const squash = animate(container, [
+        { transform: "none", opacity: 1, borderRadius: "8px" },
+        { transform: mid, opacity: 1, borderRadius: "40px", offset: 0.35 },
+        { transform: end, opacity: 0, borderRadius: "50%" }
+      ], { duration: 200, easing: "cubic-bezier(.5,0,.75,0)" }, () => {
+        container.setAttribute("data-edge-docked", edge);
+      });
+      if (!squash) container.setAttribute("data-edge-docked", edge);
+      clearTimeout(splatTimer);
+      splatTimer = setTimeout(splat, squash ? 90 : 0);
+      saveBlobState(pageType, edge, along);
+      pull = { sx: clientX, sy: clientY, startAlong: along, moved: true };
+      debugLog(`Buttons became a blob on the ${edge} edge`);
+    }
+    function splat() {
+      placeBlob();
+      blob.hidden = false;
+      cancelAnimations(wet);
+      wet.hidden = true;
+      const ease = "cubic-bezier(.2,1.6,.4,1)";
+      animate(parts.base, [{ transform: "scaleY(.1) scaleX(.3)" }, { transform: "scaleY(1.5) scaleX(1.1)", offset: 0.45 }, { transform: "scaleY(1)" }], { duration: 520, easing: "ease-out" });
+      animate(parts.core, [{ transform: "translateX(-30px) scale(.2)" }, { transform: "translateX(6px) scale(1.25, .85)", offset: 0.5 }, { transform: "translateX(0) scale(1)" }], { duration: 560, easing: ease });
+      animate(parts.d1, [{ transform: "translate(-10px, 20px) scale(.2)" }, { transform: "translate(20px,-26px) scale(1.2)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 700, easing: "ease-out" });
+      animate(parts.d2, [{ transform: "translate(-10px,-20px) scale(.2)" }, { transform: "translate(24px,30px) scale(1.1)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 760, easing: "ease-out" });
+      animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: "backwards" });
+    }
+    function hideBlob(keyframes) {
+      clearTimeout(splatTimer);
+      const full = blob.style.transform;
+      animate(blob, keyframes(full), { duration: 260, easing: "ease-in" }, () => {
+        if (edge) return;
+        blob.hidden = true;
+        resetParts();
+      });
+    }
+    function restoreButtons() {
+      const ed = edge, a = along;
+      edge = null;
+      clearBlobState(pageType);
+      hideBlob((full) => [
+        { transform: full, opacity: 1 },
+        { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
+        { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 }
+      ]);
+      onRestore(ed, a);
+      debugLog("Blob turned back into the buttons");
+    }
+    function tearOff(clientX, clientY) {
+      pull = null;
+      edge = null;
+      clearBlobState(pageType);
+      resetParts();
+      hideBlob((full) => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
+      onTearOff(clientX, clientY);
+      debugLog("Blob torn off the edge");
+    }
+    function springBack() {
+      for (const el5 of [...Object.values(parts), dot]) {
+        const from = el5 === dot ? el5.style.translate : el5.style.transform;
+        if (!from) continue;
+        if (el5 === dot) {
+          el5.style.translate = "";
+          animate(el5, [{ translate: from }, { translate: "0 0" }], { duration: 480, easing: "cubic-bezier(.34,1.8,.5,1)" });
+        } else {
+          el5.style.transform = "";
+          animate(el5, [{ transform: from }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.34,1.8,.5,1)" });
+        }
+      }
+    }
+    hit.addEventListener("mousedown", (e) => {
+      if (e.button !== 0 || !edge) return;
+      pull = { sx: e.clientX, sy: e.clientY, startAlong: along, moved: false };
+      e.preventDefault();
+      e.stopPropagation();
+    }, { signal });
+    document.addEventListener("mousemove", (e) => {
+      if (!pull || !edge) return;
+      const dx = e.clientX - pull.sx, dy = e.clientY - pull.sy;
+      if (!pull.moved && Math.hypot(dx, dy) < 4) return;
+      pull.moved = true;
+      along = clampAlong(edge, pull.startAlong + (isVertical(edge) ? dy : dx), vw(), vh());
+      placeBlob();
+      const lx = { left: dx, right: -dx, top: dy, bottom: -dy }[edge];
+      if (lx <= 0) {
+        const push = Math.min(30, -lx) / 30;
+        parts.core.style.transform = `translateX(${-push * 8}px) scale(${1 - push * 0.25}, ${1 + push * 0.18})`;
+        parts.base.style.transform = `scaleY(${1 + push * 0.3})`;
+        parts.d1.style.transform = parts.d2.style.transform = dot.style.translate = "";
+        return;
+      }
+      const k = Math.min(1, lx / TEAR_DISTANCE);
+      const L = lx / BLOB_SCALE;
+      parts.core.style.transform = `translateX(${L}px) scale(${1 - k * 0.2})`;
+      dot.style.translate = `${lx}px 0px`;
+      const neck = (t, x0, y0, grow) => `translate(${20 + (13 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
+      parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
+      parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
+      parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
+      if (lx > TEAR_DISTANCE) tearOff(e.clientX, e.clientY);
+    }, { signal });
+    document.addEventListener("mouseup", () => {
+      if (!pull) return;
+      const p = pull;
+      pull = null;
+      if (!edge) return;
+      if (!p.moved) {
+        restoreButtons();
+        return;
+      }
+      springBack();
+      saveBlobState(pageType, edge, along);
+    }, { signal });
+    window.addEventListener("resize", () => {
+      if (!edge || blob.hidden) return;
+      along = clampAlong(edge, along, vw(), vh());
+      placeBlob();
+    }, { signal });
+    signal?.addEventListener("abort", () => {
+      clearEdgeHold();
+      clearTimeout(splatTimer);
+      svg.remove();
+      wet.remove();
+      blob.remove();
+    });
+    return {
+      get edge() {
+        return edge;
+      },
+      // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
+      // where the drag would put it without clamping it to the viewport.
+      press(container, raw, clientX, clientY) {
+        if (edge) return false;
+        const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+        if (!hitEdge) {
+          clearEdgeHold();
+          dryWet();
+          return false;
+        }
+        const press = hitEdge.over / PRESS_DISTANCE;
+        if (press >= 1) {
+          becomeBlob(container, hitEdge.edge, raw, clientX, clientY);
+          return true;
+        }
+        showWet(hitEdge.edge, press, raw);
+        lastPress = { container, edge: hitEdge.edge, raw, clientX, clientY };
+        if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
+          if (!edgeHoldTimer) {
+            edgeHoldTimer = setTimeout(() => {
+              edgeHoldTimer = null;
+              if (lastPress) becomeBlob(lastPress.container, lastPress.edge, lastPress.raw, lastPress.clientX, lastPress.clientY);
+            }, EDGE_HOLD_MS);
+          }
+        } else {
+          clearEdgeHold();
+        }
+        return false;
+      },
+      // The drag ended before the buttons became a blob
+      release() {
+        clearEdgeHold();
+        lastPress = null;
+        dryWet();
+      },
+      // Shows the blob at once, without animation (restoring the state saved on a previous visit)
+      dock(ed, a) {
+        edge = ed;
+        along = clampAlong(ed, a, vw(), vh());
+        placeBlob();
+        blob.hidden = false;
+      }
+    };
+  }
+
   // src/floatingContainer.js
+  var DRAG_THRESHOLD = 4;
   var resizeAbortController = null;
   function setupFloatingContainer(pageType, buttonWrapper, extensionContainer) {
     resizeAbortController?.abort();
@@ -464,59 +859,141 @@
     transition: opacity 0.3s ease;
   `;
     let isDragging = false;
-    let startX, startY, initialX, initialY;
-    floatingContainer.addEventListener("mousedown", (e) => {
-      if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = floatingContainer.getBoundingClientRect();
-        initialX = rect.left;
-        initialY = rect.top;
-        floatingContainer.style.cursor = "grabbing";
-        e.preventDefault();
-        const onMouseMove = (e2) => {
-          const newX = Math.max(0, Math.min(window.innerWidth - floatingContainer.offsetWidth, initialX + e2.clientX - startX));
-          const newY = Math.max(0, Math.min(window.innerHeight - floatingContainer.offsetHeight, initialY + e2.clientY - startY));
-          floatingContainer.style.left = newX + "px";
-          floatingContainer.style.top = newY + "px";
-          floatingContainer.style.right = "auto";
-        };
-        const onMouseUp = () => {
-          isDragging = false;
-          floatingContainer.style.cursor = "move";
-          floatingContainer.setAttribute("data-user-positioned", "true");
-          const rect2 = floatingContainer.getBoundingClientRect();
-          saveMenuPosition(rect2.left, rect2.top, pageType);
-          debugLog(`${isShell ? "Shell" : "Configuration"} container manually positioned`);
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", onMouseUp);
-        };
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", onMouseUp);
+    let endDrag = null;
+    let suppressClick = false;
+    floatingContainer.addEventListener("click", (e) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+    const visualBox = () => {
+      const c = floatingContainer.getBoundingClientRect();
+      const b = buttonWrapper.getBoundingClientRect();
+      if (!b.width && !b.height) {
+        return { left: c.left, top: c.top, width: floatingContainer.offsetWidth || c.width, height: floatingContainer.offsetHeight || c.height, offX: 0, offY: 0 };
       }
+      const left = Math.min(c.left, b.left), top = Math.min(c.top, b.top);
+      const right = Math.max(c.right, b.right), bottom = Math.max(c.bottom, b.bottom);
+      return { left, top, width: right - left, height: bottom - top, offX: left - c.left, offY: top - c.top };
+    };
+    const closeMenus = () => {
+      document.querySelectorAll(".scripts-menu-container, .actions-menu-container").forEach(hideMenuContainer);
+    };
+    const beginDrag = (clientX, clientY, { moved = false } = {}) => {
+      const startX = clientX, startY = clientY;
+      const rect = floatingContainer.getBoundingClientRect();
+      const initialX = rect.left, initialY = rect.top;
+      const box = visualBox();
+      isDragging = moved;
+      floatingContainer.style.cursor = "grabbing";
+      const onMouseMove = (e) => {
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (!isDragging) {
+          if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+          isDragging = true;
+          closeMenus();
+        }
+        const rawX = initialX + dx, rawY = initialY + dy;
+        const newX = Math.max(-box.offX, Math.min(window.innerWidth - box.width - box.offX, rawX));
+        const newY = Math.max(-box.offY, Math.min(window.innerHeight - box.height - box.offY, rawY));
+        floatingContainer.style.left = newX + "px";
+        floatingContainer.style.top = newY + "px";
+        floatingContainer.style.right = "auto";
+        edgeBlob.press(floatingContainer, { left: rawX + box.offX, top: rawY + box.offY, width: box.width, height: box.height }, e.clientX, e.clientY);
+      };
+      const stop = () => {
+        floatingContainer.style.cursor = "move";
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        endDrag = null;
+      };
+      const onMouseUp = () => {
+        const wasDragging = isDragging;
+        isDragging = false;
+        stop();
+        edgeBlob.release();
+        if (!wasDragging) return;
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+        floatingContainer.setAttribute("data-user-positioned", "true");
+        const r = floatingContainer.getBoundingClientRect();
+        saveMenuPosition(r.left, r.top, pageType);
+        debugLog(`${isShell ? "Shell" : "Configuration"} container manually positioned`);
+      };
+      endDrag = () => {
+        isDragging = false;
+        stop();
+      };
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    };
+    floatingContainer.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
+        beginDrag(e.clientX, e.clientY);
+        e.preventDefault();
+      }
+    });
+    const showButtonsAt = (x, y) => {
+      floatingContainer.removeAttribute("data-edge-docked");
+      floatingContainer.style.left = x + "px";
+      floatingContainer.style.top = y + "px";
+      floatingContainer.style.right = "auto";
+      floatingContainer.style.opacity = "1";
+      floatingContainer.setAttribute("data-user-positioned", "true");
+    };
+    const popIn = (origin, from) => {
+      if (typeof floatingContainer.animate !== "function") return;
+      floatingContainer.style.transformOrigin = origin;
+      floatingContainer.animate(
+        [{ transform: from, opacity: 0.4, borderRadius: "40px" }, { transform: "scale(1)", opacity: 1, borderRadius: "8px" }],
+        { duration: 380, easing: "cubic-bezier(.34,1.56,.64,1)" }
+      );
+    };
+    const edgeBlob = createEdgeBlob({
+      root: extensionContainer,
+      pageType,
+      signal: resizeAbortController.signal,
+      onBlob: () => {
+        endDrag?.();
+        closeMenus();
+        floatingContainer.setAttribute("data-user-positioned", "true");
+      },
+      onRestore: (edge, along) => {
+        floatingContainer.removeAttribute("data-edge-docked");
+        const box = visualBox();
+        const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
+        const x = pos.x - box.offX, y = pos.y - box.offY;
+        showButtonsAt(x, y);
+        saveMenuPosition(x, y, pageType);
+        const vertical = edge === "left" || edge === "right";
+        popIn({ left: "left center", right: "right center", top: "center top", bottom: "center bottom" }[edge], vertical ? "scale(.1,.5)" : "scale(.5,.1)");
+      },
+      onTearOff: (clientX, clientY) => {
+        floatingContainer.removeAttribute("data-edge-docked");
+        const box = visualBox();
+        const x = Math.max(0, Math.min(window.innerWidth - box.width, clientX - box.width / 2)) - box.offX;
+        const y = Math.max(0, Math.min(window.innerHeight - box.height, clientY - box.height / 2)) - box.offY;
+        showButtonsAt(x, y);
+        popIn("center", "scale(.3)");
+        beginDrag(clientX, clientY, { moved: true });
+      }
+    });
+    loadBlobState(pageType, (saved) => {
+      if (!saved) return;
+      floatingContainer.setAttribute("data-user-positioned", "true");
+      floatingContainer.setAttribute("data-edge-docked", saved.edge);
+      floatingContainer.style.opacity = "1";
+      edgeBlob.dock(saved.edge, saved.along);
+      debugLog(`Restored the blob on the ${saved.edge} edge`);
     });
     floatingContainer.appendChild(buttonWrapper);
     extensionContainer.appendChild(floatingContainer);
     buttonWrapper.classList.add(isShell ? "creatio-satelite-shell" : "creatio-satelite-configuration");
     buttonWrapper.style.flexDirection = "row";
-    floatingContainer.addEventListener("dblclick", (e) => {
-      if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
-        floatingContainer.removeAttribute("data-user-positioned");
-        floatingContainer.removeAttribute("data-fallback-position");
-        const key = `menuPosition_${pageType}_${window.location.origin}`;
-        chrome.storage.local.remove([key], () => {
-          const err = getLastError();
-          if (err) {
-            console.error("[Clio Satellite] Failed to clear position:", err.message);
-            return;
-          }
-          debugLog(`${isShell ? "Shell" : "Configuration"} container: position cleared`);
-        });
-        setTimeout(() => positionFloatingContainerRelativeToSearch(floatingContainer), 10);
-        e.preventDefault();
-      }
-    });
     loadMenuPosition(pageType, (savedX, savedY) => {
       if (savedX !== null && savedY !== null) {
         if (applySavedPosition(floatingContainer, savedX, savedY)) {
