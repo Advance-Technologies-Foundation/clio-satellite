@@ -274,7 +274,8 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
       { transform: mid, opacity: 1, borderRadius: '40px', offset: 0.35 },
       { transform: end, opacity: 0, borderRadius: '50%' },
     ], { duration: 200, easing: 'cubic-bezier(.5,0,.75,0)' }, () => {
-      container.setAttribute('data-edge-docked', edge);
+      // the blob may have been torn off or restored while the buttons were squashing
+      if (edge === ed) container.setAttribute('data-edge-docked', edge);
     });
     if (!squash) container.setAttribute('data-edge-docked', edge);
     clearTimeout(splatTimer);

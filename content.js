@@ -659,7 +659,7 @@
         { transform: mid, opacity: 1, borderRadius: "40px", offset: 0.35 },
         { transform: end, opacity: 0, borderRadius: "50%" }
       ], { duration: 200, easing: "cubic-bezier(.5,0,.75,0)" }, () => {
-        container.setAttribute("data-edge-docked", edge);
+        if (edge === ed) container.setAttribute("data-edge-docked", edge);
       });
       if (!squash) container.setAttribute("data-edge-docked", edge);
       clearTimeout(splatTimer);
@@ -882,6 +882,7 @@
     };
     const beginDrag = (clientX, clientY, { moved = false } = {}) => {
       const startX = clientX, startY = clientY;
+      floatingContainer.getAnimations?.().forEach((a) => a.cancel());
       const rect = floatingContainer.getBoundingClientRect();
       const initialX = rect.left, initialY = rect.top;
       const box = visualBox();
@@ -919,8 +920,7 @@
           suppressClick = false;
         }, 0);
         floatingContainer.setAttribute("data-user-positioned", "true");
-        const r = floatingContainer.getBoundingClientRect();
-        saveMenuPosition(r.left, r.top, pageType);
+        saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
         debugLog(`${isShell ? "Shell" : "Configuration"} container manually positioned`);
       };
       endDrag = () => {
@@ -978,8 +978,8 @@
         const x = Math.max(0, Math.min(window.innerWidth - box.width, clientX - box.width / 2)) - box.offX;
         const y = Math.max(0, Math.min(window.innerHeight - box.height, clientY - box.height / 2)) - box.offY;
         showButtonsAt(x, y);
-        popIn("center", "scale(.3)");
         beginDrag(clientX, clientY, { moved: true });
+        popIn("center", "scale(.3)");
       }
     });
     loadBlobState(pageType, (saved) => {

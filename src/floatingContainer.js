@@ -78,6 +78,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
   // `moved: true` starts a drag that is already under way (the buttons torn off a blob)
   const beginDrag = (clientX, clientY, { moved = false } = {}) => {
     const startX = clientX, startY = clientY;
+    // a running pop-in scales the container: measured mid-animation, the buttons would jump
+    floatingContainer.getAnimations?.().forEach(a => a.cancel());
     const rect = floatingContainer.getBoundingClientRect();
     const initialX = rect.left, initialY = rect.top;
     const box = visualBox();
@@ -118,8 +120,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       suppressClick = true;
       setTimeout(() => { suppressClick = false; }, 0);   // no click follows when the mouse was released elsewhere
       floatingContainer.setAttribute('data-user-positioned', 'true');
-      const r = floatingContainer.getBoundingClientRect();
-      saveMenuPosition(r.left, r.top, pageType);
+      // the drag has set left/top; the box can still be scaled by the pop-in after a tear-off
+      saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
       debugLog(`${isShell ? 'Shell' : 'Configuration'} container manually positioned`);
     };
 
@@ -185,8 +187,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       const x = Math.max(0, Math.min(window.innerWidth - box.width, clientX - box.width / 2)) - box.offX;
       const y = Math.max(0, Math.min(window.innerHeight - box.height, clientY - box.height / 2)) - box.offY;
       showButtonsAt(x, y);
-      popIn('center', 'scale(.3)');
       beginDrag(clientX, clientY, { moved: true });
+      popIn('center', 'scale(.3)');
     },
   });
 

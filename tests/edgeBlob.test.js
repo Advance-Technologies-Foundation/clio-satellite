@@ -326,6 +326,18 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.onRestore).not.toHaveBeenCalled();
   });
 
+  it('a blob torn off before the squash finished does not hide the buttons again', () => {
+    const t = setup();
+    let squash = null;
+    t.container.animate = () => (squash = { onfinish: null });
+    t.blob.press(t.container, raw(-PRESS_DISTANCE), 80, 320);
+    move(80 + TEAR_DISTANCE + 5, 320);   // torn off while the buttons are still squashing
+    expect(t.onTearOff).toHaveBeenCalled();
+    t.container.removeAttribute('data-edge-docked');
+    squash.onfinish();
+    expect(t.container.hasAttribute('data-edge-docked')).toBe(false);
+  });
+
   it('aborting the signal removes the blob elements', () => {
     const t = docked();
     t.controller.abort();

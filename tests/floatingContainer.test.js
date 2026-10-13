@@ -329,6 +329,49 @@ describe('setupFloatingContainer — edge blob', () => {
     expect(saveMenuPosition).toHaveBeenCalledWith(8, 300, 'shell');
   });
 
+  it('grabbing the buttons while they still pop in out of the blob does not make them jump', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    // the pop-in animation scales the buttons down: the box reads smaller and shifted while it runs
+    let running = [];
+    fc.animate = () => {
+      const a = { cancel: () => { running = running.filter(x => x !== a); } };
+      running.push(a);
+      return a;
+    };
+    fc.getAnimations = () => running;
+    const realRect = fc.getBoundingClientRect;
+    fc.getBoundingClientRect = () => (running.length
+      ? { left: 70, top: 314, width: 60, height: 12, right: 130, bottom: 326 }
+      : realRect());
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(running).toHaveLength(1);
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300, clientY: 320, bubbles: true }));
+    expect(fc.style.left).toBe('200px');
+  });
+
+  it('tearing the blob off saves where the buttons were dropped, not the box scaled by the pop-in', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    // the pop-in is still running: the box reads scaled down
+    fc.getBoundingClientRect = () => ({ left: 370, top: 314, width: 60, height: 12, right: 430, bottom: 326 });
+    saveMenuPosition.mockClear();
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(saveMenuPosition).toHaveBeenCalledWith(parseFloat(fc.style.left), parseFloat(fc.style.top), 'shell');
+    expect(fc.style.left).toBe('300px');
+  });
+
   it('restores the blob saved on the previous visit with the buttons hidden', () => {
     chrome.storage.local.set({ 'menuEdgeBlob_shell_https://app.example.com': { edge: 'right', along: 0.5, timestamp: Date.now() } });
     const ec = makeExtension();

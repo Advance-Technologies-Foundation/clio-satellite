@@ -19,6 +19,7 @@
 - Only the mound itself (`.csl-edge-hit`) takes pointer events, not the empty corners of the 36×54 box, so a click next to the blob still reaches Creatio.
 - `along` is stored as a fraction of the edge length so the blob keeps its spot after a window resize. The state is per page type and origin, like the drag position, and is removed when the blob becomes buttons again.
 - Styles are injected once as `<style id="csl-edge-blob-style">` instead of a manifest stylesheet: the shell and configuration pages load different CSS lists, and the mock e2e pages load none.
+- The squash animation marks the buttons `data-edge-docked` only when it ends, and only if that blob still exists: a blob torn off within those 200 ms must not hide the buttons the user is already dragging.
 - `Element.animate` is missing in jsdom; the `animate()` helper applies the end state at once there.
 
 **Dependencies:** `debug.js`
