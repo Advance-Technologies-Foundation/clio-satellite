@@ -177,18 +177,79 @@ describe('setupFloatingContainer — drag', () => {
     expect(parseInt(fc.style.top)).toBe(800 - 40);    // innerHeight - offsetHeight
   });
 
-  it('saves position on mouseup', () => {
-    const fc = setupDrag();
+  function drag(fc, toX = 360, toY = 240) {
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 310, clientY: 210, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: toX, clientY: toY, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  }
+
+  it('saves position on mouseup after a drag', () => {
+    const fc = setupDrag();
+    drag(fc);
     expect(saveMenuPosition).toHaveBeenCalled();
   });
 
-  it('sets data-user-positioned on mouseup', () => {
+  it('sets data-user-positioned on mouseup after a drag', () => {
+    const fc = setupDrag();
+    drag(fc);
+    expect(fc.getAttribute('data-user-positioned')).toBe('true');
+  });
+
+  it('a plain click on the buttons is not a drag: position is not saved', () => {
     const fc = setupDrag();
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 310, clientY: 210, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    expect(fc.getAttribute('data-user-positioned')).toBe('true');
+    expect(saveMenuPosition).not.toHaveBeenCalled();
+    expect(fc.hasAttribute('data-user-positioned')).toBe(false);
+  });
+
+  it('a move shorter than the drag threshold does not move the buttons', () => {
+    const fc = setupDrag();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 310, clientY: 210, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 312, clientY: 211, bubbles: true }));
+    expect(fc.style.left).toBe('');
+  });
+
+  it('the click that ends a drag does not reach the button (no menu pops up)', () => {
+    const wrapper = makeWrapper();
+    const button = document.createElement('button');
+    wrapper.appendChild(button);
+    const onClick = vi.fn();
+    button.addEventListener('click', onClick);
+    const fc = setupFloatingContainer('shell', wrapper, makeExtension());
+    fc.getBoundingClientRect = () => ({ left: 300, top: 200, width: 100, height: 40, right: 400, bottom: 240 });
+    button.dispatchEvent(new MouseEvent('mousedown', { clientX: 310, clientY: 210, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 300, bubbles: true }));
+    button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('a click without a drag still reaches the button', () => {
+    const wrapper = makeWrapper();
+    const button = document.createElement('button');
+    wrapper.appendChild(button);
+    const onClick = vi.fn();
+    button.addEventListener('click', onClick);
+    setupFloatingContainer('shell', wrapper, makeExtension());
+    button.dispatchEvent(new MouseEvent('mousedown', { clientX: 310, clientY: 210, bubbles: true }));
+    button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppression ends when no click follows the drag', () => {
+    const wrapper = makeWrapper();
+    const button = document.createElement('button');
+    wrapper.appendChild(button);
+    const onClick = vi.fn();
+    button.addEventListener('click', onClick);
+    const fc = setupFloatingContainer('shell', wrapper, makeExtension());
+    fc.getBoundingClientRect = () => ({ left: 300, top: 200, width: 100, height: 40, right: 400, bottom: 240 });
+    drag(fc);
+    vi.advanceTimersByTime(1);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('stops moving after mouseup', () => {
@@ -209,39 +270,116 @@ describe('setupFloatingContainer — drag', () => {
   });
 });
 
-// ─── Double-click reset ───────────────────────────────────────────────────────
+// ─── Double-click ─────────────────────────────────────────────────────────────
 
-describe('setupFloatingContainer — dblclick reset', () => {
-  it('removes data-user-positioned on dblclick', () => {
+describe('setupFloatingContainer — double-click', () => {
+  it('does not move the buttons back next to the search or forget the dragged position', () => {
     const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
     fc.setAttribute('data-user-positioned', 'true');
-    fc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    expect(fc.hasAttribute('data-user-positioned')).toBe(false);
-  });
-
-  it('removes data-fallback-position on dblclick', () => {
-    const fc = setupFloatingContainer('shell', makeWrapper(), makeExtension());
-    fc.setAttribute('data-fallback-position', 'true');
-    fc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    expect(fc.hasAttribute('data-fallback-position')).toBe(false);
-  });
-
-  it('calls chrome.storage.local.remove with correct key on dblclick', () => {
-    setupFloatingContainer('shell', makeWrapper(), makeExtension());
-    const fc = document.querySelector('.creatio-satelite-floating');
-    fc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    expect(chrome.storage.local.remove).toHaveBeenCalledWith(
-      ['menuPosition_shell_https://app.example.com'],
-      expect.any(Function)
-    );
-  });
-
-  it('triggers repositioning after dblclick', () => {
-    setupFloatingContainer('shell', makeWrapper(), makeExtension());
-    const fc = document.querySelector('.creatio-satelite-floating');
     positionFloatingContainerRelativeToSearch.mockClear();
     fc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    vi.advanceTimersByTime(20);
-    expect(positionFloatingContainerRelativeToSearch).toHaveBeenCalledWith(fc);
+    vi.advanceTimersByTime(50);
+    expect(fc.getAttribute('data-user-positioned')).toBe('true');
+    expect(positionFloatingContainerRelativeToSearch).not.toHaveBeenCalled();
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+  });
+});
+
+
+// ─── Edge blob ────────────────────────────────────────────────────────────────
+
+describe('setupFloatingContainer — edge blob', () => {
+  function setupAtLeftEdge() {
+    const ec = makeExtension();
+    const fc = setupFloatingContainer('shell', makeWrapper(), ec);
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    Object.defineProperty(fc, 'offsetWidth', { get: () => 200, configurable: true });
+    Object.defineProperty(fc, 'offsetHeight', { get: () => 40, configurable: true });
+    return { ec, fc };
+  }
+
+  it('pushing the buttons 20px past the edge turns them into a blob and ends the drag', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 40, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 30, clientY: 320, bubbles: true }));
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+    expect(fc.getAttribute('data-user-positioned')).toBe('true');
+    vi.advanceTimersByTime(100);
+    expect(ec.querySelector('.csl-edge-blob').hidden).toBe(false);
+    // the drag is over: the mouse now holds the blob, sliding along the edge moves the blob, not the buttons
+    fc.style.top = '300px';
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 30, clientY: 520, bubbles: true }));
+    expect(fc.style.top).toBe('300px');
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('a click on the blob brings the buttons back next to the edge', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    saveMenuPosition.mockClear();
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(fc.style.left).toBe('8px');
+    expect(saveMenuPosition).toHaveBeenCalledWith(8, 300, 'shell');
+  });
+
+  it('grabbing the buttons while they still pop in out of the blob does not make them jump', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    // the pop-in animation scales the buttons down: the box reads smaller and shifted while it runs
+    let running = [];
+    fc.animate = () => {
+      const a = { cancel: () => { running = running.filter(x => x !== a); } };
+      running.push(a);
+      return a;
+    };
+    fc.getAnimations = () => running;
+    const realRect = fc.getBoundingClientRect;
+    fc.getBoundingClientRect = () => (running.length
+      ? { left: 70, top: 314, width: 60, height: 12, right: 130, bottom: 326 }
+      : realRect());
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(running).toHaveLength(1);
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300, clientY: 320, bubbles: true }));
+    expect(fc.style.left).toBe('200px');
+  });
+
+  it('tearing the blob off saves where the buttons were dropped, not the box scaled by the pop-in', () => {
+    const { ec, fc } = setupAtLeftEdge();
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    // the pop-in is still running: the box reads scaled down
+    fc.getBoundingClientRect = () => ({ left: 370, top: 314, width: 60, height: 12, right: 430, bottom: 326 });
+    saveMenuPosition.mockClear();
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(saveMenuPosition).toHaveBeenCalledWith(parseFloat(fc.style.left), parseFloat(fc.style.top), 'shell');
+    expect(fc.style.left).toBe('300px');
+  });
+
+  it('restores the blob saved on the previous visit with the buttons hidden', () => {
+    chrome.storage.local.set({ 'menuEdgeBlob_shell_https://app.example.com': { edge: 'right', along: 0.5, timestamp: Date.now() } });
+    const ec = makeExtension();
+    const fc = setupFloatingContainer('shell', makeWrapper(), ec);
+    expect(fc.getAttribute('data-edge-docked')).toBe('right');
+    expect(fc.getAttribute('data-user-positioned')).toBe('true');
+    const blob = ec.querySelector('.csl-edge-blob');
+    expect(blob.hidden).toBe(false);
+    expect(blob.style.left).toBe(`${1280 - 36}px`);
   });
 });

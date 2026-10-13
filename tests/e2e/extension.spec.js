@@ -116,24 +116,6 @@ test.describe('Shell page', () => {
     expect(newBox.x).toBeGreaterThan(box.x + 100);
   });
 
-  test('double-click removes data-user-positioned', async ({ page }) => {
-    await load(page, '/shell/');
-    await waitForMenu(page);
-
-    const floating = page.locator('.creatio-satelite-floating');
-
-    // Simulate a prior drag by setting the attribute programmatically
-    await page.evaluate(() => {
-      document.querySelector('.creatio-satelite-floating').setAttribute('data-user-positioned', 'true');
-    });
-    await expect(floating).toHaveAttribute('data-user-positioned', 'true');
-
-    // Dispatch dblclick directly — tests the handler without actionability checks
-    // (avoids menu-open-covers-element issue that real dblclick causes)
-    await floating.dispatchEvent('dblclick');
-    await expect(floating).not.toHaveAttribute('data-user-positioned');
-  });
-
   test('only one menu container is created on concurrent calls', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
@@ -262,5 +244,147 @@ test.describe('Excluded domains', () => {
 
     await page.waitForTimeout(1500);
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(0);
+  });
+});
+
+// ─── Dragging and the edge blob ──────────────────────────────────────────────
+
+test.describe('Dragging the buttons', () => {
+  test('releasing a drag over a button does not open its menu', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    const button = page.locator('.scripts-menu-button');
+    const box = await button.boundingBox();
+    await page.mouse.move(box.x + 20, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 220, box.y + 200, { steps: 10 });
+    await page.mouse.up();   // the mouse is still over the same button
+
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-user-positioned', 'true');
+    await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
+  });
+
+  test('a click on a button still opens its menu', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await page.locator('.scripts-menu-button').click();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.creatio-satelite-floating')).not.toHaveAttribute('data-user-positioned', 'true');
+  });
+});
+
+test.describe('Edge blob', () => {
+  // Drags the buttons to the left edge and then `past` px further, without releasing the mouse
+  async function pushIntoLeftEdge(page, past) {
+    // the container box is smaller than the absolutely positioned buttons: measure the buttons
+    const box = await page.locator('.creatio-satelite').boundingBox();
+    const grabX = box.x + 60, grabY = box.y + box.height / 2;
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.mouse.move(400, 400, { steps: 8 });
+    const touchX = grabX - box.x;   // cursor x at which the buttons touch the left edge
+    await page.mouse.move(touchX, 400, { steps: 8 });
+    await page.mouse.move(touchX - past, 400, { steps: 4 });
+  }
+
+  test('pushing the buttons 20px past the edge turns them into a blob without releasing the mouse', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await pushIntoLeftEdge(page, 10);
+    await expect(page.locator('.csl-edge-wet')).toBeVisible();
+    await expect(page.locator('.csl-edge-blob')).toBeHidden();
+
+    await page.mouse.move(25, 400, { steps: 4 });   // 35px past the edge
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
+    await expect(page.locator('.scripts-menu-button')).toBeHidden();
+    await page.mouse.up();
+
+    const blob = await page.locator('.csl-edge-blob').boundingBox();
+    expect(blob.x).toBe(0);
+  });
+
+  test('releasing before the press distance leaves the buttons as they are', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await pushIntoLeftEdge(page, 10);
+    await page.mouse.up();
+    await expect(page.locator('.csl-edge-wet')).toBeHidden();
+    await expect(page.locator('.csl-edge-blob')).toBeHidden();
+    await expect(page.locator('.scripts-menu-button')).toBeVisible();
+  });
+
+  test('a click on the blob turns it back into the buttons next to the edge', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await pushIntoLeftEdge(page, 40);
+    await page.mouse.up();
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await page.waitForTimeout(800);   // let the splat animation finish
+
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+
+    await expect(page.locator('.scripts-menu-button')).toBeVisible();
+    await expect(page.locator('.creatio-satelite-floating')).not.toHaveAttribute('data-edge-docked');
+    await expect(page.locator('.csl-edge-blob')).toBeHidden();
+    expect((await page.locator('.creatio-satelite').boundingBox()).x).toBe(8);
+    await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
+  });
+
+  test('hovering the blob does not bring the buttons back', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await pushIntoLeftEdge(page, 40);
+    await page.mouse.up();
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await page.waitForTimeout(800);   // let the splat animation finish
+    await page.mouse.move(600, 600);
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    await page.mouse.move(hit.x + 5, hit.y + hit.height / 2, { steps: 4 });
+    await page.waitForTimeout(500);
+    await expect(page.locator('.scripts-menu-button')).toBeHidden();
+  });
+
+  test('pulling the blob away from the edge tears it off into the buttons that keep following the mouse', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    await pushIntoLeftEdge(page, 40);
+    await page.mouse.up();
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await page.waitForTimeout(800);   // let the splat animation finish
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    await page.mouse.move(hit.x + 5, hit.y + hit.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(150, hit.y + hit.height / 2, { steps: 10 });
+    await page.mouse.move(500, 300, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(page.locator('.scripts-menu-button')).toBeVisible();
+    await expect(page.locator('.csl-edge-blob')).toBeHidden();
+    const box = await page.locator('.creatio-satelite').boundingBox();
+    expect(box.x + box.width / 2).toBeGreaterThan(450);
+    expect(box.x + box.width / 2).toBeLessThan(550);
+  });
+
+  test('the blob from the previous visit is restored right away', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.addInitScript(() => {
+      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
+    });
+    await page.goto(`${BASE}/shell/`);
+    await injectContentScript(page);
+
+    await expect(page.locator('.csl-edge-blob')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.scripts-menu-button')).toBeHidden();
+    const blob = await page.locator('.csl-edge-blob').boundingBox();
+    expect(Math.round(blob.x + blob.width)).toBe(1280);
   });
 });
