@@ -361,6 +361,27 @@ test.describe('Edge blob', () => {
     await expect(blob).toHaveClass(dark ? /^(?!.*csl-edge-on-dark)/ : /csl-edge-on-dark/);
   });
 
+  test('buttons out of the blob dragged along the edge take the blob with them', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    const hit = await dockAtLeftEdge(page);
+    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await page.waitForTimeout(600);
+    const b = await page.locator('.creatio-satelite').boundingBox();
+    await page.mouse.move(b.x + 10, b.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 20, b.y + 160, { steps: 8 });   // down along the edge, a little away from it
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+    const moved = await page.locator('.creatio-satelite').boundingBox();
+    expect(moved.x).toBe(8);   // back at the edge
+    expect(moved.y).toBeGreaterThan(b.y + 100);   // but further down
+    await page.mouse.click(900, 600);   // the buttons go back into the blob at the new spot
+    await page.waitForTimeout(600);
+    const blob = await page.locator('.csl-edge-blob').boundingBox();
+    expect(Math.abs(blob.y + blob.height / 2 - (moved.y + moved.height / 2))).toBeLessThan(30);
+  });
+
   test('a blob on the right edge stays above a fixed panel of the page', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {

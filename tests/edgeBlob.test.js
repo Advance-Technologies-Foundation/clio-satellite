@@ -17,6 +17,8 @@ import {
   createEdgeBlob,
   bellHeight,
   colorLuminance,
+  gradientLuminance,
+  SHADE_RECHECK_MS,
   isDarkAt,
   poolShapeFor,
   poolHeight,
@@ -345,8 +347,8 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
     expect(t.blob.peeking).toBe(false);
     expect(t.blob.edge).toBe('left');
+    vi.advanceTimersByTime(400);   // the pool carries the buttons back into the dome, then the blob takes its place
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(300);   // the pool shrinks back into the dome, then the blob takes its place
     expect(t.blobEl.hidden).toBe(false);
   });
 
@@ -381,8 +383,8 @@ describe('createEdgeBlob — the blob', () => {
     page.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
     expect(t.blob.peeking).toBe(false);
+    vi.advanceTimersByTime(400);
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(300);
     expect(t.blobEl.hidden).toBe(false);
     vi.advanceTimersByTime(PEEK_IDLE_MS);
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);   // the idle countdown was dropped
@@ -549,7 +551,7 @@ describe('createEdgeBlob — the orange dot flies between the blob and the icon'
     const t = withIcon();
     click(t);
     vi.advanceTimersByTime(PEEK_IDLE_MS);   // the countdown started with the peek
-    vi.advanceTimersByTime(300);   // the pool shrinks back into the dome, the blob takes its place
+    vi.advanceTimersByTime(400);   // the pool shrinks back into the dome, the blob takes its place
     expect(t.icon.style.visibility).toBe('');   // the icon is shown again once its dot has left it
     expect(flyer(t)).not.toBeNull();
     expect(t.dot.style.visibility).toBe('hidden');
@@ -596,6 +598,38 @@ describe('the blob on a dark page', () => {
     expect(colorLuminance('rgba(40, 40, 40, 0.9)')).toBeLessThan(0.05);
     expect(colorLuminance('rgba(0, 0, 0, 0)')).toBeNull();
     expect(colorLuminance('transparent')).toBeNull();
+  });
+
+  it('gradientLuminance averages the colours of a gradient', () => {
+    expect(gradientLuminance('linear-gradient(rgb(10, 20, 40), rgb(30, 40, 60))')).toBeLessThan(0.05);
+    expect(gradientLuminance('linear-gradient(90deg, rgb(255, 255, 255) 0%, rgb(240, 240, 240) 100%)')).toBeGreaterThan(0.8);
+    expect(gradientLuminance('none')).toBeNull();
+    expect(gradientLuminance('url("a.png")')).toBeNull();
+  });
+
+  it('isDarkAt reads a dark gradient background', () => {
+    const panel = document.createElement('div');
+    panel.style.backgroundImage = 'linear-gradient(rgb(10, 20, 40), rgb(30, 40, 60))';
+    document.body.appendChild(panel);
+    document.elementsFromPoint = () => [panel, document.body];
+    expect(isDarkAt(10, 10, null)).toBe(true);
+    panel.remove();
+  });
+
+  it('a restored blob looks at the background once more when the page has had time to render', () => {
+    const panel = document.createElement('div');
+    document.body.appendChild(panel);
+    document.elementsFromPoint = () => [panel, document.body];
+    panel.style.background = 'rgb(250, 250, 250)';
+    const t = setup();
+    t.blob.dock('left', 300);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
+    panel.style.background = 'rgb(20, 20, 20)';   // Creatio has drawn its dark panel meanwhile
+    vi.advanceTimersByTime(SHADE_RECHECK_MS);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
+    t.controller.abort();
+    t.root.remove();
+    panel.remove();
   });
 
   it('isDarkAt takes the topmost page element with a background and skips the extension', () => {
@@ -664,6 +698,24 @@ describe('the pool around the buttons out of the blob', () => {
     vi.advanceTimersByTime(PEEK_IDLE_MS);
     expect(t.pool.hasAttribute('hidden')).toBe(true);
     expect(t.blobEl.hidden).toBe(false);
+    t.controller.abort();
+  });
+
+  it('buttons dragged along the edge stay there and take the blob with them', () => {
+    const onSnapBack = vi.fn();
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    const t = peekWith({ onPeek: () => box, onSnapBack });
+    vi.advanceTimersByTime(400);
+    chrome.storage.local.set.mockClear?.();
+    // 150 px down and 10 px away from the edge: the move along the edge is kept, the move away is not
+    expect(t.blob.dragButtons({ ...box, left: 18, top: 430 })).toBe(false);
+    t.blob.releaseButtons();
+    expect(onSnapBack).toHaveBeenCalledWith({ ...box, top: 430 });
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(
+      { [KEY]: expect.objectContaining({ edge: 'left', along: (430 + 45) / VH }) }, expect.any(Function));
+    // the blob comes back at the new spot
+    vi.advanceTimersByTime(PEEK_IDLE_MS + 400);
+    expect(t.blobEl.style.top).toBe(`${430 + 45 - 50}px`);
     t.controller.abort();
   });
 

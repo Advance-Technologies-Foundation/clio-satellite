@@ -75,6 +75,20 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     return { left, top, width: right - left, height: bottom - top, offX: left - c.left, offY: top - c.top };
   };
 
+  // The buttons themselves: the pool of the blob is drawn around them, not around the container,
+  // which the page stylesheets pad and which may lie elsewhere (the buttons are absolutely positioned)
+  const buttonsBox = () => {
+    const r = buttonWrapper.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height };
+  };
+
+  // moves the container so that the buttons stand at (left, top)
+  const moveButtonsTo = (left, top) => {
+    const b = buttonsBox();
+    const c = floatingContainer.getBoundingClientRect();
+    showButtonsAt(c.left + left - b.left, c.top + top - b.top);
+  };
+
   const closeMenus = () => {
     document.querySelectorAll('.scripts-menu-container, .actions-menu-container').forEach(hideMenuContainer);
   };
@@ -109,7 +123,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.style.right = 'auto';
       if (peekDrag) {
         // the pool stretches after the buttons; torn, it lets them go (edgeBlob calls onUndock)
-        edgeBlob.dragButtons({ left: newX + box.offX, top: newY + box.offY, width: box.width, height: box.height });
+        const b = buttonsBox();
+        edgeBlob.dragButtons(b.width ? b : { left: newX + box.offX, top: newY + box.offY, width: box.width, height: box.height });
         return;
       }
       // pushed far enough past an edge, the buttons turn into a blob (edgeBlob calls onBlob)
@@ -193,6 +208,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
   const edgeBlob = createEdgeBlob({
     root: extensionContainer,
     container: floatingContainer,
+    buttons: () => buttonWrapper,
     pageType,
     signal: resizeAbortController.signal,
     tearDistance,
@@ -210,14 +226,17 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
       showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+      // the buttons themselves, not the padded container, stand 8 px from the edge, centred on the blob
+      const b = buttonsBox();
+      if (b.width) {
+        const at = buttonsPositionFor(edge, along, b.width, b.height, viewportWidth(), viewportHeight());
+        moveButtonsTo(at.x, at.y);
+      }
       tearDistance();
-      const peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
-      // the buttons are uncovered from the blob's side as the pool grows under them (300 ms, while the pool grows for 380 ms)
+      const peekBox = b.width ? buttonsBox() : { left: pos.x, top: pos.y, width: box.width, height: box.height };
+      // the buttons are uncovered from the spot of the blob as the pool grows under them
       const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
-      const at = { left: '0% 50%', right: '100% 50%', top: '50% 0%', bottom: '50% 100%' }[edge];
-      const reveal = floatingContainer.animate?.(
-        [{ clipPath: `circle(0% at ${at})` }, { clipPath: `circle(150% at ${at})` }],
-        { duration: 300, easing: 'ease-out' });
+      const reveal = edgeBlob.uncoverButtons();
       if (reveal) reveal.onfinish = shown;
       else shown();
       return peekBox;
@@ -232,9 +251,10 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.style.cursor = 'grabbing';
     },
     onSnapBack: (box) => {
-      const from = visualBox();
+      const from = buttonWrapper.getBoundingClientRect().width ? buttonsBox() : visualBox();
       const dx = from.left - box.left, dy = from.top - box.top;
-      showButtonsAt(box.left - from.offX, box.top - from.offY);
+      const c = floatingContainer.getBoundingClientRect();
+      showButtonsAt(c.left - dx, c.top - dy);
       floatingContainer.animate?.([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: 420, easing: 'cubic-bezier(.34,1.56,.64,1)' });
     },
     onTearOff: (clientX, clientY) => {

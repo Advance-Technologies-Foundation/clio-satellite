@@ -113,32 +113,65 @@ export function clearBlobState(pageType) {
 
 // ─── Background under the blob ───────────────────────────────────────────────
 
-// Relative luminance (0..1) of a computed CSS colour, or null for a colour that is not rgb()/rgba()
-// or is mostly transparent
+const linear = v => {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+};
+const luminance = (r, g, b) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+
+let colorCanvas = null;
+// Any other CSS colour (oklch(), color(srgb …), lab(), a name …) is painted on a 1×1 canvas and read back
+function rgbaByCanvas(css) {
+  try {
+    colorCanvas ??= document.createElement('canvas').getContext?.('2d', { willReadFrequently: true }) ?? null;
+  } catch {
+    colorCanvas = null;
+  }
+  if (!colorCanvas) return null;
+  colorCanvas.clearRect(0, 0, 1, 1);
+  colorCanvas.fillStyle = '#000';
+  colorCanvas.fillStyle = css;
+  colorCanvas.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = colorCanvas.getImageData(0, 0, 1, 1).data;
+  return { r, g, b, a: a / 255 };
+}
+
+// Relative luminance (0..1) of a computed CSS colour, or null for a mostly transparent or unreadable one
 export function colorLuminance(css) {
-  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css || '');
-  if (!m) return null;
-  let a = m[4] === undefined ? 1 : parseFloat(m[4]);
-  if (m[4]?.endsWith('%')) a /= 100;
-  if (a < 0.5) return null;
-  const lin = v => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * lin(+m[1]) + 0.7152 * lin(+m[2]) + 0.0722 * lin(+m[3]);
+  if (!css || css === 'transparent' || css === 'none') return null;
+  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css);
+  if (m) {
+    let a = m[4] === undefined ? 1 : parseFloat(m[4]);
+    if (m[4]?.endsWith('%')) a /= 100;
+    return a < 0.5 ? null : luminance(+m[1], +m[2], +m[3]);
+  }
+  const c = rgbaByCanvas(css);
+  return !c || c.a < 0.5 ? null : luminance(c.r, c.g, c.b);
+}
+
+// Mean luminance of the colours of a CSS gradient (`background-image`), or null when it has none
+export function gradientLuminance(image) {
+  if (!image || !image.includes('gradient(')) return null;
+  const colors = image.match(/(?:rgba?|hsla?|color|oklch|oklab|lab|lch)\([^()]*\)|#[0-9a-f]{3,8}\b/gi) || [];
+  const lums = colors.map(colorLuminance).filter(l => l !== null);
+  return lums.length ? lums.reduce((a, b) => a + b, 0) / lums.length : null;
 }
 
 // The black blob is hard to see below this luminance (about #666), so it turns dark grey there
 export const DARK_LUMINANCE = 0.13;
+// A blob restored on page load checks the background once more after this time (the page is still loading)
+export const SHADE_RECHECK_MS = 3000;
 
-// Whether the page under (x, y) is dark: the background colour of the topmost page element there that has
-// one, skipping the extension's own elements (inside `own`). Images and canvases are not looked into.
+// Whether the page under (x, y) is dark: the background colour (or gradient) of the topmost page element
+// there that has one, skipping the extension's own elements (inside `own`). Images and canvases are not
+// looked into.
 export function isDarkAt(x, y, own) {
   const stack = typeof document.elementsFromPoint === 'function' ? document.elementsFromPoint(x, y) : [];
   const page = stack.filter(el => !own?.contains(el));
   for (const el of [...page, document.body, document.documentElement]) {
     if (!el) continue;
-    const lum = colorLuminance(getComputedStyle(el).backgroundColor);
+    const cs = getComputedStyle(el);
+    const lum = colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
     if (lum !== null) return lum < DARK_LUMINANCE;
   }
   return false;
@@ -352,6 +385,7 @@ function cancelAnimations(el) {
  *  container                 - the floating buttons, squashed back into the blob when a peek ends
  *  tearDistance()            - how far (px) the blob has to be pulled away from the edge to tear off
  *  iconDot()                 - the orange dot on the icon of the first button; the blob's dot flies into it
+ *  buttons()                 - the element that holds the buttons (clipped while they go back into the blob)
  * Callbacks:
  *  onBlob()                  - buttons became a blob: stop the drag, hide the buttons
  *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile; returns the box
@@ -365,6 +399,7 @@ export function createEdgeBlob({
   root, container, pageType, signal,
   tearDistance = () => TEAR_DISTANCE,
   iconDot = () => container?.querySelector('.csl-icon-dot'),
+  buttons = () => container?.firstElementChild || container,
   onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack,
 }) {
   ensureStyles();
@@ -406,6 +441,7 @@ export function createEdgeBlob({
   let flight = null;          // the orange dot flying between the blob and the icon
   let iconDotFrom = null;     // where the icon dot was when the buttons started squashing into the blob
   let peekBox = null;         // where the buttons stand while they are out of the blob
+  let dragBox = null;         // where they are being dragged to, while still in the pool
   let poolGen = 0;            // bumped whenever the pool starts changing: stale animation frames are ignored
   let poolShape = null;       // { c, half, depth } of the pool now on screen
   let poolEdge = null;        // the edge the pool stands on (kept while it snaps back after the blob is gone)
@@ -429,6 +465,11 @@ export function createEdgeBlob({
   function placeBlob() {
     placeOnEdge(blob, edge, along);
     dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+    updateShade();
+  }
+
+  function updateShade() {
+    if (!edge) return;
     const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
     const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
     blob.classList.toggle('csl-edge-on-dark', isDarkAt(x, y, root));
@@ -441,6 +482,14 @@ export function createEdgeBlob({
 
   // ── the orange dot flies between the blob and the icon of the first button ──
   const centre = r => (r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width } : null);
+
+  // where the orange dot of the blob is (or will be), measured without the blob being shown
+  function domeDot() {
+    const k = 11;   // centre of the dot from the edge
+    const p = { left: [k, along], right: [vw() - k, along], top: [along, k], bottom: [along, vh() - k] }[edge];
+    const rect = { left: p[0] - 2.5, top: p[1] - 2.5, width: 5, height: 5 };
+    return { style: {}, getBoundingClientRect: () => rect };
+  }
 
   function stopFlight() {
     if (!flight) return;
@@ -458,7 +507,7 @@ export function createEdgeBlob({
     const target = to();
     if (!a || !target || typeof requestAnimationFrame !== 'function') return;
     const el = div('csl-edge-flydot', root);
-    const hide = [dot, target];
+    const hide = [dot, target].filter(h => h instanceof Element);
     for (const h of hide) h.style.visibility = 'hidden';
     flight = { el, hide, frame: 0 };
     let start = null;
@@ -590,6 +639,7 @@ export function createEdgeBlob({
   function drawPool(shape) {
     poolShape = shape;
     poolShapeEl.setAttribute('d', poolPath(poolEdge, shape, vw(), vh()));
+    if (clipped) clipToPool(shape);
   }
 
   const mix = (a, b, t) => a + (b - a) * t;
@@ -626,11 +676,16 @@ export function createEdgeBlob({
     const from = domeShape();
     drawPool(from);
     pool.removeAttribute('hidden');
-    morphPool(from, poolShapeFor(edge, box, vw(), vh()), 380, easeOutBack);
+    morphPool(from, poolShapeFor(edge, box, vw(), vh()), 380, easeOutBack, () => {
+      const reveal = clipped?.reveal;
+      stopClip();
+      reveal?.onfinish?.();
+    });
   }
 
   function hidePool() {
     ++poolGen;
+    stopClip();
     pool.setAttribute('hidden', '');
     poolShape = null;
   }
@@ -660,6 +715,12 @@ export function createEdgeBlob({
     const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
     if (away <= tearDistance()) {
       ++poolGen;   // the growing animation must not pull the pool back
+      if (clipped) {
+        const reveal = clipped.reveal;
+        stopClip();
+        reveal?.onfinish?.();
+      }
+      dragBox = box;
       drawPool(poolShapeFor(edge, box, vw(), vh()));
       return false;
     }
@@ -668,6 +729,7 @@ export function createEdgeBlob({
   }
 
   function undock() {
+    dragBox = null;
     peeking = false;
     pointerOnButtons = false;
     edge = null;
@@ -683,8 +745,20 @@ export function createEdgeBlob({
   }
 
   // The drag ended before the pool tore: the buttons and the pool go back
+  // Moved along the edge, they stay there and the blob moves with them; moved away from it, they go back.
   function releaseButtons() {
     if (!peeking || !peekBox) return;
+    const box = { ...peekBox };
+    if (dragBox) {
+      if (isVertical(edge)) box.top = clamp(dragBox.top, 8, vh() - box.height - 8);
+      else box.left = clamp(dragBox.left, 8, vw() - box.width - 8);
+    }
+    dragBox = null;
+    if (box.top !== peekBox.top || box.left !== peekBox.left) {
+      peekBox = box;
+      along = clampAlong(edge, isVertical(edge) ? box.top + box.height / 2 : box.left + box.width / 2, vw(), vh());
+      saveBlobState(pageType, edge, along);
+    }
     if (poolShape) morphPool(poolShape, poolShapeFor(edge, peekBox, vw(), vh()), 420, easeOutBack);
     onSnapBack?.(peekBox);
     armIdle();
@@ -704,25 +778,77 @@ export function createEdgeBlob({
     pointerOnButtons = false;
     onPeekEnd?.();
     peekBox = null;
-    squashButtons(container, edge);
+    const ed = edge;
+    // the dot flies from the icon into the dome while the pool carries the buttons back into the blob
+    stopFlight();
+    iconDotFrom = null;
+    const icon = iconDot();
+    const from = icon?.getBoundingClientRect();
+    if (from?.width && typeof requestAnimationFrame === 'function') flyDot(from, domeDot);
+    const gen = ++blobGen;
+    const covered = poolShape && !pool.hasAttribute('hidden') && startClip();
+    if (!covered) container.setAttribute('data-edge-docked', ed);
     const back = () => {
       hidePool();
-      if (!edge || peeking) return;
-      // the pool is the dome again: the blob takes its place without a splat
-      ++blobGen;
+      if (gen !== blobGen || edge !== ed || peeking) return;
+      container.setAttribute('data-edge-docked', ed);
+      // the pool is the dome again: the blob takes its place
       placeBlob();
       resetParts();
       blob.hidden = false;
-      const from = iconDotFrom;
-      iconDotFrom = null;
-      const icon = iconDot();
-      if (icon) icon.style.visibility = '';
-      if (from?.width && icon) flyDot(from, () => dot);
     };
-    if (poolShape && !pool.hasAttribute('hidden')) morphPool(poolShape, domeShape(), 260, easeIn, back);
+    if (poolShape && !pool.hasAttribute('hidden')) morphPool(poolShape, domeShape(), 300, easeIn, back);
     else back();
     debugLog('Buttons went back into the blob');
   }
+
+  // While the pool grows or shrinks the buttons are clipped to it, so they come out of the blob and go back
+  // into it together with the pool, from the side of the edge
+  let clipped = null;         // { el, reveal } while the buttons follow the pool
+  function clipToPool(shape) {
+    const el = clipped?.el;
+    const r = el?.getBoundingClientRect();
+    if (!r?.width) return;
+    const lo = shape.c - shape.half + POOL_PAD, hi = shape.c + shape.half - POOL_PAD, reach = shape.depth - POOL_PAD;
+    // the part of the buttons inside the pool: along the edge between its ends, away from it up to its depth
+    let top = 0, right = 0, bottom = 0, left = 0;
+    if (isVertical(poolEdge)) {
+      top = lo - r.top;
+      bottom = r.bottom - hi;
+      if (poolEdge === 'left') right = r.right - reach;
+      else left = (vw() - reach) - r.left;
+    } else {
+      left = lo - r.left;
+      right = r.right - hi;
+      if (poolEdge === 'top') bottom = r.bottom - reach;
+      else top = (vh() - reach) - r.top;
+    }
+    const px = v => `${Math.max(0, v).toFixed(1)}px`;
+    el.style.clipPath = `inset(${px(top)} ${px(right)} ${px(bottom)} ${px(left)} round 8px)`;
+  }
+
+  function startClip() {
+    const el = buttons();
+    if (!el || typeof requestAnimationFrame !== 'function') return null;
+    clipped = { el, reveal: { onfinish: null } };
+    return clipped;
+  }
+
+  function stopClip() {
+    if (clipped) clipped.el.style.clipPath = '';
+    clipped = null;
+  }
+
+  // The buttons are uncovered as the pool grows under them; the returned handle's onfinish runs when they are
+  // fully out (null when there is nothing to animate: they are shown at once)
+  function uncoverButtons() {
+    const c = startClip();
+    if (!c) return null;
+    poolEdge = edge;
+    clipToPool(domeShape());
+    return c.reveal;
+  }
+
 
   function tearOff(clientX, clientY) {
     const from = dot.getBoundingClientRect();
@@ -753,6 +879,7 @@ export function createEdgeBlob({
 
   // ── holding the blob: slide along the edge, stretch away from it, tear off ──
   hit.addEventListener('mouseenter', () => {
+    updateShade();   // the page under the blob may have changed since it was placed
     if (!edge || peeking || pull || hoverTimer) return;
     blob.classList.add('csl-edge-charging');
     hoverTimer = setTimeout(peek, PEEK_HOVER_MS);
@@ -852,6 +979,7 @@ export function createEdgeBlob({
     get peeking() { return peeking; },
     dragButtons,
     releaseButtons,
+    uncoverButtons,
 
     // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
     // where the drag would put it without clamping it to the viewport.
@@ -905,6 +1033,8 @@ export function createEdgeBlob({
       const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
       animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
       animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
+      // the blob is restored while Creatio is still drawing the page: look at the background once more later
+      setTimeout(() => { if (!signal?.aborted) updateShade(); }, SHADE_RECHECK_MS);
     },
   };
 }
