@@ -475,7 +475,6 @@
   var ORIGIN = { left: "left center", right: "right center", top: "center top", bottom: "center bottom" };
   var STYLE_ID = "csl-edge-blob-style";
   var BLOB_COLOR = "#151515";
-  var BLOB_COLOR_ON_DARK = "#4a4a4a";
   var FILTER_ID = "csl-edge-blob-goo";
   var viewportWidth = () => document.documentElement?.clientWidth || window.innerWidth;
   var viewportHeight = () => document.documentElement?.clientHeight || window.innerHeight;
@@ -537,108 +536,6 @@
       if (err) console.error("[Clio Satellite] Failed to clear edge blob:", err.message);
     });
   }
-  var linear = (v) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  };
-  var luminance = (r, g, b) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-  var colorCanvas = null;
-  function rgbaByCanvas(css) {
-    try {
-      colorCanvas ??= document.createElement("canvas").getContext?.("2d", { willReadFrequently: true }) ?? null;
-    } catch {
-      colorCanvas = null;
-    }
-    if (!colorCanvas) return null;
-    colorCanvas.clearRect(0, 0, 1, 1);
-    colorCanvas.fillStyle = "#000";
-    colorCanvas.fillStyle = css;
-    colorCanvas.fillRect(0, 0, 1, 1);
-    const [r, g, b, a] = colorCanvas.getImageData(0, 0, 1, 1).data;
-    return { r, g, b, a: a / 255 };
-  }
-  function colorLuminance(css) {
-    if (!css || css === "transparent" || css === "none") return null;
-    const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css);
-    if (m) {
-      let a = m[4] === void 0 ? 1 : parseFloat(m[4]);
-      if (m[4]?.endsWith("%")) a /= 100;
-      return a < 0.5 ? null : luminance(+m[1], +m[2], +m[3]);
-    }
-    const c = rgbaByCanvas(css);
-    return !c || c.a < 0.5 ? null : luminance(c.r, c.g, c.b);
-  }
-  function gradientLuminance(image) {
-    if (!image || !image.includes("gradient(")) return null;
-    const colors = image.match(/(?:rgba?|hsla?|color|oklch|oklab|lab|lch)\([^()]*\)|#[0-9a-f]{3,8}\b/gi) || [];
-    const lums = colors.map(colorLuminance).filter((l) => l !== null);
-    return lums.length ? lums.reduce((a, b) => a + b, 0) / lums.length : null;
-  }
-  var DARK_LUMINANCE = 0.13;
-  var SHADE_WATCH_MS = 2e4;
-  var SHADE_SETTLE_MS = 400;
-  var imageCanvas = null;
-  function imageLuminanceAt(img, x, y) {
-    if (img.tagName !== "IMG" || !img.complete || !img.naturalWidth) return null;
-    const r = img.getBoundingClientRect();
-    if (!r.width || !r.height) return null;
-    try {
-      imageCanvas ??= document.createElement("canvas").getContext?.("2d", { willReadFrequently: true }) ?? null;
-      if (!imageCanvas) return null;
-      imageCanvas.canvas.width = imageCanvas.canvas.height = 1;
-      const sx = Math.min(img.naturalWidth - 1, Math.max(0, (x - r.left) / r.width * img.naturalWidth));
-      const sy = Math.min(img.naturalHeight - 1, Math.max(0, (y - r.top) / r.height * img.naturalHeight));
-      imageCanvas.clearRect(0, 0, 1, 1);
-      imageCanvas.drawImage(img, sx, sy, 1, 1, 0, 0, 1, 1);
-      const [cr, cg, cb, ca] = imageCanvas.getImageData(0, 0, 1, 1).data;
-      return ca < 128 ? null : luminance(cr, cg, cb);
-    } catch {
-      return null;
-    }
-  }
-  function backgroundLuminance(el5, x, y) {
-    const cs = getComputedStyle(el5);
-    return imageLuminanceAt(el5, x, y) ?? colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-  }
-  function elementsAtByBox(x, y, own, depth = 4) {
-    const found = [];
-    const walk = (parent, level) => {
-      for (const el5 of parent.children) {
-        if (own?.contains(el5) || el5 === own) continue;
-        const r = el5.getBoundingClientRect();
-        if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
-        const cs = getComputedStyle(el5);
-        if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") continue;
-        found.push(el5);
-        if (level < depth) walk(el5, level + 1);
-      }
-    };
-    if (document.body) walk(document.body, 1);
-    return found;
-  }
-  var describe = (el5, lum) => {
-    const cls = String(el5.className?.baseVal ?? el5.className ?? "").split(" ")[0];
-    return `${el5.tagName.toLowerCase()}${cls ? "." + cls : ""} ${lum.toFixed(3)}`;
-  };
-  function shadeAt(x, y, own) {
-    const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [];
-    const page = stack.filter((el5) => !own?.contains(el5) && el5 !== document.body && el5 !== document.documentElement);
-    for (const el5 of page) {
-      const lum = backgroundLuminance(el5, x, y);
-      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el5, lum) };
-    }
-    for (const el5 of elementsAtByBox(x, y, own).reverse()) {
-      if (page.includes(el5)) continue;
-      const lum = backgroundLuminance(el5, x, y);
-      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: `${describe(el5, lum)} (by box)` };
-    }
-    for (const el5 of [document.body, document.documentElement]) {
-      if (!el5) continue;
-      const lum = backgroundLuminance(el5, x, y);
-      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el5, lum) };
-    }
-    return { dark: false, by: "none" };
-  }
   var CSS = `
 .creatio-satelite-floating[data-edge-docked] { display: none !important; }
 .csl-edge-wet, .csl-edge-blob { position: fixed; width: ${BLOB_W}px; height: ${BLOB_H}px; pointer-events: none; }
@@ -648,11 +545,8 @@
 .csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
 .csl-edge-scale { position: absolute; left: 0; top: ${GOO_TOP}px; width: 80px; height: 160px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
-.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; transition: background-color .4s ease; }
-.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; transition: fill .4s ease; }
-/* On a dark page the black blob turns dark grey so it can still be seen; it stays one colour */
-.csl-edge-on-dark .csl-edge-goo > div { background: ${BLOB_COLOR_ON_DARK}; }
-.csl-edge-on-dark .csl-edge-bell path, .csl-edge-pool.csl-edge-on-dark path { fill: ${BLOB_COLOR_ON_DARK}; }
+.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }
+.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }
 /* Layers: pool 9996 < buttons 9997 < blob 9998 < menus 9999 < flying dot 10000, high enough for Creatio's
    own fixed panels along the edges not to cover the blob.
    The pool the buttons sit in while they are out of the blob is one viewport-sized SVG; only the shape
@@ -887,45 +781,7 @@
     function placeBlob() {
       placeOnEdge(blob, edge, along);
       dot.style.transform = `rotate(${-ROT[edge]}deg)`;
-      updateShade();
     }
-    function updateShade() {
-      if (!edge) return;
-      const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
-      const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
-      const shade = shadeAt(x, y, root);
-      blob.classList.toggle("csl-edge-on-dark", shade.dark);
-      blob.dataset.shade = `${shade.dark ? "dark" : "light"}: ${shade.by}`;
-    }
-    let shadeWatch = null;
-    function watchShade(ms = SHADE_WATCH_MS) {
-      if (typeof MutationObserver !== "function" || !document.body) return;
-      stopShadeWatch();
-      let settle = null;
-      const observer = new MutationObserver((records) => {
-        if (records.every((r) => root.contains(r.target))) return;
-        clearTimeout(settle);
-        settle = setTimeout(updateShade, SHADE_SETTLE_MS);
-      });
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
-      const end = setTimeout(() => {
-        stopShadeWatch();
-        updateShade();
-      }, ms);
-      shadeWatch = { observer, stop: () => {
-        clearTimeout(settle);
-        clearTimeout(end);
-        observer.disconnect();
-      } };
-    }
-    function stopShadeWatch() {
-      shadeWatch?.stop();
-      shadeWatch = null;
-    }
-    window.addEventListener("hashchange", () => {
-      if (edge) watchShade(SHADE_WATCH_MS / 2);
-    }, { signal });
-    signal?.addEventListener("abort", stopShadeWatch);
     function resetParts() {
       for (const el5 of Object.values(parts)) el5.style.transform = "";
       dot.style.translate = "";
@@ -1089,7 +945,6 @@
     }
     const domeShape = () => ({ c: along, ...DOME_SHAPE });
     function showPool(box) {
-      pool.classList.toggle("csl-edge-on-dark", blob.classList.contains("csl-edge-on-dark"));
       poolEdge = edge;
       const from = domeShape();
       drawPool(from);
@@ -1266,7 +1121,6 @@
       }
     }
     hit.addEventListener("mouseenter", () => {
-      updateShade();
       if (!edge || peeking || pull || hoverTimer) return;
       blob.classList.add("csl-edge-charging");
       hoverTimer = setTimeout(peek, PEEK_HOVER_MS);
@@ -1402,7 +1256,6 @@
         const out = { left: "-28px 0", right: "28px 0", top: "0 -28px", bottom: "0 28px" }[ed];
         animate(blob, [{ translate: out }, { translate: "0 0" }], { duration: 480, easing: "cubic-bezier(.34,1.45,.64,1)" });
         animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: "backwards" });
-        watchShade();
       }
     };
   }

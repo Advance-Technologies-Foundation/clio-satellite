@@ -16,12 +16,6 @@ import {
   clearBlobState,
   createEdgeBlob,
   bellHeight,
-  colorLuminance,
-  gradientLuminance,
-  SHADE_SETTLE_MS,
-  SHADE_WATCH_MS,
-  isDarkAt,
-  shadeAt,
   poolShapeFor,
   poolHeight,
   DOME_SHAPE,
@@ -585,112 +579,6 @@ describe('bellHeight', () => {
     expect(bellHeight(20)).toBeLessThan(bellHeight(0) / 3);
     expect(bellHeight(50)).toBeLessThan(0.5);
     expect(bellHeight(-12)).toBeCloseTo(bellHeight(12));
-  });
-});
-
-describe('the blob on a dark page', () => {
-  afterEach(() => {
-    document.body.style.background = '';
-    delete document.elementsFromPoint;
-  });
-
-  it('colorLuminance reads rgb() and rgba(), and ignores mostly transparent colours', () => {
-    expect(colorLuminance('rgb(0, 0, 0)')).toBe(0);
-    expect(colorLuminance('rgb(255, 255, 255)')).toBeCloseTo(1);
-    expect(colorLuminance('rgba(40, 40, 40, 0.9)')).toBeLessThan(0.05);
-    expect(colorLuminance('rgba(0, 0, 0, 0)')).toBeNull();
-    expect(colorLuminance('transparent')).toBeNull();
-  });
-
-  it('gradientLuminance averages the colours of a gradient', () => {
-    expect(gradientLuminance('linear-gradient(rgb(10, 20, 40), rgb(30, 40, 60))')).toBeLessThan(0.05);
-    expect(gradientLuminance('linear-gradient(90deg, rgb(255, 255, 255) 0%, rgb(240, 240, 240) 100%)')).toBeGreaterThan(0.8);
-    expect(gradientLuminance('none')).toBeNull();
-    expect(gradientLuminance('url("a.png")')).toBeNull();
-  });
-
-  it('isDarkAt finds a background left out of hit testing (pointer-events: none) by its box', () => {
-    const header = document.createElement('div');
-    header.style.backgroundImage = 'linear-gradient(rgb(0, 6, 49), rgb(20, 2, 44))';
-    header.style.pointerEvents = 'none';
-    header.getBoundingClientRect = () => ({ left: 0, top: 0, right: VW, bottom: VH, width: VW, height: VH });
-    document.body.appendChild(header);
-    document.elementsFromPoint = () => [document.body, document.documentElement];
-    expect(shadeAt(18, 400, null)).toEqual({ dark: true, by: expect.stringMatching(/^div .* \(by box\)$/) });
-    header.remove();
-  });
-
-  it('isDarkAt reads a dark gradient background', () => {
-    const panel = document.createElement('div');
-    panel.style.backgroundImage = 'linear-gradient(rgb(10, 20, 40), rgb(30, 40, 60))';
-    document.body.appendChild(panel);
-    document.elementsFromPoint = () => [panel, document.body];
-    expect(isDarkAt(10, 10, null)).toBe(true);
-    panel.remove();
-  });
-
-  it('a restored blob checks the background again once the page has stopped changing, for a while', async () => {
-    const panel = document.createElement('div');
-    document.body.appendChild(panel);
-    document.elementsFromPoint = () => [panel, document.body];
-    panel.style.background = 'rgb(250, 250, 250)';
-    const t = setup();
-    t.blob.dock('left', 300);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
-    expect(t.blobEl.dataset.shade).toMatch(/^light: div/);
-    panel.style.background = 'rgb(20, 20, 20)';   // Creatio draws its dark header
-    await Promise.resolve();   // mutation records are delivered as a microtask
-    vi.advanceTimersByTime(SHADE_SETTLE_MS - 1);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);   // still settling
-    vi.advanceTimersByTime(1);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
-    // a light overlay for a moment, then gone again: the last check wins
-    panel.style.background = 'rgb(250, 250, 250)';
-    await Promise.resolve();
-    panel.style.background = 'rgb(20, 20, 20)';
-    await Promise.resolve();
-    vi.advanceTimersByTime(SHADE_SETTLE_MS);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
-    // after the watch the page is no longer observed
-    vi.advanceTimersByTime(SHADE_WATCH_MS);
-    panel.style.background = 'rgb(250, 250, 250)';
-    await Promise.resolve();
-    vi.advanceTimersByTime(SHADE_SETTLE_MS);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
-    t.controller.abort();
-    t.root.remove();
-    panel.remove();
-  });
-
-
-  it('isDarkAt takes the topmost page element with a background and skips the extension', () => {
-    const own = document.createElement('div');
-    const ownEl = document.createElement('div');
-    ownEl.style.background = 'rgb(255, 255, 255)';
-    own.appendChild(ownEl);
-    const clear = document.createElement('div');
-    const panel = document.createElement('div');
-    panel.style.background = 'rgb(30, 40, 60)';
-    document.body.append(own, clear, panel);
-    document.elementsFromPoint = () => [ownEl, clear, panel, document.body];
-    expect(isDarkAt(10, 10, own)).toBe(true);
-    panel.style.background = 'rgb(240, 240, 240)';
-    expect(isDarkAt(10, 10, own)).toBe(false);
-  });
-
-  it('the blob turns grey when shown on a dark page and black again when moved to a light part', () => {
-    const dark = document.createElement('div');
-    dark.style.background = 'rgb(20, 20, 20)';
-    document.body.appendChild(dark);
-    document.elementsFromPoint = (x, y) => (y < 400 ? [dark, document.body] : [document.body]);
-    const t = setup();
-    t.blob.dock('left', 300);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
-    t.blob.dock('left', 600);
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
-    t.controller.abort();
-    t.root.remove();
-    dark.remove();
   });
 });
 

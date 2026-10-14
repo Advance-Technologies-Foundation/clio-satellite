@@ -25,7 +25,6 @@ const ROT = { left: 0, top: 90, right: 180, bottom: -90 };
 const ORIGIN = { left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' };
 const STYLE_ID = 'csl-edge-blob-style';
 const BLOB_COLOR = '#151515';
-const BLOB_COLOR_ON_DARK = '#4a4a4a';
 const FILTER_ID = 'csl-edge-blob-goo';
 
 // The viewport without its scrollbars: a blob on the right edge of a page with a scrollbar must not hide under it
@@ -111,139 +110,6 @@ export function clearBlobState(pageType) {
   });
 }
 
-// ─── Background under the blob ───────────────────────────────────────────────
-
-const linear = v => {
-  const c = v / 255;
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-};
-const luminance = (r, g, b) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-
-let colorCanvas = null;
-// Any other CSS colour (oklch(), color(srgb …), lab(), a name …) is painted on a 1×1 canvas and read back
-function rgbaByCanvas(css) {
-  try {
-    colorCanvas ??= document.createElement('canvas').getContext?.('2d', { willReadFrequently: true }) ?? null;
-  } catch {
-    colorCanvas = null;
-  }
-  if (!colorCanvas) return null;
-  colorCanvas.clearRect(0, 0, 1, 1);
-  colorCanvas.fillStyle = '#000';
-  colorCanvas.fillStyle = css;
-  colorCanvas.fillRect(0, 0, 1, 1);
-  const [r, g, b, a] = colorCanvas.getImageData(0, 0, 1, 1).data;
-  return { r, g, b, a: a / 255 };
-}
-
-// Relative luminance (0..1) of a computed CSS colour, or null for a mostly transparent or unreadable one
-export function colorLuminance(css) {
-  if (!css || css === 'transparent' || css === 'none') return null;
-  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css);
-  if (m) {
-    let a = m[4] === undefined ? 1 : parseFloat(m[4]);
-    if (m[4]?.endsWith('%')) a /= 100;
-    return a < 0.5 ? null : luminance(+m[1], +m[2], +m[3]);
-  }
-  const c = rgbaByCanvas(css);
-  return !c || c.a < 0.5 ? null : luminance(c.r, c.g, c.b);
-}
-
-// Mean luminance of the colours of a CSS gradient (`background-image`), or null when it has none
-export function gradientLuminance(image) {
-  if (!image || !image.includes('gradient(')) return null;
-  const colors = image.match(/(?:rgba?|hsla?|color|oklch|oklab|lab|lch)\([^()]*\)|#[0-9a-f]{3,8}\b/gi) || [];
-  const lums = colors.map(colorLuminance).filter(l => l !== null);
-  return lums.length ? lums.reduce((a, b) => a + b, 0) / lums.length : null;
-}
-
-// The black blob is hard to see below this luminance (about #666), so it turns dark grey there
-export const DARK_LUMINANCE = 0.13;
-// Creatio draws (and redraws) the page for some seconds after the blob appears, also after a move to another
-// page of the app. For this long the blob watches the page and checks the background again once it has been
-// still for SHADE_SETTLE_MS. Event-driven, no polling; the watch then stops.
-export const SHADE_WATCH_MS = 20000;
-export const SHADE_SETTLE_MS = 400;
-
-// Whether the page under (x, y) is dark: the background colour (or gradient) of the topmost page element
-// there that has one, skipping the extension's own elements (inside `own`). Images and canvases are not
-// looked into.
-// Luminance of an <img> at a point of the screen, read from its pixels (null when not loaded, transparent
-// there, or from another origin, whose pixels cannot be read)
-let imageCanvas = null;
-function imageLuminanceAt(img, x, y) {
-  if (img.tagName !== 'IMG' || !img.complete || !img.naturalWidth) return null;
-  const r = img.getBoundingClientRect();
-  if (!r.width || !r.height) return null;
-  try {
-    imageCanvas ??= document.createElement('canvas').getContext?.('2d', { willReadFrequently: true }) ?? null;
-    if (!imageCanvas) return null;
-    imageCanvas.canvas.width = imageCanvas.canvas.height = 1;
-    const sx = Math.min(img.naturalWidth - 1, Math.max(0, (x - r.left) / r.width * img.naturalWidth));
-    const sy = Math.min(img.naturalHeight - 1, Math.max(0, (y - r.top) / r.height * img.naturalHeight));
-    imageCanvas.clearRect(0, 0, 1, 1);
-    imageCanvas.drawImage(img, sx, sy, 1, 1, 0, 0, 1, 1);
-    const [cr, cg, cb, ca] = imageCanvas.getImageData(0, 0, 1, 1).data;
-    return ca < 128 ? null : luminance(cr, cg, cb);
-  } catch {
-    return null;
-  }
-}
-
-function backgroundLuminance(el, x, y) {
-  const cs = getComputedStyle(el);
-  return imageLuminanceAt(el, x, y) ?? colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-}
-
-// Page elements at a point found by their boxes, not by hit testing: an element with `pointer-events: none`
-// is left out of elementsFromPoint (on a live Creatio page only `body` was hit under its dark header). Topmost last, a few levels deep.
-function elementsAtByBox(x, y, own, depth = 4) {
-  const found = [];
-  const walk = (parent, level) => {
-    for (const el of parent.children) {
-      if (own?.contains(el) || el === own) continue;
-      const r = el.getBoundingClientRect();
-      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
-      const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
-      found.push(el);
-      if (level < depth) walk(el, level + 1);
-    }
-  };
-  if (document.body) walk(document.body, 1);
-  return found;
-}
-
-const describe = (el, lum) => {
-  const cls = String(el.className?.baseVal ?? el.className ?? '').split(' ')[0];
-  return `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} ${lum.toFixed(3)}`;
-};
-
-export function shadeAt(x, y, own) {
-  const stack = typeof document.elementsFromPoint === 'function' ? document.elementsFromPoint(x, y) : [];
-  const page = stack.filter(el => !own?.contains(el) && el !== document.body && el !== document.documentElement);
-  for (const el of page) {
-    const lum = backgroundLuminance(el, x, y);
-    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el, lum) };
-  }
-  // nothing with a background was hit: look for one by the boxes, topmost first
-  for (const el of elementsAtByBox(x, y, own).reverse()) {
-    if (page.includes(el)) continue;
-    const lum = backgroundLuminance(el, x, y);
-    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: `${describe(el, lum)} (by box)` };
-  }
-  for (const el of [document.body, document.documentElement]) {
-    if (!el) continue;
-    const lum = backgroundLuminance(el, x, y);
-    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el, lum) };
-  }
-  return { dark: false, by: 'none' };
-}
-
-export function isDarkAt(x, y, own) {
-  return shadeAt(x, y, own).dark;
-}
-
 // ─── DOM ─────────────────────────────────────────────────────────────────────
 
 const CSS = `
@@ -255,11 +121,8 @@ const CSS = `
 .csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
 .csl-edge-scale { position: absolute; left: 0; top: ${GOO_TOP}px; width: 80px; height: 160px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
-.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; transition: background-color .4s ease; }
-.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; transition: fill .4s ease; }
-/* On a dark page the black blob turns dark grey so it can still be seen; it stays one colour */
-.csl-edge-on-dark .csl-edge-goo > div { background: ${BLOB_COLOR_ON_DARK}; }
-.csl-edge-on-dark .csl-edge-bell path, .csl-edge-pool.csl-edge-on-dark path { fill: ${BLOB_COLOR_ON_DARK}; }
+.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }
+.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }
 /* Layers: pool 9996 < buttons 9997 < blob 9998 < menus 9999 < flying dot 10000, high enough for Creatio's
    own fixed panels along the edges not to cover the blob.
    The pool the buttons sit in while they are out of the blob is one viewport-sized SVG; only the shape
@@ -528,45 +391,10 @@ export function createEdgeBlob({
     el.style.transform = `rotate(${ROT[ed]}deg)`;
   }
 
-  // checked when the blob is shown or moved; the middle of the blob is sampled
   function placeBlob() {
     placeOnEdge(blob, edge, along);
     dot.style.transform = `rotate(${-ROT[edge]}deg)`;
-    updateShade();
   }
-
-  function updateShade() {
-    if (!edge) return;
-    const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
-    const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
-    const shade = shadeAt(x, y, root);
-    blob.classList.toggle('csl-edge-on-dark', shade.dark);
-    // which page element decided the colour, for checking it on a live page
-    blob.dataset.shade = `${shade.dark ? 'dark' : 'light'}: ${shade.by}`;
-  }
-
-  // Watches the page for a while and checks the background again each time it has been still for a moment
-  let shadeWatch = null;
-  function watchShade(ms = SHADE_WATCH_MS) {
-    if (typeof MutationObserver !== 'function' || !document.body) return;
-    stopShadeWatch();
-    let settle = null;
-    const observer = new MutationObserver((records) => {
-      if (records.every(r => root.contains(r.target))) return;   // the extension's own changes
-      clearTimeout(settle);
-      settle = setTimeout(updateShade, SHADE_SETTLE_MS);
-    });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-    const end = setTimeout(() => { stopShadeWatch(); updateShade(); }, ms);
-    shadeWatch = { observer, stop: () => { clearTimeout(settle); clearTimeout(end); observer.disconnect(); } };
-  }
-  function stopShadeWatch() {
-    shadeWatch?.stop();
-    shadeWatch = null;
-  }
-  // another page of Creatio (it is a single-page app): watch the background again for a shorter while
-  window.addEventListener('hashchange', () => { if (edge) watchShade(SHADE_WATCH_MS / 2); }, { signal });
-  signal?.addEventListener('abort', stopShadeWatch);
 
   function resetParts() {
     for (const el of Object.values(parts)) el.style.transform = '';
@@ -764,7 +592,6 @@ export function createEdgeBlob({
 
   // the pool grows out of the dome of the blob to the buttons
   function showPool(box) {
-    pool.classList.toggle('csl-edge-on-dark', blob.classList.contains('csl-edge-on-dark'));
     poolEdge = edge;
     const from = domeShape();
     drawPool(from);
@@ -972,7 +799,6 @@ export function createEdgeBlob({
 
   // ── holding the blob: slide along the edge, stretch away from it, tear off ──
   hit.addEventListener('mouseenter', () => {
-    updateShade();   // the page under the blob may have changed since it was placed
     if (!edge || peeking || pull || hoverTimer) return;
     blob.classList.add('csl-edge-charging');
     hoverTimer = setTimeout(peek, PEEK_HOVER_MS);
@@ -1126,8 +952,6 @@ export function createEdgeBlob({
       const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
       animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
       animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
-      // the blob is restored while Creatio is still drawing the page: watch it for a while
-      watchShade();
     },
   };
 }

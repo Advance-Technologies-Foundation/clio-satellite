@@ -339,42 +339,6 @@ test.describe('Edge blob', () => {
     return page.locator('.csl-edge-hit').boundingBox();
   }
 
-  test('the blob turns dark grey over a dark background the page keeps out of hit testing', async ({ page }) => {
-    await load(page, '/shell/');
-    await waitForMenu(page);
-    // like Creatio's header: a full-page gradient with pointer-events: none
-    await page.evaluate(() => {
-      const bg = document.createElement('div');
-      bg.style.cssText = 'position: fixed; inset: 0; background: linear-gradient(123deg, rgb(0, 6, 49), rgb(20, 2, 44)); pointer-events: none; z-index: 0;';
-      document.body.appendChild(bg);
-    });
-    await dockAtLeftEdge(page);
-    await expect(page.locator('.csl-edge-blob')).toHaveClass(/csl-edge-on-dark/);
-    expect(await page.locator('.csl-edge-blob').getAttribute('data-shade')).toMatch(/by box/);
-  });
-
-  test('the blob turns dark grey on a dark part of the page and black again on a light one', async ({ page }) => {
-    await load(page, '/shell/');
-    await waitForMenu(page);
-    // a dark side panel along the left edge of the top half of the page
-    await page.evaluate(() => {
-      const panel = document.createElement('div');
-      panel.style.cssText = 'position: fixed; left: 0; top: 0; width: 60px; height: 50vh; background: #1e2836;';
-      document.body.appendChild(panel);
-    });
-    const hit = await dockAtLeftEdge(page);
-    const blob = page.locator('.csl-edge-blob');
-    const dark = hit.y + hit.height / 2 < 400;
-    await expect(blob).toHaveClass(dark ? /csl-edge-on-dark/ : /^(?!.*csl-edge-on-dark)/);
-    // slide the blob along the edge into the other half
-    const x = hit.x + 8, y = hit.y + hit.height / 2;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x, dark ? 600 : 150, { steps: 8 });
-    await page.mouse.up();
-    await expect(blob).toHaveClass(dark ? /^(?!.*csl-edge-on-dark)/ : /csl-edge-on-dark/);
-  });
-
   test('buttons out of the blob dragged along the edge take the blob with them', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
