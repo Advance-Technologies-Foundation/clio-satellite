@@ -159,23 +159,32 @@ export function gradientLuminance(image) {
 
 // The black blob is hard to see below this luminance (about #666), so it turns dark grey there
 export const DARK_LUMINANCE = 0.13;
-// A blob restored on page load checks the background again at these times: Creatio draws its dark header
-// some time after the blob appears (about 1–3 s on a test stand). A few checks, not polling.
-export const SHADE_RECHECKS_MS = [500, 1500, 3000, 6000];
+// Creatio draws (and redraws) the page for some seconds after the blob appears, also after a move to another
+// page of the app. For this long the blob watches the page and checks the background again once it has been
+// still for SHADE_SETTLE_MS. Event-driven, no polling; the watch then stops.
+export const SHADE_WATCH_MS = 20000;
+export const SHADE_SETTLE_MS = 400;
 
 // Whether the page under (x, y) is dark: the background colour (or gradient) of the topmost page element
 // there that has one, skipping the extension's own elements (inside `own`). Images and canvases are not
 // looked into.
-export function isDarkAt(x, y, own) {
+export function shadeAt(x, y, own) {
   const stack = typeof document.elementsFromPoint === 'function' ? document.elementsFromPoint(x, y) : [];
   const page = stack.filter(el => !own?.contains(el));
   for (const el of [...page, document.body, document.documentElement]) {
     if (!el) continue;
     const cs = getComputedStyle(el);
     const lum = colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-    if (lum !== null) return lum < DARK_LUMINANCE;
+    if (lum !== null) {
+      const cls = String(el.className?.baseVal ?? el.className ?? '').split(' ')[0];
+      return { dark: lum < DARK_LUMINANCE, by: `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} ${lum.toFixed(3)}` };
+    }
   }
-  return false;
+  return { dark: false, by: 'none' };
+}
+
+export function isDarkAt(x, y, own) {
+  return shadeAt(x, y, own).dark;
 }
 
 // ─── DOM ─────────────────────────────────────────────────────────────────────
@@ -473,8 +482,34 @@ export function createEdgeBlob({
     if (!edge) return;
     const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
     const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
-    blob.classList.toggle('csl-edge-on-dark', isDarkAt(x, y, root));
+    const shade = shadeAt(x, y, root);
+    blob.classList.toggle('csl-edge-on-dark', shade.dark);
+    // which page element decided the colour, for checking it on a live page
+    blob.dataset.shade = `${shade.dark ? 'dark' : 'light'}: ${shade.by}`;
   }
+
+  // Watches the page for a while and checks the background again each time it has been still for a moment
+  let shadeWatch = null;
+  function watchShade(ms = SHADE_WATCH_MS) {
+    if (typeof MutationObserver !== 'function' || !document.body) return;
+    stopShadeWatch();
+    let settle = null;
+    const observer = new MutationObserver((records) => {
+      if (records.every(r => root.contains(r.target))) return;   // the extension's own changes
+      clearTimeout(settle);
+      settle = setTimeout(updateShade, SHADE_SETTLE_MS);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    const end = setTimeout(() => { stopShadeWatch(); updateShade(); }, ms);
+    shadeWatch = { observer, stop: () => { clearTimeout(settle); clearTimeout(end); observer.disconnect(); } };
+  }
+  function stopShadeWatch() {
+    shadeWatch?.stop();
+    shadeWatch = null;
+  }
+  // another page of Creatio (it is a single-page app): watch the background again for a shorter while
+  window.addEventListener('hashchange', () => { if (edge) watchShade(SHADE_WATCH_MS / 2); }, { signal });
+  signal?.addEventListener('abort', stopShadeWatch);
 
   function resetParts() {
     for (const el of Object.values(parts)) el.style.transform = '';
@@ -1034,8 +1069,8 @@ export function createEdgeBlob({
       const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
       animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
       animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
-      // the blob is restored while Creatio is still drawing the page: look at the background again a few times
-      for (const ms of SHADE_RECHECKS_MS) setTimeout(() => { if (!signal?.aborted) updateShade(); }, ms);
+      // the blob is restored while Creatio is still drawing the page: watch it for a while
+      watchShade();
     },
   };
 }

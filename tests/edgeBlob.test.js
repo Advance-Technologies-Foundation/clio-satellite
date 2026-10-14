@@ -18,7 +18,8 @@ import {
   bellHeight,
   colorLuminance,
   gradientLuminance,
-  SHADE_RECHECKS_MS,
+  SHADE_SETTLE_MS,
+  SHADE_WATCH_MS,
   isDarkAt,
   poolShapeFor,
   poolHeight,
@@ -616,7 +617,7 @@ describe('the blob on a dark page', () => {
     panel.remove();
   });
 
-  it('a restored blob looks at the background once more when the page has had time to render', () => {
+  it('a restored blob checks the background again once the page has stopped changing, for a while', async () => {
     const panel = document.createElement('div');
     document.body.appendChild(panel);
     document.elementsFromPoint = () => [panel, document.body];
@@ -624,15 +625,31 @@ describe('the blob on a dark page', () => {
     const t = setup();
     t.blob.dock('left', 300);
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
-    vi.advanceTimersByTime(1000);
-    panel.style.background = 'rgb(20, 20, 20)';   // Creatio has drawn its dark header meanwhile
-    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
-    vi.advanceTimersByTime(SHADE_RECHECKS_MS[1] - 1000);
+    expect(t.blobEl.dataset.shade).toMatch(/^light: div/);
+    panel.style.background = 'rgb(20, 20, 20)';   // Creatio draws its dark header
+    await Promise.resolve();   // mutation records are delivered as a microtask
+    vi.advanceTimersByTime(SHADE_SETTLE_MS - 1);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);   // still settling
+    vi.advanceTimersByTime(1);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
+    // a light overlay for a moment, then gone again: the last check wins
+    panel.style.background = 'rgb(250, 250, 250)';
+    await Promise.resolve();
+    panel.style.background = 'rgb(20, 20, 20)';
+    await Promise.resolve();
+    vi.advanceTimersByTime(SHADE_SETTLE_MS);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
+    // after the watch the page is no longer observed
+    vi.advanceTimersByTime(SHADE_WATCH_MS);
+    panel.style.background = 'rgb(250, 250, 250)';
+    await Promise.resolve();
+    vi.advanceTimersByTime(SHADE_SETTLE_MS);
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
     t.controller.abort();
     t.root.remove();
     panel.remove();
   });
+
 
   it('isDarkAt takes the topmost page element with a background and skips the extension', () => {
     const own = document.createElement('div');

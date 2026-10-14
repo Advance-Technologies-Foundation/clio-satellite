@@ -575,17 +575,21 @@
     return lums.length ? lums.reduce((a, b) => a + b, 0) / lums.length : null;
   }
   var DARK_LUMINANCE = 0.13;
-  var SHADE_RECHECKS_MS = [500, 1500, 3e3, 6e3];
-  function isDarkAt(x, y, own) {
+  var SHADE_WATCH_MS = 2e4;
+  var SHADE_SETTLE_MS = 400;
+  function shadeAt(x, y, own) {
     const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [];
     const page = stack.filter((el5) => !own?.contains(el5));
     for (const el5 of [...page, document.body, document.documentElement]) {
       if (!el5) continue;
       const cs = getComputedStyle(el5);
       const lum = colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-      if (lum !== null) return lum < DARK_LUMINANCE;
+      if (lum !== null) {
+        const cls = String(el5.className?.baseVal ?? el5.className ?? "").split(" ")[0];
+        return { dark: lum < DARK_LUMINANCE, by: `${el5.tagName.toLowerCase()}${cls ? "." + cls : ""} ${lum.toFixed(3)}` };
+      }
     }
-    return false;
+    return { dark: false, by: "none" };
   }
   var CSS = `
 .creatio-satelite-floating[data-edge-docked] { display: none !important; }
@@ -841,8 +845,39 @@
       if (!edge) return;
       const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
       const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
-      blob.classList.toggle("csl-edge-on-dark", isDarkAt(x, y, root));
+      const shade = shadeAt(x, y, root);
+      blob.classList.toggle("csl-edge-on-dark", shade.dark);
+      blob.dataset.shade = `${shade.dark ? "dark" : "light"}: ${shade.by}`;
     }
+    let shadeWatch = null;
+    function watchShade(ms = SHADE_WATCH_MS) {
+      if (typeof MutationObserver !== "function" || !document.body) return;
+      stopShadeWatch();
+      let settle = null;
+      const observer = new MutationObserver((records) => {
+        if (records.every((r) => root.contains(r.target))) return;
+        clearTimeout(settle);
+        settle = setTimeout(updateShade, SHADE_SETTLE_MS);
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
+      const end = setTimeout(() => {
+        stopShadeWatch();
+        updateShade();
+      }, ms);
+      shadeWatch = { observer, stop: () => {
+        clearTimeout(settle);
+        clearTimeout(end);
+        observer.disconnect();
+      } };
+    }
+    function stopShadeWatch() {
+      shadeWatch?.stop();
+      shadeWatch = null;
+    }
+    window.addEventListener("hashchange", () => {
+      if (edge) watchShade(SHADE_WATCH_MS / 2);
+    }, { signal });
+    signal?.addEventListener("abort", stopShadeWatch);
     function resetParts() {
       for (const el5 of Object.values(parts)) el5.style.transform = "";
       dot.style.translate = "";
@@ -1319,9 +1354,7 @@
         const out = { left: "-28px 0", right: "28px 0", top: "0 -28px", bottom: "0 28px" }[ed];
         animate(blob, [{ translate: out }, { translate: "0 0" }], { duration: 480, easing: "cubic-bezier(.34,1.45,.64,1)" });
         animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: "backwards" });
-        for (const ms of SHADE_RECHECKS_MS) setTimeout(() => {
-          if (!signal?.aborted) updateShade();
-        }, ms);
+        watchShade();
       }
     };
   }
