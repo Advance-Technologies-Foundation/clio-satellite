@@ -2,7 +2,7 @@ import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
-import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
+import { hideMenuContainer, showMenuContainer, adjustMenuPosition, placeMenusSideBySide } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
 import { track } from './analytics.js';
@@ -322,11 +322,23 @@ export function createScriptsMenu() {
     adjustMenuPosition(menuButton, menuContainer);
   });
 
+  // Buttons that come out of the docked blob open both menus at once: the next click is the action
+  const openBothMenus = () => {
+    buildActionsMenu(actionsMenuContainer);
+    showMenuContainer(menuContainer);
+    showMenuContainer(actionsMenuContainer);
+    track('menu_open', { menu: 'navigation' });
+    track('menu_open', { menu: 'actions' });
+    placeMenusSideBySide(menuButton, menuContainer, actionsButton, actionsMenuContainer);
+  };
+
   state.clickAbortController?.abort();
   state.clickAbortController = new AbortController();
   document.addEventListener('click', (event) => {
     const ec = document.querySelector('.creatio-satelite-extension-container');
     if (!ec) return;
+    // the click on the docked blob is what opens the menus
+    if (event.target.closest?.('.csl-edge-blob')) return;
     const mb = ec.querySelector('.scripts-menu-button');
     const ab = ec.querySelector('.actions-button');
     const mc = ec.querySelector('.scripts-menu-container');
@@ -336,7 +348,7 @@ export function createScriptsMenu() {
   }, { capture: true, signal: state.clickAbortController.signal });
 
   try {
-    setupFloatingContainer(pageType, buttonWrapper, extensionContainer);
+    setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
 
     const rootMenuContainer = document.createElement('div');
     rootMenuContainer.classList.add('creatio-satelite-menu-container');

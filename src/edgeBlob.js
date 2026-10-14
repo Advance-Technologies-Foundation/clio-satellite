@@ -4,8 +4,13 @@ import { debugLog, getLastError } from './debug.js';
 export const PRESS_DISTANCE = 20;
 // The cursor cannot go past the screen edge: holding it there this long also counts as pushed in
 export const EDGE_HOLD_MS = 600;
-// How far the blob stretches away from the edge before it tears off and becomes the buttons again
-export const TEAR_DISTANCE = 70;
+// How far the blob stretches away from the edge before it tears off and becomes the buttons again.
+// The real distance is the height of a button (createEdgeBlob `tearDistance`); this is the fallback.
+export const TEAR_DISTANCE = 36;
+// Hovering the blob this long brings the buttons out of it
+export const PEEK_HOVER_MS = 2000;
+// Buttons brought out of the blob go back into it after this long without the mouse on them or their menus
+export const PEEK_IDLE_MS = 10000;
 // Gap between the edge and the buttons that come out of the blob
 export const EDGE_GAP = 8;
 
@@ -120,6 +125,8 @@ const CSS = `
 /* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
 .csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
+/* While the mouse rests on the blob the ring grows until the buttons come out */
+.csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
 `;
 
 function ensureStyles() {
@@ -182,12 +189,24 @@ function cancelAnimations(el) {
  * The drag code reports how far the buttons are pushed past an edge (press / release);
  * the controller shows the wet spot, makes the blob and handles the blob itself.
  *
+ * The buttons stay docked until the blob is pulled off the edge. A click on the blob, or
+ * resting the mouse on it for PEEK_HOVER_MS, only brings the buttons out for a while ("peek");
+ * they go back into the blob PEEK_IDLE_MS after the mouse left them and their menus.
+ *
+ * Options:
+ *  container                 - the floating buttons, squashed back into the blob when a peek ends
+ *  tearDistance()            - how far (px) the blob has to be pulled away from the edge to tear off
  * Callbacks:
  *  onBlob()                  - buttons became a blob: stop the drag, hide the buttons
- *  onRestore(edge, along)    - a click on the blob: show the buttons next to the edge
+ *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile
+ *  onPeekEnd()               - the buttons go back into the blob: close their menus
  *  onTearOff(clientX, clientY) - the blob was pulled off the edge: show the buttons under the cursor and keep dragging
  */
-export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, signal }) {
+export function createEdgeBlob({
+  root, container, pageType, signal,
+  tearDistance = () => TEAR_DISTANCE,
+  onBlob, onPeek, onPeekEnd, onTearOff,
+}) {
   ensureStyles();
 
   const svg = gooFilter();
@@ -212,6 +231,11 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
   let edgeHoldTimer = null;
   let lastPress = null;
   let splatTimer = null;
+  let peeking = false;        // docked, but the buttons are out for a while
+  let hoverTimer = null;
+  let idleTimer = null;
+  let pointerOnButtons = false;
+  let blobGen = 0;            // bumped whenever the blob is shown or hidden: stale animation ends are ignored
 
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
@@ -265,25 +289,30 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
     edge = ed;
     along = alongForRect(ed, raw, vw(), vh());
     onBlob();
-    // the buttons squash into the edge, the blob splats out of the wet spot
-    container.style.transformOrigin = ORIGIN[ed];
-    const end = isVertical(ed) ? 'scale(.05,.4)' : 'scale(.4,.05)';
-    const mid = isVertical(ed) ? 'scale(.55,1.15)' : 'scale(1.15,.55)';
-    const squash = animate(container, [
-      { transform: 'none', opacity: 1, borderRadius: '8px' },
-      { transform: mid, opacity: 1, borderRadius: '40px', offset: 0.35 },
-      { transform: end, opacity: 0, borderRadius: '50%' },
-    ], { duration: 200, easing: 'cubic-bezier(.5,0,.75,0)' }, () => {
-      // the blob may have been torn off or restored while the buttons were squashing
-      if (edge === ed) container.setAttribute('data-edge-docked', edge);
-    });
-    if (!squash) container.setAttribute('data-edge-docked', edge);
-    clearTimeout(splatTimer);
-    splatTimer = setTimeout(splat, squash ? 90 : 0);
+    squashInto(container, ed);
     saveBlobState(pageType, edge, along);
     // the mouse is still down: the user keeps holding the blob
     pull = { sx: clientX, sy: clientY, startAlong: along, moved: true };
     debugLog(`Buttons became a blob on the ${edge} edge`);
+  }
+
+  // the buttons squash into the edge, the blob splats out of the wet spot
+  function squashInto(el, ed) {
+    el.style.transformOrigin = ORIGIN[ed];
+    const end = isVertical(ed) ? 'scale(.05,.4)' : 'scale(.4,.05)';
+    const mid = isVertical(ed) ? 'scale(.55,1.15)' : 'scale(1.15,.55)';
+    const gen = ++blobGen;
+    const squash = animate(el, [
+      { transform: 'none', opacity: 1, borderRadius: '8px' },
+      { transform: mid, opacity: 1, borderRadius: '40px', offset: 0.35 },
+      { transform: end, opacity: 0, borderRadius: '50%' },
+    ], { duration: 200, easing: 'cubic-bezier(.5,0,.75,0)' }, () => {
+      // the blob may have been torn off or peeked at while the buttons were squashing
+      if (gen === blobGen && edge === ed && !peeking) el.setAttribute('data-edge-docked', edge);
+    });
+    if (!squash) el.setAttribute('data-edge-docked', edge);
+    clearTimeout(splatTimer);
+    splatTimer = setTimeout(splat, squash ? 90 : 0);
   }
 
   function splat() {
@@ -302,31 +331,61 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
   // ── blob -> buttons ──
   function hideBlob(keyframes) {
     clearTimeout(splatTimer);
+    clearHover();
+    const gen = ++blobGen;
     const full = blob.style.transform;
-    animate(blob, keyframes(full), { duration: 260, easing: 'ease-in' }, () => {
-      if (edge) return;   // the buttons were pushed into an edge again meanwhile
+    const done = () => {
+      if (gen !== blobGen) return;   // the blob was shown again meanwhile
       blob.hidden = true;
       resetParts();
-    });
+    };
+    if (!animate(blob, keyframes(full), { duration: 260, easing: 'ease-in' }, done)) done();
   }
 
-  function restoreButtons() {
-    const ed = edge, a = along;
-    edge = null;
-    clearBlobState(pageType);
+  function clearHover() {
+    clearTimeout(hoverTimer);
+    hoverTimer = null;
+    blob.classList.remove('csl-edge-charging');
+  }
+
+  // The buttons come out next to the edge for a while; the blob stays docked
+  function peek() {
+    clearHover();
+    if (!edge || peeking) return;
+    peeking = true;
+    pointerOnButtons = false;
     // the blob swells for a moment and is absorbed by the edge
     hideBlob(full => [
       { transform: full, opacity: 1 },
       { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
       { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 },
     ]);
-    onRestore(ed, a);
-    debugLog('Blob turned back into the buttons');
+    onPeek(edge, along);
+    armIdle();
+    debugLog('Buttons came out of the blob');
+  }
+
+  // Counts the idle time down only while the mouse is off the buttons and their menus
+  function armIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = peeking && !pointerOnButtons ? setTimeout(endPeek, PEEK_IDLE_MS) : null;
+  }
+
+  function endPeek() {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    if (!peeking) return;
+    peeking = false;
+    pointerOnButtons = false;
+    onPeekEnd?.();
+    squashInto(container, edge);
+    debugLog('Buttons went back into the blob');
   }
 
   function tearOff(clientX, clientY) {
     pull = null;
     edge = null;
+    blob.classList.remove('csl-edge-charging');
     clearBlobState(pageType);
     resetParts();
     hideBlob(full => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
@@ -349,8 +408,32 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
   }
 
   // ── holding the blob: slide along the edge, stretch away from it, tear off ──
+  hit.addEventListener('mouseenter', () => {
+    if (!edge || peeking || pull || hoverTimer) return;
+    blob.classList.add('csl-edge-charging');
+    hoverTimer = setTimeout(peek, PEEK_HOVER_MS);
+  }, { signal });
+
+  hit.addEventListener('mouseleave', clearHover, { signal });
+
+  // Anything of the extension under the mouse except the blob counts as the buttons being used
+  document.addEventListener('mouseover', (e) => {
+    if (!peeking) return;
+    const onButtons = root.contains(e.target) && !blob.contains(e.target) && !wet.contains(e.target);
+    if (onButtons === pointerOnButtons) return;
+    pointerOnButtons = onButtons;
+    armIdle();
+  }, { signal });
+
+  // A press anywhere on the page outside the extension sends the buttons back into the blob at once.
+  // Capture: Creatio may stop the event before it bubbles to the document.
+  document.addEventListener('mousedown', (e) => {
+    if (peeking && !root.contains(e.target)) endPeek();
+  }, { capture: true, signal });
+
   hit.addEventListener('mousedown', (e) => {
-    if (e.button !== 0 || !edge) return;
+    if (e.button !== 0 || !edge || peeking) return;
+    clearHover();
     pull = { sx: e.clientX, sy: e.clientY, startAlong: along, moved: false };
     e.preventDefault();
     e.stopPropagation();
@@ -372,7 +455,8 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
       parts.d1.style.transform = parts.d2.style.transform = dot.style.translate = '';
       return;
     }
-    const k = Math.min(1, lx / TEAR_DISTANCE);
+    const tear = tearDistance();
+    const k = Math.min(1, lx / tear);
     const L = lx / BLOB_SCALE;   // cursor distance in the goo frame
     parts.core.style.transform = `translateX(${L}px) scale(${1 - k * 0.2})`;
     // the dot lives inside the rotated blob: local x points away from the edge
@@ -384,7 +468,7 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
     parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
     parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
     parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
-    if (lx > TEAR_DISTANCE) tearOff(e.clientX, e.clientY);
+    if (lx > tear) tearOff(e.clientX, e.clientY);
   }, { signal });
 
   document.addEventListener('mouseup', () => {
@@ -392,8 +476,8 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
     const p = pull;
     pull = null;
     if (!edge) return;
-    if (!p.moved) {   // only a click turns the blob back into the buttons
-      restoreButtons();
+    if (!p.moved) {   // a click brings the buttons out for a while; only a pull undocks them
+      peek();
       return;
     }
     springBack();
@@ -401,14 +485,16 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
   }, { signal });
 
   window.addEventListener('resize', () => {
-    if (!edge || blob.hidden) return;
+    if (!edge || peeking) return;
     along = clampAlong(edge, along, vw(), vh());
     placeBlob();
   }, { signal });
 
   signal?.addEventListener('abort', () => {
     clearEdgeHold();
+    clearHover();
     clearTimeout(splatTimer);
+    clearTimeout(idleTimer);
     svg.remove();
     wet.remove();
     blob.remove();
@@ -416,6 +502,7 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
 
   return {
     get edge() { return edge; },
+    get peeking() { return peeking; },
 
     // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
     // where the drag would put it without clamping it to the viewport.
@@ -457,6 +544,7 @@ export function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, s
 
     // Shows the blob at once, without animation (restoring the state saved on a previous visit)
     dock(ed, a) {
+      blobGen++;
       edge = ed;
       along = clampAlong(ed, a, vw(), vh());
       placeBlob();

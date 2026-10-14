@@ -127,6 +127,46 @@ describe('createScriptsMenu', () => {
     expect(navMenu.classList.contains('hidden')).toBe(true);
   });
 
+  function dockedMenu() {
+    chrome.storage.local.get.mockImplementation((keys, cb) => cb(
+      String(keys).startsWith('menuEdgeBlob_') ? { [keys[0]]: { edge: 'left', along: 0.5, timestamp: Date.now() } } : {}
+    ));
+    createScriptsMenu();
+    return {
+      hit: document.querySelector('.csl-edge-hit'),
+      navMenu: document.querySelector('.scripts-menu-container'),
+      actMenu: document.querySelector('.actions-menu-container'),
+    };
+  }
+
+  it('a click on the docked blob opens both menus at once', () => {
+    const { hit, navMenu, actMenu } = dockedMenu();
+    expect(document.querySelector('.creatio-satelite-floating').getAttribute('data-edge-docked')).toBe('left');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
+    hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
+    hit.dispatchEvent(new MouseEvent('click', { clientX: 5, clientY: 400, bubbles: true }));
+    expect(navMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.querySelectorAll('[data-item-marker]').length).toBeGreaterThan(0);
+  });
+
+  it('resting the mouse on the docked blob also opens both menus', () => {
+    const { hit, navMenu, actMenu } = dockedMenu();
+    hit.dispatchEvent(new MouseEvent('mouseenter'));
+    vi.advanceTimersByTime(2000);
+    expect(navMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.classList.contains('visible')).toBe(true);
+  });
+
+  it('a click on the page closes both menus', () => {
+    const { hit, navMenu, actMenu } = dockedMenu();
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
+    hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(navMenu.classList.contains('visible')).toBe(false);
+    expect(actMenu.classList.contains('visible')).toBe(false);
+  });
+
   it('shows the corrected caption for Application management while keeping the script file name', () => {
     createScriptsMenu();
     const item = document.querySelector('[data-item-marker="Application_Managment"] .caption');

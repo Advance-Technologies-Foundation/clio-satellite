@@ -3,6 +3,8 @@ import {
   PRESS_DISTANCE,
   EDGE_HOLD_MS,
   TEAR_DISTANCE,
+  PEEK_HOVER_MS,
+  PEEK_IDLE_MS,
   pressedEdge,
   isCursorAtEdge,
   clampAlong,
@@ -136,16 +138,16 @@ describe('blob state storage', () => {
 
 // ─── Controller ──────────────────────────────────────────────────────────────
 
-function setup() {
+function setup(options = {}) {
   const root = document.createElement('div');
   document.body.appendChild(root);
   const container = document.createElement('div');
   root.appendChild(container);
   // buttons standing against the left edge
   container.getBoundingClientRect = () => ({ left: 0, top: 300, width: 220, height: 52, right: 220, bottom: 352 });
-  const callbacks = { onBlob: vi.fn(), onRestore: vi.fn(), onTearOff: vi.fn() };
+  const callbacks = { onBlob: vi.fn(), onPeek: vi.fn(), onPeekEnd: vi.fn(), onTearOff: vi.fn() };
   const controller = new AbortController();
-  const blob = createEdgeBlob({ root, pageType: 'shell', signal: controller.signal, ...callbacks });
+  const blob = createEdgeBlob({ root, container, pageType: 'shell', signal: controller.signal, ...callbacks, ...options });
   return {
     root, container, blob, controller, ...callbacks,
     wet: root.querySelector('.csl-edge-wet'),
@@ -236,8 +238,8 @@ describe('createEdgeBlob — pushing the buttons into an edge', () => {
 });
 
 describe('createEdgeBlob — the blob', () => {
-  function docked() {
-    const t = setup();
+  function docked(options) {
+    const t = setup(options);
     t.blob.dock('left', 326);
     return t;
   }
@@ -256,24 +258,143 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.blobEl.style.transform).toBe('rotate(180deg)');
   });
 
-  it('a click turns the blob back into the buttons and forgets it', () => {
+  it('a click brings the buttons out but keeps them docked', () => {
     const t = docked();
     saveBlobState('shell', 'left', 326);
     t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
     up();
-    expect(t.onRestore).toHaveBeenCalledWith('left', 326);
-    expect(t.blob.edge).toBeNull();
+    expect(t.onPeek).toHaveBeenCalledWith('left', 326);
+    expect(t.blob.edge).toBe('left');
+    expect(t.blob.peeking).toBe(true);
     expect(t.blobEl.hidden).toBe(true);
     const cb = vi.fn();
     loadBlobState('shell', cb);
-    expect(cb).toHaveBeenCalledWith(null);
+    expect(cb).toHaveBeenCalledWith({ edge: 'left', along: 326 });
   });
 
-  it('hovering does not turn the blob into the buttons', () => {
+  it(`resting the mouse on the blob for ${PEEK_HOVER_MS} ms brings the buttons out`, () => {
     const t = docked();
-    t.hit.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     t.hit.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(t.onRestore).not.toHaveBeenCalled();
+    expect(t.blobEl.classList.contains('csl-edge-charging')).toBe(true);
+    vi.advanceTimersByTime(PEEK_HOVER_MS - 1);
+    expect(t.onPeek).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(t.onPeek).toHaveBeenCalledWith('left', 326);
+    expect(t.blob.edge).toBe('left');
+    expect(t.blobEl.classList.contains('csl-edge-charging')).toBe(false);
+  });
+
+  it('a shorter hover does not bring the buttons out', () => {
+    const t = docked();
+    t.hit.dispatchEvent(new MouseEvent('mouseenter'));
+    vi.advanceTimersByTime(PEEK_HOVER_MS - 500);
+    t.hit.dispatchEvent(new MouseEvent('mouseleave'));
+    vi.advanceTimersByTime(PEEK_HOVER_MS);
+    expect(t.onPeek).not.toHaveBeenCalled();
+    expect(t.blobEl.classList.contains('csl-edge-charging')).toBe(false);
+  });
+
+  it('grabbing the blob cancels the hover', () => {
+    const t = docked();
+    t.hit.dispatchEvent(new MouseEvent('mouseenter'));
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    move(10, 426);
+    vi.advanceTimersByTime(PEEK_HOVER_MS);
+    expect(t.onPeek).not.toHaveBeenCalled();
+    up();
+  });
+
+  function peeked(options) {
+    const t = docked(options);
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    up();
+    return t;
+  }
+
+  it(`the buttons go back into the blob ${PEEK_IDLE_MS / 1000} s after they came out unused`, () => {
+    const t = peeked();
+    vi.advanceTimersByTime(PEEK_IDLE_MS - 1);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+    expect(t.blob.peeking).toBe(false);
+    expect(t.blob.edge).toBe('left');
+    expect(t.container.getAttribute('data-edge-docked')).toBe('left');
+    vi.advanceTimersByTime(100);
+    expect(t.blobEl.hidden).toBe(false);
+  });
+
+  it('the countdown waits while the mouse is on the buttons and restarts when it leaves', () => {
+    const t = peeked();
+    const outside = document.createElement('div');
+    document.body.appendChild(outside);
+    vi.advanceTimersByTime(PEEK_IDLE_MS - 1000);
+    t.container.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    vi.advanceTimersByTime(PEEK_IDLE_MS * 3);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    outside.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    vi.advanceTimersByTime(PEEK_IDLE_MS - 1);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('a menu of the buttons counts as the buttons being used', () => {
+    const t = peeked();
+    const menu = document.createElement('div');
+    t.root.appendChild(menu);
+    menu.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    vi.advanceTimersByTime(PEEK_IDLE_MS * 2);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+  });
+
+  it('a press on the page outside the extension sends the buttons back into the blob at once', () => {
+    const t = peeked();
+    const page = document.createElement('div');
+    document.body.appendChild(page);
+    page.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+    expect(t.blob.peeking).toBe(false);
+    expect(t.container.getAttribute('data-edge-docked')).toBe('left');
+    vi.advanceTimersByTime(100);
+    expect(t.blobEl.hidden).toBe(false);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);   // the idle countdown was dropped
+  });
+
+  it('the press goes through the capture phase, so a page that stops it still sends the buttons back', () => {
+    const t = peeked();
+    const page = document.createElement('div');
+    document.body.appendChild(page);
+    page.addEventListener('mousedown', e => e.stopPropagation());
+    page.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('a press on the buttons or their menus keeps them out', () => {
+    const t = peeked();
+    const menu = document.createElement('div');
+    t.root.appendChild(menu);
+    t.container.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    menu.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    expect(t.blob.peeking).toBe(true);
+  });
+
+  it('a press on the page while docked does nothing', () => {
+    const t = docked();
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    expect(t.blobEl.hidden).toBe(false);
+  });
+
+  it('after going back into the blob, it can be brought out again', () => {
+    const t = peeked();
+    vi.advanceTimersByTime(PEEK_IDLE_MS + 100);
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    up();
+    expect(t.onPeek).toHaveBeenCalledTimes(2);
+    expect(t.blob.peeking).toBe(true);
   });
 
   it('dragging the blob along the edge slides it and keeps it a blob', () => {
@@ -281,7 +402,7 @@ describe('createEdgeBlob — the blob', () => {
     t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
     move(10, 426);
     up();
-    expect(t.onRestore).not.toHaveBeenCalled();
+    expect(t.onPeek).not.toHaveBeenCalled();
     expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
     const cb = vi.fn();
     loadBlobState('shell', cb);
@@ -297,6 +418,15 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.onTearOff).not.toHaveBeenCalled();
     expect(t.blob.edge).toBe('left');
     expect(t.root.querySelector('.csl-edge-core').style.transform).toBe('');
+  });
+
+  it('the blob tears off only past the given tear distance (the button height)', () => {
+    const t = docked({ tearDistance: () => 50 });
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    move(10 + 45, 326);
+    expect(t.onTearOff).not.toHaveBeenCalled();
+    move(10 + 51, 326);
+    expect(t.onTearOff).toHaveBeenCalledWith(61, 326);
   });
 
   it('pulling past the tear distance tears the blob off and hands the drag to the buttons', () => {
@@ -323,7 +453,7 @@ describe('createEdgeBlob — the blob', () => {
     move(80, 420);   // slide along the edge without releasing the mouse
     expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
     up();
-    expect(t.onRestore).not.toHaveBeenCalled();
+    expect(t.onPeek).not.toHaveBeenCalled();
   });
 
   it('a blob torn off before the squash finished does not hide the buttons again', () => {

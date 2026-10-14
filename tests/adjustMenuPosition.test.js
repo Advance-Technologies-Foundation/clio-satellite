@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { adjustMenuPosition } from '../src/menuVisibility.js';
+import { adjustMenuPosition, sideBySideLefts, placeMenusSideBySide } from '../src/menuVisibility.js';
 
 beforeEach(() => {
   Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true, configurable: true });
@@ -96,5 +96,42 @@ describe('adjustMenuPosition — inside floating container', () => {
     adjustMenuPosition(button, menu);
 
     expect(menu.style.visibility).toBe('visible');
+  });
+});
+
+describe('sideBySideLefts — both menus open at once', () => {
+  it('moves the second menu right of the first when they would overlap', () => {
+    // the navigation menu is wider than its button and would cover the actions menu
+    expect(sideBySideLefts({ left: 8, width: 220 }, { left: 158, width: 200 }, 1280))
+      .toEqual({ first: 8, second: 236 });
+  });
+
+  it('keeps menus that do not overlap where they are', () => {
+    expect(sideBySideLefts({ left: 8, width: 100 }, { left: 158, width: 200 }, 1280))
+      .toEqual({ first: 8, second: 158 });
+  });
+
+  it('shifts the pair left at the right screen edge', () => {
+    expect(sideBySideLefts({ left: 1000, width: 220 }, { left: 1150, width: 200 }, 1280))
+      .toEqual({ first: 844, second: 1072 });
+  });
+
+  it('keeps the first menu on screen when the pair is wider than the screen', () => {
+    expect(sideBySideLefts({ left: 100, width: 300 }, { left: 150, width: 300 }, 500))
+      .toEqual({ first: 8, second: 316 });
+  });
+});
+
+describe('placeMenusSideBySide', () => {
+  it('places two menus under their buttons without overlap', () => {
+    const navBtn = createFloatingButton({ left: 8, top: 300, right: 158, bottom: 334, width: 150, height: 34 });
+    const actBtn = createFloatingButton({ left: 166, top: 300, right: 213, bottom: 334, width: 47, height: 34 });
+    const nav = createMenu({ left: 8, top: 342, right: 228, bottom: 600, width: 220, height: 258 });
+    const act = createMenu({ left: 166, top: 342, right: 366, bottom: 500, width: 200, height: 158 });
+    placeMenusSideBySide(navBtn, nav, actBtn, act);
+    expect(nav.style.left).toBe('8px');
+    expect(act.style.left).toBe('236px');
+    expect(nav.style.top).toBe('342px');
+    expect(act.style.top).toBe('342px');
   });
 });
