@@ -532,6 +532,29 @@
       if (err) console.error("[Clio Satellite] Failed to clear edge blob:", err.message);
     });
   }
+  function colorLuminance(css) {
+    const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css || "");
+    if (!m) return null;
+    let a = m[4] === void 0 ? 1 : parseFloat(m[4]);
+    if (m[4]?.endsWith("%")) a /= 100;
+    if (a < 0.5) return null;
+    const lin = (v) => {
+      const c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(+m[1]) + 0.7152 * lin(+m[2]) + 0.0722 * lin(+m[3]);
+  }
+  var DARK_LUMINANCE = 0.13;
+  function isDarkAt(x, y, own) {
+    const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [];
+    const page = stack.filter((el5) => !own?.contains(el5));
+    for (const el5 of [...page, document.body, document.documentElement]) {
+      if (!el5) continue;
+      const lum = colorLuminance(getComputedStyle(el5).backgroundColor);
+      if (lum !== null) return lum < DARK_LUMINANCE;
+    }
+    return false;
+  }
   var CSS = `
 .creatio-satelite-floating[data-edge-docked] { display: none !important; }
 .csl-edge-wet, .csl-edge-blob { position: fixed; width: ${BLOB_W}px; height: ${BLOB_H}px; pointer-events: none; }
@@ -543,6 +566,11 @@
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
+/* On a dark page the black blob turns dark grey so it can still be seen */
+.csl-edge-on-dark .csl-edge-goo > div { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(1) { stop-color: #555; }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(2) { stop-color: #3a3a3a; }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(3) { stop-color: #2a2a2a; }
 /* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
    the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
    draw such tails (its threshold eats thin parts), so the goo shapes stay inside the bell until the blob is
@@ -717,6 +745,9 @@
     function placeBlob() {
       placeOnEdge(blob, edge, along);
       dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+      const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
+      const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
+      blob.classList.toggle("csl-edge-on-dark", isDarkAt(x, y, root));
     }
     function resetParts() {
       for (const el5 of Object.values(parts)) el5.style.transform = "";

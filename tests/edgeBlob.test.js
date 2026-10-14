@@ -16,6 +16,8 @@ import {
   clearBlobState,
   createEdgeBlob,
   bellHeight,
+  colorLuminance,
+  isDarkAt,
 } from '../src/edgeBlob.js';
 
 const VW = 1280;
@@ -575,5 +577,47 @@ describe('bellHeight', () => {
     expect(bellHeight(20)).toBeLessThan(bellHeight(0) / 3);
     expect(bellHeight(50)).toBeLessThan(0.5);
     expect(bellHeight(-12)).toBeCloseTo(bellHeight(12));
+  });
+});
+
+describe('the blob on a dark page', () => {
+  afterEach(() => {
+    document.body.style.background = '';
+    delete document.elementsFromPoint;
+  });
+
+  it('colorLuminance reads rgb() and rgba(), and ignores mostly transparent colours', () => {
+    expect(colorLuminance('rgb(0, 0, 0)')).toBe(0);
+    expect(colorLuminance('rgb(255, 255, 255)')).toBeCloseTo(1);
+    expect(colorLuminance('rgba(40, 40, 40, 0.9)')).toBeLessThan(0.05);
+    expect(colorLuminance('rgba(0, 0, 0, 0)')).toBeNull();
+    expect(colorLuminance('transparent')).toBeNull();
+  });
+
+  it('isDarkAt takes the topmost page element with a background and skips the extension', () => {
+    const own = document.createElement('div');
+    const ownEl = document.createElement('div');
+    ownEl.style.background = 'rgb(255, 255, 255)';
+    own.appendChild(ownEl);
+    const clear = document.createElement('div');
+    const panel = document.createElement('div');
+    panel.style.background = 'rgb(30, 40, 60)';
+    document.body.append(own, clear, panel);
+    document.elementsFromPoint = () => [ownEl, clear, panel, document.body];
+    expect(isDarkAt(10, 10, own)).toBe(true);
+    panel.style.background = 'rgb(240, 240, 240)';
+    expect(isDarkAt(10, 10, own)).toBe(false);
+  });
+
+  it('the blob turns grey when shown on a dark page and black again when moved to a light part', () => {
+    const dark = document.createElement('div');
+    dark.style.background = 'rgb(20, 20, 20)';
+    document.body.appendChild(dark);
+    document.elementsFromPoint = (x, y) => (y < 400 ? [dark, document.body] : [document.body]);
+    const t = setup();
+    t.blob.dock('left', 300);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
+    t.blob.dock('left', 600);
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
   });
 });

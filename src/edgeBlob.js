@@ -102,6 +102,39 @@ export function clearBlobState(pageType) {
   });
 }
 
+// ─── Background under the blob ───────────────────────────────────────────────
+
+// Relative luminance (0..1) of a computed CSS colour, or null for a colour that is not rgb()/rgba()
+// or is mostly transparent
+export function colorLuminance(css) {
+  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(css || '');
+  if (!m) return null;
+  let a = m[4] === undefined ? 1 : parseFloat(m[4]);
+  if (m[4]?.endsWith('%')) a /= 100;
+  if (a < 0.5) return null;
+  const lin = v => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(+m[1]) + 0.7152 * lin(+m[2]) + 0.0722 * lin(+m[3]);
+}
+
+// The black blob is hard to see below this luminance (about #666), so it turns dark grey there
+export const DARK_LUMINANCE = 0.13;
+
+// Whether the page under (x, y) is dark: the background colour of the topmost page element there that has
+// one, skipping the extension's own elements (inside `own`). Images and canvases are not looked into.
+export function isDarkAt(x, y, own) {
+  const stack = typeof document.elementsFromPoint === 'function' ? document.elementsFromPoint(x, y) : [];
+  const page = stack.filter(el => !own?.contains(el));
+  for (const el of [...page, document.body, document.documentElement]) {
+    if (!el) continue;
+    const lum = colorLuminance(getComputedStyle(el).backgroundColor);
+    if (lum !== null) return lum < DARK_LUMINANCE;
+  }
+  return false;
+}
+
 // ─── DOM ─────────────────────────────────────────────────────────────────────
 
 const CSS = `
@@ -115,6 +148,11 @@ const CSS = `
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
+/* On a dark page the black blob turns dark grey so it can still be seen */
+.csl-edge-on-dark .csl-edge-goo > div { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(1) { stop-color: #555; }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(2) { stop-color: #3a3a3a; }
+.csl-edge-on-dark .csl-edge-bell stop:nth-child(3) { stop-color: #2a2a2a; }
 /* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
    the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
    draw such tails (its threshold eats thin parts), so the goo shapes stay inside the bell until the blob is
@@ -308,9 +346,13 @@ export function createEdgeBlob({
     el.style.transform = `rotate(${ROT[ed]}deg)`;
   }
 
+  // checked when the blob is shown or moved; the middle of the blob is sampled
   function placeBlob() {
     placeOnEdge(blob, edge, along);
     dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+    const x = { left: BLOB_W / 2, right: vw() - BLOB_W / 2 }[edge] ?? along;
+    const y = { top: BLOB_W / 2, bottom: vh() - BLOB_W / 2 }[edge] ?? along;
+    blob.classList.toggle('csl-edge-on-dark', isDarkAt(x, y, root));
   }
 
   function resetParts() {

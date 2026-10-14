@@ -339,6 +339,28 @@ test.describe('Edge blob', () => {
     return page.locator('.csl-edge-hit').boundingBox();
   }
 
+  test('the blob turns dark grey on a dark part of the page and black again on a light one', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    // a dark side panel along the left edge of the top half of the page
+    await page.evaluate(() => {
+      const panel = document.createElement('div');
+      panel.style.cssText = 'position: fixed; left: 0; top: 0; width: 60px; height: 50vh; background: #1e2836;';
+      document.body.appendChild(panel);
+    });
+    const hit = await dockAtLeftEdge(page);
+    const blob = page.locator('.csl-edge-blob');
+    const dark = hit.y + hit.height / 2 < 400;
+    await expect(blob).toHaveClass(dark ? /csl-edge-on-dark/ : /^(?!.*csl-edge-on-dark)/);
+    // slide the blob along the edge into the other half
+    const x = hit.x + 8, y = hit.y + hit.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, dark ? 600 : 150, { steps: 8 });
+    await page.mouse.up();
+    await expect(blob).toHaveClass(dark ? /^(?!.*csl-edge-on-dark)/ : /csl-edge-on-dark/);
+  });
+
   test('a click on the blob brings the buttons out next to the edge with both menus open, still docked', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

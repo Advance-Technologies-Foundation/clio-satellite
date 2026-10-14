@@ -10,6 +10,8 @@
 - `bellHeight(d)` — how far the resting blob stands out from the edge `d` px from its middle
 - `buttonsPositionFor(edge, along, width, height, vw, vh, gap?)` — where the buttons stand when they come out of the blob
 - `saveBlobState(pageType, edge, along)`, `loadBlobState(pageType, cb)`, `clearBlobState(pageType)` — `chrome.storage.local` key `menuEdgeBlob_{pageType}_{origin}`
+- `colorLuminance(css)` — relative luminance of a computed `rgb()`/`rgba()` colour, `null` for other or mostly transparent colours
+- `isDarkAt(x, y, own)` — whether the page under the point is dark, ignoring elements inside `own`
 - `createEdgeBlob({ root, container, pageType, signal, tearDistance?, iconDot?, onBlob, onPeek, onPeekEnd, onTearOff })` → `{ edge, peeking, press(container, rawBox, clientX, clientY), release(), dock(edge, along) }`
 
 **Key decisions:**
@@ -17,6 +19,7 @@
 - A cursor pinned to the screen edge sends no more mouse moves, so a grab close to the edge could never reach the press distance. Holding the cursor there for `EDGE_HOLD_MS` also turns the buttons into a blob; the hold is timed with `setTimeout`, not on moves.
 - The blob and the wet spot are drawn in one left-edge frame and rotated for the other edges (right 180°, top 90°, bottom −90°). The goo look is an SVG filter (blur + alpha threshold) over plain divs; the drops double as the neck while the blob is stretched.
 - A blob restored on page load (`dock`) runs the same splat as a new blob: it grows out of the edge with an overshoot, and the orange dot fades in, since there are no buttons on screen for it to fly from. Without it the blob popped up a second after the page opened with no motion and was easy to miss.
+- On a dark page the black blob is hard to see, so whenever it is shown or moved (`placeBlob`) the background under its middle is checked (`isDarkAt`: the topmost page element there with a background colour, skipping the extension's own elements; luminance below `DARK_LUMINANCE`) and the blob gets `csl-edge-on-dark`, which turns it dark grey (#555 → #2a2a2a). It is not checked on a timer: the page under a blob that stands still rarely changes, and polling costs work on every page. Images, canvases and iframes are not looked into, so the blob stays black over them.
 - A peek keeps `edge` and the stored state: docking is permanent until a tear-off. Users found it annoying that the first click on the blob undocked the buttons for good, so a click (mousedown + mouseup without a 4 px move) or a 2 s hover only peeks. While the mouse rests on the blob the ring around the orange dot grows (`csl-edge-charging`) so the hover has visible feedback.
 - The 10 s countdown runs only while the mouse is off the extension: a `mouseover` anywhere inside `root` except the blob (the buttons, their menus, the news flyout) pauses it, and leaving restarts it from 10 s. Opening a menu therefore never collapses it under the cursor.
 - A press anywhere outside `root` while the buttons are out ends the peek at once (same squash into the blob as after the 10 s). It listens to `mousedown` in the capture phase, so Creatio handlers that stop the event cannot keep the buttons out; presses on the buttons, their menus or the blob do not count.
