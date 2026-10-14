@@ -480,7 +480,7 @@ test.describe('Edge blob', () => {
     expect(box.x + box.width / 2).toBeLessThan(550);
   });
 
-  test('the blob from the previous visit is restored right away', async ({ page }) => {
+  test('the blob from the previous visit is restored with a splat', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
       chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
@@ -488,7 +488,13 @@ test.describe('Edge blob', () => {
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);
 
-    await expect(page.locator('.csl-edge-blob')).toBeVisible({ timeout: 5000 });
+    // the blob splats out of the edge instead of popping up still (checked on the first frame it is shown)
+    const animated = await page.waitForFunction(() => {
+      const blob = document.querySelector('.csl-edge-blob');
+      return blob && !blob.hidden && blob.querySelector('.csl-edge-bell').getAnimations().length;
+    }, null, { polling: 'raf', timeout: 5000 });
+    expect(await animated.jsonValue()).toBeGreaterThan(0);
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
     const blob = await page.locator('.csl-edge-blob').boundingBox();
     expect(Math.round(blob.x + blob.width)).toBe(1280);

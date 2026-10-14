@@ -1016,13 +1016,15 @@
         lastPress = null;
         dryWet();
       },
-      // Shows the blob at once, without animation (restoring the state saved on a previous visit)
+      // Restores the blob saved on a previous visit: it splats out of the edge as when the buttons became a blob,
+      // and the orange dot fades in (there are no buttons on screen for it to fly from)
       dock(ed, a) {
         blobGen++;
+        clearTimeout(splatTimer);
+        iconDotFrom = null;
         edge = ed;
         along = clampAlong(ed, a, vw(), vh());
-        placeBlob();
-        blob.hidden = false;
+        splat();
       }
     };
   }

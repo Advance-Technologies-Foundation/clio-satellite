@@ -246,11 +246,29 @@ describe('createEdgeBlob — the blob', () => {
     return t;
   }
 
-  it('dock() shows the blob at once on the given edge', () => {
+  it('dock() shows the blob on the given edge', () => {
     const t = docked();
     expect(t.blobEl.hidden).toBe(false);
     expect(t.blobEl.style.left).toBe('0px');
     expect(t.blobEl.style.top).toBe(`${326 - 50}px`);
+  });
+
+  it('dock() makes the blob splat out of the edge and fades the orange dot in', () => {
+    const animated = [];
+    Element.prototype.animate = function (keyframes) {
+      animated.push({ el: this, keyframes });
+      return { cancel() {}, onfinish: null };
+    };
+    try {
+      const t = docked();
+      const bellEl = t.blobEl.querySelector('.csl-edge-bell');
+      const dotEl = t.blobEl.querySelector('.csl-edge-dot');
+      expect(t.blobEl.hidden).toBe(false);
+      expect(animated.find(x => x.el === bellEl)?.keyframes[0].transform).toBe('scaleY(.1) scaleX(.3)');
+      expect(animated.find(x => x.el === dotEl)?.keyframes[0].opacity).toBe(0);
+    } finally {
+      delete Element.prototype.animate;
+    }
   });
 
   it('dock() on the right edge mirrors the blob', () => {
