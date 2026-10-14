@@ -553,6 +553,8 @@
    itself takes the mouse */
 .csl-edge-pool { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9996; pointer-events: none; overflow: visible; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
 .csl-edge-pool path { pointer-events: auto; }
+/* shrinking back into the blob or the edge: clicks go through to the page */
+.csl-edge-pool[data-closing] path { pointer-events: none; }
 .csl-edge-pool[hidden] { display: none; }
 /* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
    the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
@@ -752,6 +754,7 @@
     let dragBox = null;
     let poolGen = 0;
     let poolShape = null;
+    let closing = false;
     let poolEdge = null;
     const vw = viewportWidth;
     const vh = viewportHeight;
@@ -909,7 +912,8 @@
         blob.hidden = true;
         resetParts();
       };
-      if (!animate(blob, keyframes(full), { duration, easing: "ease-in" }, done)) done();
+      cancelAnimations(blob);
+      if (!keyframes || !animate(blob, keyframes(full), { duration, easing: "ease-in" }, done)) done();
     }
     function clearHover() {
       clearTimeout(hoverTimer);
@@ -948,6 +952,7 @@
       poolEdge = edge;
       const from = domeShape();
       drawPool(from);
+      pool.removeAttribute("data-closing");
       pool.removeAttribute("hidden");
       morphPool(from, poolShapeFor(edge, box, vw(), vh()), 380, easeOutBack, () => {
         const reveal = clipped?.reveal;
@@ -967,9 +972,10 @@
       peeking = true;
       pointerOnButtons = false;
       const from = dot.getBoundingClientRect();
-      hideBlob((full) => [{ transform: full }, { transform: full }], 1);
+      hideBlob(null);
       peekBox = onPeek(edge, along) || container?.getBoundingClientRect() || null;
       if (peekBox) showPool(peekBox);
+      else stopClip();
       flyDot(from, iconDot);
       armIdle();
       debugLog("Buttons came out of the blob");
@@ -981,11 +987,7 @@
       const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
       if (away <= tearDistance()) {
         ++poolGen;
-        if (clipped) {
-          const reveal = clipped.reveal;
-          stopClip();
-          reveal?.onfinish?.();
-        }
+        stopClip();
         dragBox = box;
         drawPool(poolShapeFor(edge, box, vw(), vh()));
         return false;
@@ -994,6 +996,7 @@
       return true;
     }
     function undock() {
+      stopClip();
       dragBox = null;
       peeking = false;
       pointerOnButtons = false;
@@ -1002,6 +1005,7 @@
       clearTimeout(idleTimer);
       idleTimer = null;
       clearBlobState(pageType);
+      pool.setAttribute("data-closing", "");
       if (poolShape) morphPool(poolShape, { c: poolShape.c, half: 0, depth: 0 }, 220, easeIn, hidePool);
       else hidePool();
       onUndock?.();
@@ -1043,9 +1047,11 @@
       const from = icon?.getBoundingClientRect();
       if (from?.width && typeof requestAnimationFrame === "function") flyDot(from, domeDot);
       const gen = ++blobGen;
+      closing = true;
       const covered = poolShape && !pool.hasAttribute("hidden") && startClip();
       if (!covered) container.setAttribute("data-edge-docked", ed);
       const back = () => {
+        closing = false;
         hidePool();
         if (gen !== blobGen || edge !== ed || peeking) return;
         container.setAttribute("data-edge-docked", ed);
@@ -1053,6 +1059,7 @@
         resetParts();
         blob.hidden = false;
       };
+      pool.setAttribute("data-closing", "");
       if (poolShape && !pool.hasAttribute("hidden")) morphPool(poolShape, domeShape(), 300, easeIn, back);
       else back();
       debugLog("Buttons went back into the blob");
@@ -1183,6 +1190,7 @@
       saveBlobState(pageType, edge, along);
     }, { signal });
     window.addEventListener("resize", () => {
+      if (peeking && !dragBox) endPeek();
       if (!edge || peeking) return;
       along = clampAlong(edge, along, vw(), vh());
       placeBlob();
@@ -1193,9 +1201,13 @@
       clearTimeout(splatTimer);
       clearTimeout(idleTimer);
       stopFlight();
+      ++poolGen;
+      ++blobGen;
+      stopClip();
       svg.remove();
       wet.remove();
       blob.remove();
+      pool.remove();
     });
     return {
       get edge() {
@@ -1203,6 +1215,10 @@
       },
       get peeking() {
         return peeking;
+      },
+      // the buttons are on their way back into the blob: they cannot be dragged meanwhile
+      get closing() {
+        return closing;
       },
       dragButtons,
       releaseButtons,
@@ -1391,6 +1407,7 @@
     };
     floatingContainer.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
+      if (edgeBlob.closing) return;
       if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
         beginDrag(e.clientX, e.clientY);
         e.preventDefault();
@@ -1434,16 +1451,19 @@
       onPeek: (edge, along) => {
         floatingContainer.removeAttribute("data-edge-docked");
         floatingContainer.setAttribute("data-edge-peek", edge);
-        const box = visualBox();
-        const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
-        showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+        let peekBox;
         const b = buttonsBox();
         if (b.width) {
           const at = buttonsPositionFor(edge, along, b.width, b.height, viewportWidth(), viewportHeight());
           moveButtonsTo(at.x, at.y);
+          peekBox = buttonsBox();
+        } else {
+          const box = visualBox();
+          const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
+          showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+          peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
         }
         tearDistance();
-        const peekBox = b.width ? buttonsBox() : { left: pos.x, top: pos.y, width: box.width, height: box.height };
         const shown = () => {
           if (floatingContainer.hasAttribute("data-edge-peek")) onPeekShown?.();
         };
@@ -1462,6 +1482,7 @@
         floatingContainer.style.cursor = "grabbing";
       },
       onSnapBack: (box) => {
+        floatingContainer.getAnimations?.().forEach((a) => a.cancel());
         const from = buttonWrapper.getBoundingClientRect().width ? buttonsBox() : visualBox();
         const dx = from.left - box.left, dy = from.top - box.top;
         const c = floatingContainer.getBoundingClientRect();

@@ -410,6 +410,39 @@ describe('setupFloatingContainer — edge blob', () => {
     expect(onPeekShown).not.toHaveBeenCalled();
   });
 
+  it('buttons on their way back into the blob cannot be dragged', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    vi.advanceTimersByTime(400);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // a press on the page
+    const left = fc.style.left;
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.style.left).toBe(left);
+    vi.advanceTimersByTime(400);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('a drag started while the buttons are still coming out does not open the menus and leaves no clip', () => {
+    const ec = makeExtension();
+    const onPeekShown = vi.fn();
+    const wrapper = makeWrapper();
+    const fc = setupFloatingContainer('shell', wrapper, ec, { onPeekShown });
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    clickBlob(ec);
+    vi.advanceTimersByTime(100);   // still coming out
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 340, bubbles: true }));
+    vi.advanceTimersByTime(400);
+    expect(onPeekShown).not.toHaveBeenCalled();
+    expect(wrapper.style.clipPath).toBe('');
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+
   it('buttons out of the blob dragged less than a button height go back into their pool', () => {
     const { ec, fc } = dockAtLeftEdge();
     clickBlob(ec);

@@ -129,6 +129,8 @@ const CSS = `
    itself takes the mouse */
 .csl-edge-pool { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9996; pointer-events: none; overflow: visible; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
 .csl-edge-pool path { pointer-events: auto; }
+/* shrinking back into the blob or the edge: clicks go through to the page */
+.csl-edge-pool[data-closing] path { pointer-events: none; }
 .csl-edge-pool[hidden] { display: none; }
 /* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
    the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
@@ -374,6 +376,7 @@ export function createEdgeBlob({
   let dragBox = null;         // where they are being dragged to, while still in the pool
   let poolGen = 0;            // bumped whenever the pool starts changing: stale animation frames are ignored
   let poolShape = null;       // { c, half, depth } of the pool now on screen
+  let closing = false;        // the pool is carrying the buttons back into the blob
   let poolEdge = null;        // the edge the pool stands on (kept while it snaps back after the blob is gone)
 
   const vw = viewportWidth;
@@ -533,6 +536,7 @@ export function createEdgeBlob({
   }
 
   // ── blob -> buttons ──
+  // `keyframes(full)` animates the blob out; null hides it at once
   function hideBlob(keyframes, duration = 260) {
     clearTimeout(splatTimer);
     // the splat that would fly the icon dot back into the blob will not run: show the icon dot again
@@ -547,7 +551,8 @@ export function createEdgeBlob({
       blob.hidden = true;
       resetParts();
     };
-    if (!animate(blob, keyframes(full), { duration, easing: 'ease-in' }, done)) done();
+    cancelAnimations(blob);
+    if (!keyframes || !animate(blob, keyframes(full), { duration, easing: 'ease-in' }, done)) done();
   }
 
   function clearHover() {
@@ -595,6 +600,7 @@ export function createEdgeBlob({
     poolEdge = edge;
     const from = domeShape();
     drawPool(from);
+    pool.removeAttribute('data-closing');
     pool.removeAttribute('hidden');
     morphPool(from, poolShapeFor(edge, box, vw(), vh()), 380, easeOutBack, () => {
       const reveal = clipped?.reveal;
@@ -618,9 +624,10 @@ export function createEdgeBlob({
     pointerOnButtons = false;
     const from = dot.getBoundingClientRect();
     // the pool starts as the dome of the blob, so the blob is swapped for it at once
-    hideBlob(full => [{ transform: full }, { transform: full }], 1);
+    hideBlob(null);
     peekBox = onPeek(edge, along) || container?.getBoundingClientRect() || null;
     if (peekBox) showPool(peekBox);
+    else stopClip();   // no pool to come out with: show the buttons whole
     flyDot(from, iconDot);
     armIdle();
     debugLog('Buttons came out of the blob');
@@ -635,11 +642,8 @@ export function createEdgeBlob({
     const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
     if (away <= tearDistance()) {
       ++poolGen;   // the growing animation must not pull the pool back
-      if (clipped) {
-        const reveal = clipped.reveal;
-        stopClip();
-        reveal?.onfinish?.();
-      }
+      // dragged before they were fully out: show them whole, but do not report them shown (that opens the menus)
+      stopClip();
       dragBox = box;
       drawPool(poolShapeFor(edge, box, vw(), vh()));
       return false;
@@ -649,6 +653,7 @@ export function createEdgeBlob({
   }
 
   function undock() {
+    stopClip();   // torn during the reveal: the free buttons must not follow the retreating pool
     dragBox = null;
     peeking = false;
     pointerOnButtons = false;
@@ -658,6 +663,7 @@ export function createEdgeBlob({
     idleTimer = null;
     clearBlobState(pageType);
     // the torn pool runs back into the edge
+    pool.setAttribute('data-closing', '');
     if (poolShape) morphPool(poolShape, { c: poolShape.c, half: 0, depth: 0 }, 220, easeIn, hidePool);
     else hidePool();
     onUndock?.();
@@ -706,9 +712,11 @@ export function createEdgeBlob({
     const from = icon?.getBoundingClientRect();
     if (from?.width && typeof requestAnimationFrame === 'function') flyDot(from, domeDot);
     const gen = ++blobGen;
+    closing = true;
     const covered = poolShape && !pool.hasAttribute('hidden') && startClip();
     if (!covered) container.setAttribute('data-edge-docked', ed);
     const back = () => {
+      closing = false;
       hidePool();
       if (gen !== blobGen || edge !== ed || peeking) return;
       container.setAttribute('data-edge-docked', ed);
@@ -717,6 +725,7 @@ export function createEdgeBlob({
       resetParts();
       blob.hidden = false;
     };
+    pool.setAttribute('data-closing', '');
     if (poolShape && !pool.hasAttribute('hidden')) morphPool(poolShape, domeShape(), 300, easeIn, back);
     else back();
     debugLog('Buttons went back into the blob');
@@ -877,6 +886,9 @@ export function createEdgeBlob({
   }, { signal });
 
   window.addEventListener('resize', () => {
+    // the buttons and the pool stand at viewport coordinates of the old size: send them back into the blob,
+    // which is placed for the new size (not while they are being dragged)
+    if (peeking && !dragBox) endPeek();
     if (!edge || peeking) return;
     along = clampAlong(edge, along, vw(), vh());
     placeBlob();
@@ -888,14 +900,20 @@ export function createEdgeBlob({
     clearTimeout(splatTimer);
     clearTimeout(idleTimer);
     stopFlight();
+    ++poolGen;   // a running morph stops at its next frame
+    ++blobGen;
+    stopClip();
     svg.remove();
     wet.remove();
     blob.remove();
+    pool.remove();
   });
 
   return {
     get edge() { return edge; },
     get peeking() { return peeking; },
+    // the buttons are on their way back into the blob: they cannot be dragged meanwhile
+    get closing() { return closing; },
     dragButtons,
     releaseButtons,
     uncoverButtons,

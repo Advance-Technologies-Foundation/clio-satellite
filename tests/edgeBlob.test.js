@@ -599,8 +599,9 @@ describe('the pool around the buttons out of the blob', () => {
     expect(poolHeight(0, DOME_SHAPE.half, DOME_SHAPE.depth)).toBeCloseTo(bellHeight(0), 0);
   });
 
-  function peekWith(options) {
+  function peekWith(options, beforeClick) {
     const t = setup(options);
+    beforeClick?.(t.blob);
     t.blob.dock('left', 326);
     t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
@@ -635,6 +636,48 @@ describe('the pool around the buttons out of the blob', () => {
     // the blob comes back at the new spot
     vi.advanceTimersByTime(PEEK_IDLE_MS + 400);
     expect(t.blobEl.style.top).toBe(`${430 + 45 - 50}px`);
+    t.controller.abort();
+  });
+
+  it('buttons torn out during the reveal are not left clipped to the retreating pool', () => {
+    const btns = document.createElement('div');
+    btns.getBoundingClientRect = () => ({ left: 8, top: 280, right: 58, bottom: 370, width: 50, height: 90 });
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    let api = null;
+    // like the floating container: onPeek places the buttons and starts uncovering them
+    const t = peekWith({ onPeek: () => { api.uncoverButtons(); return box; }, buttons: () => btns, onUndock: vi.fn()}, (blob) => { api = blob; });
+    vi.advanceTimersByTime(50);   // still coming out
+    expect(btns.style.clipPath).toMatch(/^inset/);
+    expect(t.blob.dragButtons({ ...box, left: 8 + TEAR_DISTANCE + 20 })).toBe(true);
+    expect(btns.style.clipPath).toBe('');
+    vi.advanceTimersByTime(300);
+    expect(btns.style.clipPath).toBe('');
+    t.controller.abort();
+  });
+
+  it('abort removes the pool and stops its animation', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(50);
+    t.controller.abort();
+    expect(t.pool.isConnected).toBe(false);
+    expect(() => vi.advanceTimersByTime(400)).not.toThrow();
+  });
+
+  it('a window resize while the buttons are out sends them back into the blob', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(new Event('resize'));
+    expect(t.blob.peeking).toBe(false);
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+    t.controller.abort();
+  });
+
+  it('the pool shrinking back lets clicks through to the page', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(400);
+    expect(t.pool.hasAttribute('data-closing')).toBe(false);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // a press on the page
+    expect(t.pool.hasAttribute('data-closing')).toBe(true);
     t.controller.abort();
   });
 

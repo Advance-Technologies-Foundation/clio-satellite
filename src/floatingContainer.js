@@ -172,6 +172,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
 
   floatingContainer.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    // on their way back into the blob the buttons are no longer theirs to drag
+    if (edgeBlob.closing) return;
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       beginDrag(e.clientX, e.clientY);
       e.preventDefault();
@@ -222,18 +224,21 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     onPeek: (edge, along) => {
       floatingContainer.removeAttribute('data-edge-docked');
       floatingContainer.setAttribute('data-edge-peek', edge);
-      const box = visualBox();
-      const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
+      // the buttons themselves, not the padded container, stand 8 px from the edge, centred on the blob;
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
-      showButtonsAt(pos.x - box.offX, pos.y - box.offY);
-      // the buttons themselves, not the padded container, stand 8 px from the edge, centred on the blob
+      let peekBox;
       const b = buttonsBox();
       if (b.width) {
         const at = buttonsPositionFor(edge, along, b.width, b.height, viewportWidth(), viewportHeight());
         moveButtonsTo(at.x, at.y);
+        peekBox = buttonsBox();
+      } else {   // the wrapper has no box (jsdom): place the container by its own box
+        const box = visualBox();
+        const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
+        showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+        peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
       }
       tearDistance();
-      const peekBox = b.width ? buttonsBox() : { left: pos.x, top: pos.y, width: box.width, height: box.height };
       // the buttons are uncovered from the spot of the blob as the pool grows under them
       const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
       const reveal = edgeBlob.uncoverButtons();
@@ -251,6 +256,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.style.cursor = 'grabbing';
     },
     onSnapBack: (box) => {
+      // a snap-back still running would be measured as part of the position
+      floatingContainer.getAnimations?.().forEach(a => a.cancel());
       const from = buttonWrapper.getBoundingClientRect().width ? buttonsBox() : visualBox();
       const dx = from.left - box.left, dy = from.top - box.top;
       const c = floatingContainer.getBoundingClientRect();
