@@ -10,6 +10,7 @@ vi.mock('../src/positionManager.js', () => ({
 }));
 
 import { setupFloatingContainer } from '../src/floatingContainer.js';
+import { loadBlobState, PEEK_IDLE_MS } from '../src/edgeBlob.js';
 import {
   loadMenuPosition,
   saveMenuPosition,
@@ -315,44 +316,132 @@ describe('setupFloatingContainer — edge blob', () => {
     expect(fc.getAttribute('data-edge-docked')).toBe('left');
   });
 
-  it('a click on the blob brings the buttons back next to the edge', () => {
-    const { ec, fc } = setupAtLeftEdge();
-    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+  function dockAtLeftEdge() {
+    const t = setupAtLeftEdge();
+    t.fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    saveMenuPosition.mockClear();
+    return t;
+  }
+
+  function clickBlob(ec) {
     const hit = ec.querySelector('.csl-edge-hit');
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
-    expect(fc.style.left).toBe('8px');
-    expect(saveMenuPosition).toHaveBeenCalledWith(8, 300, 'shell');
+  }
+
+  it('releasing the mouse on a button right after it became a blob does not open its menu', () => {
+    const ec = makeExtension();
+    const wrapper = makeWrapper();
+    const button = document.createElement('button');
+    wrapper.appendChild(button);
+    const onClick = vi.fn();
+    button.addEventListener('click', onClick);
+    const fc = setupFloatingContainer('shell', wrapper, ec);
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    button.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+    // the buttons are still squashing under the cursor: mouseup and click land on a button
+    button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onClick).not.toHaveBeenCalled();
+    // the next click is a plain click again
+    vi.advanceTimersByTime(1);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('grabbing the buttons while they still pop in out of the blob does not make them jump', () => {
-    const { ec, fc } = setupAtLeftEdge();
+  it('a click on the blob brings the buttons out next to the edge without undocking them', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    saveMenuPosition.mockClear();
+    clickBlob(ec);
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+    expect(fc.style.left).toBe('8px');
+    // the drag position is not overwritten: the buttons still belong to the blob
+    expect(saveMenuPosition).not.toHaveBeenCalled();
+    const cb = vi.fn();
+    loadBlobState('shell', cb);
+    expect(cb).toHaveBeenCalledWith(expect.objectContaining({ edge: 'left' }));
+  });
+
+  it(`the buttons go back into the blob ${PEEK_IDLE_MS / 1000} s later and their menus close`, () => {
+    const { ec, fc } = dockAtLeftEdge();
+    const menu = document.createElement('div');
+    menu.className = 'scripts-menu-container visible';
+    ec.appendChild(menu);
+    clickBlob(ec);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+    expect(fc.hasAttribute('data-edge-peek')).toBe(false);
+    expect(menu.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(100);
+    expect(ec.querySelector('.csl-edge-blob').hidden).toBe(false);
+  });
+
+  it('reports the buttons shown once they finished popping in out of the blob', () => {
+    const ec = makeExtension();
+    const onPeekShown = vi.fn();
+    const fc = setupFloatingContainer('shell', makeWrapper(), ec, { onPeekShown });
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    // the pop-in animation scales the buttons down: the box reads smaller and shifted while it runs
-    let running = [];
-    fc.animate = () => {
-      const a = { cancel: () => { running = running.filter(x => x !== a); } };
-      running.push(a);
-      return a;
-    };
-    fc.getAnimations = () => running;
-    const realRect = fc.getBoundingClientRect;
-    fc.getBoundingClientRect = () => (running.length
-      ? { left: 70, top: 314, width: 60, height: 12, right: 130, bottom: 326 }
-      : realRect());
+    const pop = { onfinish: null };
+    fc.animate = () => pop;
+    clickBlob(ec);
+    expect(onPeekShown).not.toHaveBeenCalled();   // the button boxes are still scaled
+    pop.onfinish();
+    expect(onPeekShown).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report the buttons shown when they went back into the blob during the pop-in', () => {
+    const ec = makeExtension();
+    const onPeekShown = vi.fn();
+    const fc = setupFloatingContainer('shell', makeWrapper(), ec, { onPeekShown });
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    const pop = { onfinish: null };
+    fc.animate = () => pop;
+    clickBlob(ec);
+    fc.removeAttribute('data-edge-peek');
+    pop.onfinish();
+    expect(onPeekShown).not.toHaveBeenCalled();
+  });
+
+  it('buttons out of the blob cannot be dragged away', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.style.left).toBe('8px');
+    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+  });
+
+  it('the blob tears off once pulled further than a button is high', () => {
+    const ec = makeExtension();
+    const wrapper = makeWrapper();
+    const button = document.createElement('button');
+    button.getBoundingClientRect = () => ({ left: 0, top: 300, width: 90, height: 50, right: 90, bottom: 350 });
+    wrapper.appendChild(button);
+    const fc = setupFloatingContainer('shell', wrapper, ec);
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    // hidden in the blob, the button measures 0: the height seen before is used
+    button.getBoundingClientRect = () => ({ left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 });
     const hit = ec.querySelector('.csl-edge-hit');
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 5 + 45, clientY: 320, bubbles: true }));
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 5 + 51, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    expect(running).toHaveLength(1);
-    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300, clientY: 320, bubbles: true }));
-    expect(fc.style.left).toBe('200px');
   });
 
   it('tearing the blob off saves where the buttons were dropped, not the box scaled by the pop-in', () => {

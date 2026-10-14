@@ -259,6 +259,31 @@
     container.style.top = `${rect.bottom + 8}px`;
     container.style.left = `${rect.left}px`;
   }
+  function sideBySideLefts(first, second, vw, gap = 8) {
+    let a = first.left;
+    let b = Math.max(second.left, first.left + first.width + gap);
+    const over = b + second.width - (vw - gap);
+    if (over > 0) {
+      a -= over;
+      b -= over;
+    }
+    if (a < gap) {
+      b += gap - a;
+      a = gap;
+    }
+    return { first: a, second: b };
+  }
+  function placeMenusSideBySide(firstButton, firstMenu, secondButton, secondMenu) {
+    adjustMenuPosition(firstButton, firstMenu);
+    adjustMenuPosition(secondButton, secondMenu);
+    const { first, second } = sideBySideLefts(
+      firstMenu.getBoundingClientRect(),
+      secondMenu.getBoundingClientRect(),
+      window.innerWidth
+    );
+    firstMenu.style.left = first + "px";
+    secondMenu.style.left = second + "px";
+  }
 
   // src/positionManager.js
   var STABLE_CHECK_MS = 120;
@@ -436,7 +461,9 @@
   // src/edgeBlob.js
   var PRESS_DISTANCE = 20;
   var EDGE_HOLD_MS = 600;
-  var TEAR_DISTANCE = 70;
+  var TEAR_DISTANCE = 36;
+  var PEEK_HOVER_MS = 2e3;
+  var PEEK_IDLE_MS = 1e4;
   var EDGE_GAP = 8;
   var EDGES = ["left", "right", "top", "bottom"];
   var BLOB_W = 36;
@@ -527,6 +554,8 @@
 /* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
 .csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
+/* While the mouse rests on the blob the ring grows until the buttons come out */
+.csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
 `;
   function ensureStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -574,7 +603,17 @@
   function cancelAnimations(el5) {
     if (typeof el5.getAnimations === "function") el5.getAnimations().forEach((a) => a.cancel());
   }
-  function createEdgeBlob({ root, pageType, onBlob, onRestore, onTearOff, signal }) {
+  function createEdgeBlob({
+    root,
+    container,
+    pageType,
+    signal,
+    tearDistance = () => TEAR_DISTANCE,
+    onBlob,
+    onPeek,
+    onPeekEnd,
+    onTearOff
+  }) {
     ensureStyles();
     const svg = gooFilter();
     const wet = div("csl-edge-wet");
@@ -595,6 +634,11 @@
     let edgeHoldTimer = null;
     let lastPress = null;
     let splatTimer = null;
+    let peeking = false;
+    let hoverTimer = null;
+    let idleTimer = null;
+    let pointerOnButtons = false;
+    let blobGen = 0;
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
     function placeOnEdge(el5, ed, a) {
@@ -645,28 +689,32 @@
       clearTimeout(edgeHoldTimer);
       edgeHoldTimer = null;
     }
-    function becomeBlob(container, ed, raw, clientX, clientY) {
+    function becomeBlob(container2, ed, raw, clientX, clientY) {
       clearEdgeHold();
       lastPress = null;
       edge = ed;
       along = alongForRect(ed, raw, vw(), vh());
       onBlob();
-      container.style.transformOrigin = ORIGIN[ed];
+      squashInto(container2, ed);
+      saveBlobState(pageType, edge, along);
+      pull = { sx: clientX, sy: clientY, startAlong: along, moved: true };
+      debugLog(`Buttons became a blob on the ${edge} edge`);
+    }
+    function squashInto(el5, ed) {
+      el5.style.transformOrigin = ORIGIN[ed];
       const end = isVertical(ed) ? "scale(.05,.4)" : "scale(.4,.05)";
       const mid = isVertical(ed) ? "scale(.55,1.15)" : "scale(1.15,.55)";
-      const squash = animate(container, [
+      const gen = ++blobGen;
+      const squash = animate(el5, [
         { transform: "none", opacity: 1, borderRadius: "8px" },
         { transform: mid, opacity: 1, borderRadius: "40px", offset: 0.35 },
         { transform: end, opacity: 0, borderRadius: "50%" }
       ], { duration: 200, easing: "cubic-bezier(.5,0,.75,0)" }, () => {
-        if (edge === ed) container.setAttribute("data-edge-docked", edge);
+        if (gen === blobGen && edge === ed && !peeking) el5.setAttribute("data-edge-docked", edge);
       });
-      if (!squash) container.setAttribute("data-edge-docked", edge);
+      if (!squash) el5.setAttribute("data-edge-docked", edge);
       clearTimeout(splatTimer);
       splatTimer = setTimeout(splat, squash ? 90 : 0);
-      saveBlobState(pageType, edge, along);
-      pull = { sx: clientX, sy: clientY, startAlong: along, moved: true };
-      debugLog(`Buttons became a blob on the ${edge} edge`);
     }
     function splat() {
       placeBlob();
@@ -682,28 +730,53 @@
     }
     function hideBlob(keyframes) {
       clearTimeout(splatTimer);
+      clearHover();
+      const gen = ++blobGen;
       const full = blob.style.transform;
-      animate(blob, keyframes(full), { duration: 260, easing: "ease-in" }, () => {
-        if (edge) return;
+      const done = () => {
+        if (gen !== blobGen) return;
         blob.hidden = true;
         resetParts();
-      });
+      };
+      if (!animate(blob, keyframes(full), { duration: 260, easing: "ease-in" }, done)) done();
     }
-    function restoreButtons() {
-      const ed = edge, a = along;
-      edge = null;
-      clearBlobState(pageType);
+    function clearHover() {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+      blob.classList.remove("csl-edge-charging");
+    }
+    function peek() {
+      clearHover();
+      if (!edge || peeking) return;
+      peeking = true;
+      pointerOnButtons = false;
       hideBlob((full) => [
         { transform: full, opacity: 1 },
         { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
         { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 }
       ]);
-      onRestore(ed, a);
-      debugLog("Blob turned back into the buttons");
+      onPeek(edge, along);
+      armIdle();
+      debugLog("Buttons came out of the blob");
+    }
+    function armIdle() {
+      clearTimeout(idleTimer);
+      idleTimer = peeking && !pointerOnButtons ? setTimeout(endPeek, PEEK_IDLE_MS) : null;
+    }
+    function endPeek() {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+      if (!peeking) return;
+      peeking = false;
+      pointerOnButtons = false;
+      onPeekEnd?.();
+      squashInto(container, edge);
+      debugLog("Buttons went back into the blob");
     }
     function tearOff(clientX, clientY) {
       pull = null;
       edge = null;
+      blob.classList.remove("csl-edge-charging");
       clearBlobState(pageType);
       resetParts();
       hideBlob((full) => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
@@ -723,8 +796,25 @@
         }
       }
     }
+    hit.addEventListener("mouseenter", () => {
+      if (!edge || peeking || pull || hoverTimer) return;
+      blob.classList.add("csl-edge-charging");
+      hoverTimer = setTimeout(peek, PEEK_HOVER_MS);
+    }, { signal });
+    hit.addEventListener("mouseleave", clearHover, { signal });
+    document.addEventListener("mouseover", (e) => {
+      if (!peeking) return;
+      const onButtons = root.contains(e.target) && !blob.contains(e.target) && !wet.contains(e.target);
+      if (onButtons === pointerOnButtons) return;
+      pointerOnButtons = onButtons;
+      armIdle();
+    }, { signal });
+    document.addEventListener("mousedown", (e) => {
+      if (peeking && !root.contains(e.target)) endPeek();
+    }, { capture: true, signal });
     hit.addEventListener("mousedown", (e) => {
-      if (e.button !== 0 || !edge) return;
+      if (e.button !== 0 || !edge || peeking) return;
+      clearHover();
       pull = { sx: e.clientX, sy: e.clientY, startAlong: along, moved: false };
       e.preventDefault();
       e.stopPropagation();
@@ -744,7 +834,8 @@
         parts.d1.style.transform = parts.d2.style.transform = dot.style.translate = "";
         return;
       }
-      const k = Math.min(1, lx / TEAR_DISTANCE);
+      const tear = tearDistance();
+      const k = Math.min(1, lx / tear);
       const L = lx / BLOB_SCALE;
       parts.core.style.transform = `translateX(${L}px) scale(${1 - k * 0.2})`;
       dot.style.translate = `${lx}px 0px`;
@@ -752,7 +843,7 @@
       parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
       parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
       parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
-      if (lx > TEAR_DISTANCE) tearOff(e.clientX, e.clientY);
+      if (lx > tear) tearOff(e.clientX, e.clientY);
     }, { signal });
     document.addEventListener("mouseup", () => {
       if (!pull) return;
@@ -760,20 +851,22 @@
       pull = null;
       if (!edge) return;
       if (!p.moved) {
-        restoreButtons();
+        peek();
         return;
       }
       springBack();
       saveBlobState(pageType, edge, along);
     }, { signal });
     window.addEventListener("resize", () => {
-      if (!edge || blob.hidden) return;
+      if (!edge || peeking) return;
       along = clampAlong(edge, along, vw(), vh());
       placeBlob();
     }, { signal });
     signal?.addEventListener("abort", () => {
       clearEdgeHold();
+      clearHover();
       clearTimeout(splatTimer);
+      clearTimeout(idleTimer);
       svg.remove();
       wet.remove();
       blob.remove();
@@ -782,9 +875,12 @@
       get edge() {
         return edge;
       },
+      get peeking() {
+        return peeking;
+      },
       // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
       // where the drag would put it without clamping it to the viewport.
-      press(container, raw, clientX, clientY) {
+      press(container2, raw, clientX, clientY) {
         if (edge) return false;
         const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
         if (!hitEdge) {
@@ -794,11 +890,11 @@
         }
         const press = hitEdge.over / PRESS_DISTANCE;
         if (press >= 1) {
-          becomeBlob(container, hitEdge.edge, raw, clientX, clientY);
+          becomeBlob(container2, hitEdge.edge, raw, clientX, clientY);
           return true;
         }
         showWet(hitEdge.edge, press, raw);
-        lastPress = { container, edge: hitEdge.edge, raw, clientX, clientY };
+        lastPress = { container: container2, edge: hitEdge.edge, raw, clientX, clientY };
         if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
           if (!edgeHoldTimer) {
             edgeHoldTimer = setTimeout(() => {
@@ -819,6 +915,7 @@
       },
       // Shows the blob at once, without animation (restoring the state saved on a previous visit)
       dock(ed, a) {
+        blobGen++;
         edge = ed;
         along = clampAlong(ed, a, vw(), vh());
         placeBlob();
@@ -830,7 +927,7 @@
   // src/floatingContainer.js
   var DRAG_THRESHOLD = 4;
   var resizeAbortController = null;
-  function setupFloatingContainer(pageType, buttonWrapper, extensionContainer) {
+  function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown } = {}) {
     resizeAbortController?.abort();
     resizeAbortController = new AbortController();
     const isShell = pageType === "shell";
@@ -926,12 +1023,17 @@
       endDrag = () => {
         isDragging = false;
         stop();
+        suppressClick = true;
+        document.addEventListener("mouseup", () => setTimeout(() => {
+          suppressClick = false;
+        }, 0), { once: true });
       };
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     };
     floatingContainer.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
+      if (edgeBlob.peeking) return;
       if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
         beginDrag(e.clientX, e.clientY);
         e.preventDefault();
@@ -946,31 +1048,51 @@
       floatingContainer.setAttribute("data-user-positioned", "true");
     };
     const popIn = (origin, from) => {
-      if (typeof floatingContainer.animate !== "function") return;
+      if (typeof floatingContainer.animate !== "function") return null;
       floatingContainer.style.transformOrigin = origin;
-      floatingContainer.animate(
+      return floatingContainer.animate(
         [{ transform: from, opacity: 0.4, borderRadius: "40px" }, { transform: "scale(1)", opacity: 1, borderRadius: "8px" }],
         { duration: 380, easing: "cubic-bezier(.34,1.56,.64,1)" }
       );
     };
+    let buttonHeight = 0;
+    const tearDistance = () => {
+      const h = buttonWrapper.querySelector("button")?.getBoundingClientRect().height;
+      if (h) buttonHeight = h;
+      return buttonHeight || TEAR_DISTANCE;
+    };
     const edgeBlob = createEdgeBlob({
       root: extensionContainer,
+      container: floatingContainer,
       pageType,
       signal: resizeAbortController.signal,
+      tearDistance,
       onBlob: () => {
+        tearDistance();
         endDrag?.();
         closeMenus();
         floatingContainer.setAttribute("data-user-positioned", "true");
       },
-      onRestore: (edge, along) => {
+      onPeek: (edge, along) => {
         floatingContainer.removeAttribute("data-edge-docked");
+        floatingContainer.setAttribute("data-edge-peek", edge);
+        floatingContainer.style.cursor = "default";
         const box = visualBox();
         const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
-        const x = pos.x - box.offX, y = pos.y - box.offY;
-        showButtonsAt(x, y);
-        saveMenuPosition(x, y, pageType);
+        showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+        tearDistance();
         const vertical = edge === "left" || edge === "right";
-        popIn({ left: "left center", right: "right center", top: "center top", bottom: "center bottom" }[edge], vertical ? "scale(.1,.5)" : "scale(.5,.1)");
+        const shown = () => {
+          if (floatingContainer.hasAttribute("data-edge-peek")) onPeekShown?.();
+        };
+        const pop = popIn({ left: "left center", right: "right center", top: "center top", bottom: "center bottom" }[edge], vertical ? "scale(.1,.5)" : "scale(.5,.1)");
+        if (pop) pop.onfinish = shown;
+        else shown();
+      },
+      onPeekEnd: () => {
+        closeMenus();
+        floatingContainer.removeAttribute("data-edge-peek");
+        floatingContainer.style.cursor = "move";
       },
       onTearOff: (clientX, clientY) => {
         floatingContainer.removeAttribute("data-edge-docked");
@@ -2196,11 +2318,20 @@
       track("menu_open", { menu: "navigation" });
       adjustMenuPosition(menuButton, menuContainer);
     });
+    const openBothMenus = () => {
+      buildActionsMenu(actionsMenuContainer);
+      showMenuContainer(menuContainer);
+      showMenuContainer(actionsMenuContainer);
+      track("menu_open", { menu: "navigation" });
+      track("menu_open", { menu: "actions" });
+      placeMenusSideBySide(menuButton, menuContainer, actionsButton, actionsMenuContainer);
+    };
     state.clickAbortController?.abort();
     state.clickAbortController = new AbortController();
     document.addEventListener("click", (event) => {
       const ec = document.querySelector(".creatio-satelite-extension-container");
       if (!ec) return;
+      if (event.target.closest?.(".csl-edge-blob")) return;
       const mb = ec.querySelector(".scripts-menu-button");
       const ab = ec.querySelector(".actions-button");
       const mc = ec.querySelector(".scripts-menu-container");
@@ -2209,7 +2340,7 @@
       if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
     }, { capture: true, signal: state.clickAbortController.signal });
     try {
-      setupFloatingContainer(pageType, buttonWrapper, extensionContainer);
+      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
       const rootMenuContainer = document.createElement("div");
       rootMenuContainer.classList.add("creatio-satelite-menu-container");
       rootMenuContainer.appendChild(menuContainer);

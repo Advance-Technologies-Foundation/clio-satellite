@@ -7,7 +7,7 @@ import {
   loadAutoPosition,
   applyAutoPosition,
 } from './positionManager.js';
-import { createEdgeBlob, loadBlobState, buttonsPositionFor } from './edgeBlob.js';
+import { createEdgeBlob, loadBlobState, buttonsPositionFor, TEAR_DISTANCE } from './edgeBlob.js';
 import { hideMenuContainer } from './menuVisibility.js';
 
 // The mouse has to move this far before a press on the buttons counts as a drag, not a click
@@ -15,7 +15,8 @@ export const DRAG_THRESHOLD = 4;
 
 let resizeAbortController = null;
 
-export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer) {
+// onPeekShown() - the buttons came out of the docked blob and finished popping in
+export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown } = {}) {
   resizeAbortController?.abort();
   resizeAbortController = new AbortController();
   const isShell = pageType === 'shell';
@@ -125,10 +126,13 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       debugLog(`${isShell ? 'Shell' : 'Configuration'} container manually positioned`);
     };
 
-    // The buttons became a blob mid-drag: the blob now follows the mouse
+    // The buttons became a blob mid-drag: the blob now follows the mouse. The buttons squash
+    // under the cursor for a moment, so a quick release would still click one and open its menu.
     endDrag = () => {
       isDragging = false;
       stop();
+      suppressClick = true;
+      document.addEventListener('mouseup', () => setTimeout(() => { suppressClick = false; }, 0), { once: true });
     };
 
     document.addEventListener('mousemove', onMouseMove);
@@ -137,6 +141,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
 
   floatingContainer.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    // buttons out of a docked blob stay where they are: only pulling the blob undocks them
+    if (edgeBlob.peeking) return;
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       beginDrag(e.clientX, e.clientY);
       e.preventDefault();
@@ -153,33 +159,56 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
   };
 
   const popIn = (origin, from) => {
-    if (typeof floatingContainer.animate !== 'function') return;
+    if (typeof floatingContainer.animate !== 'function') return null;
     floatingContainer.style.transformOrigin = origin;
-    floatingContainer.animate(
+    return floatingContainer.animate(
       [{ transform: from, opacity: 0.4, borderRadius: '40px' }, { transform: 'scale(1)', opacity: 1, borderRadius: '8px' }],
       { duration: 380, easing: 'cubic-bezier(.34,1.56,.64,1)' }
     );
   };
 
+  // The blob tears off once pulled further than a button is high. A hidden button measures 0,
+  // so the last visible height is kept.
+  let buttonHeight = 0;
+  const tearDistance = () => {
+    const h = buttonWrapper.querySelector('button')?.getBoundingClientRect().height;
+    if (h) buttonHeight = h;
+    return buttonHeight || TEAR_DISTANCE;
+  };
+
   const edgeBlob = createEdgeBlob({
     root: extensionContainer,
+    container: floatingContainer,
     pageType,
     signal: resizeAbortController.signal,
+    tearDistance,
     onBlob: () => {
+      tearDistance();
       endDrag?.();
       closeMenus();
       // the blob holds the place: automatic positioning next to the search must not bring the buttons back
       floatingContainer.setAttribute('data-user-positioned', 'true');
     },
-    onRestore: (edge, along) => {
+    onPeek: (edge, along) => {
       floatingContainer.removeAttribute('data-edge-docked');
+      floatingContainer.setAttribute('data-edge-peek', edge);
+      floatingContainer.style.cursor = 'default';
       const box = visualBox();
       const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
-      const x = pos.x - box.offX, y = pos.y - box.offY;
-      showButtonsAt(x, y);
-      saveMenuPosition(x, y, pageType);
+      // not saved as the drag position: the buttons belong to the blob until it is pulled off
+      showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+      tearDistance();
       const vertical = edge === 'left' || edge === 'right';
-      popIn({ left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' }[edge], vertical ? 'scale(.1,.5)' : 'scale(.5,.1)');
+      // menus are placed from the button boxes, which the pop-in scales: wait for it to end
+      const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
+      const pop = popIn({ left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' }[edge], vertical ? 'scale(.1,.5)' : 'scale(.5,.1)');
+      if (pop) pop.onfinish = shown;
+      else shown();
+    },
+    onPeekEnd: () => {
+      closeMenus();
+      floatingContainer.removeAttribute('data-edge-peek');
+      floatingContainer.style.cursor = 'move';
     },
     onTearOff: (clientX, clientY) => {
       floatingContainer.removeAttribute('data-edge-docked');

@@ -61,3 +61,32 @@ export function adjustMenuPosition(relatedContainer, container) {
   container.style.top = `${rect.bottom + 8}px`;
   container.style.left = `${rect.left}px`;
 }
+
+// Left offsets for two menus open at once: the second starts right of the first, and both move
+// left together when the pair would leave the screen on the right. `first` and `second` are the
+// boxes ({ left, width }) the menus got from adjustMenuPosition.
+export function sideBySideLefts(first, second, vw, gap = 8) {
+  let a = first.left;
+  let b = Math.max(second.left, first.left + first.width + gap);
+  const over = b + second.width - (vw - gap);
+  if (over > 0) {
+    a -= over;
+    b -= over;
+  }
+  if (a < gap) {   // a pair wider than the screen keeps the first menu fully visible
+    b += gap - a;
+    a = gap;
+  }
+  return { first: a, second: b };
+}
+
+// Opens two menus next to each other under (or above) their buttons without overlapping
+export function placeMenusSideBySide(firstButton, firstMenu, secondButton, secondMenu) {
+  adjustMenuPosition(firstButton, firstMenu);
+  adjustMenuPosition(secondButton, secondMenu);
+  const { first, second } = sideBySideLefts(
+    firstMenu.getBoundingClientRect(), secondMenu.getBoundingClientRect(), window.innerWidth
+  );
+  firstMenu.style.left = first + 'px';
+  secondMenu.style.left = second + 'px';
+}
