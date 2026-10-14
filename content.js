@@ -465,6 +465,7 @@
   var PEEK_HOVER_MS = 2e3;
   var PEEK_IDLE_MS = 1e4;
   var EDGE_GAP = 8;
+  var DOT_FLIGHT_MS = 420;
   var EDGES = ["left", "right", "top", "bottom"];
   var BLOB_W = 36;
   var BLOB_H = 54;
@@ -541,21 +542,23 @@
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
-/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a shallow dome (core). */
-.csl-edge-base { left: 0; top: 50px; width: 44px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
+/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a flat dome (core). */
+.csl-edge-base { left: 0; top: 44px; width: 40px; height: 72px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 36px; }
 .csl-edge-wet .csl-edge-base { top: 40px; width: 46px; height: 80px; }
-.csl-edge-core { left: 16px; top: 54px; width: 34px; height: 52px; border-radius: 50%; }
+.csl-edge-core { left: 16px; top: 50px; width: 28px; height: 60px; border-radius: 50%; }
 .csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
-.csl-edge-d1 { left: 6px; top: 42px; }
-.csl-edge-d2 { left: 6px; top: 102px; }
+.csl-edge-d1 { left: 6px; top: 34px; }
+.csl-edge-d2 { left: 6px; top: 110px; }
 .csl-edge-shine { position: absolute; left: 4px; top: 17px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
 /* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
-.csl-edge-hit { position: absolute; left: 0; top: 11px; width: 20px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
-/* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
-.csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-hit { position: absolute; left: 0; top: 10px; width: 18px; height: 34px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+/* Orange button in the middle of the mound: core centre goo (30,80) -> blob (4.5, 27) */
+.csl-edge-dot { position: absolute; left: 2px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
 /* While the mouse rests on the blob the ring grows until the buttons come out */
 .csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
+/* The orange dot on its way between the blob and the icon of the first button */
+.csl-edge-flydot { position: fixed; z-index: 10000; border-radius: 50%; background: #ff5722; pointer-events: none; }
 `;
   function ensureStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -609,6 +612,7 @@
     pageType,
     signal,
     tearDistance = () => TEAR_DISTANCE,
+    iconDot = () => container?.querySelector(".csl-icon-dot"),
     onBlob,
     onPeek,
     onPeekEnd,
@@ -639,6 +643,8 @@
     let idleTimer = null;
     let pointerOnButtons = false;
     let blobGen = 0;
+    let flight = null;
+    let iconDotFrom = null;
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
     function placeOnEdge(el5, ed, a) {
@@ -672,6 +678,39 @@
       for (const el5 of Object.values(parts)) el5.style.transform = "";
       dot.style.translate = "";
     }
+    const centre = (r) => r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width } : null;
+    function stopFlight() {
+      if (!flight) return;
+      cancelAnimationFrame(flight.frame);
+      flight.el.remove();
+      for (const el5 of flight.hide) el5.style.visibility = "";
+      flight = null;
+    }
+    function flyDot(from, to) {
+      stopFlight();
+      const a = centre(from);
+      const target = to();
+      if (!a || !target || typeof requestAnimationFrame !== "function") return;
+      const el5 = div("csl-edge-flydot", root);
+      const hide = [dot, target];
+      for (const h of hide) h.style.visibility = "hidden";
+      flight = { el: el5, hide, frame: 0 };
+      let start = null;
+      const step = (now) => {
+        start ??= now;
+        const t = Math.min(1, (now - start) / DOT_FLIGHT_MS);
+        const b = centre(to()?.getBoundingClientRect()) || a;
+        const e = 1 - Math.pow(1 - t, 3);
+        const hop = Math.sin(Math.PI * t) * Math.min(40, Math.hypot(b.x - a.x, b.y - a.y) * 0.15);
+        const d = a.d + (b.d - a.d) * e;
+        el5.style.width = el5.style.height = d + "px";
+        el5.style.left = a.x + (b.x - a.x) * e - d / 2 + "px";
+        el5.style.top = a.y + (b.y - a.y) * e - d / 2 - hop + "px";
+        if (t < 1) flight.frame = requestAnimationFrame(step);
+        else stopFlight();
+      };
+      flight.frame = requestAnimationFrame(step);
+    }
     function showWet(ed, press, raw) {
       cancelAnimations(wet);
       placeOnEdge(wet, ed, alongForRect(ed, raw, vw(), vh()));
@@ -701,6 +740,10 @@
       debugLog(`Buttons became a blob on the ${edge} edge`);
     }
     function squashInto(el5, ed) {
+      stopFlight();
+      const icon = iconDot();
+      iconDotFrom = icon?.getBoundingClientRect() ?? null;
+      if (iconDotFrom?.width) icon.style.visibility = "hidden";
       el5.style.transformOrigin = ORIGIN[ed];
       const end = isVertical(ed) ? "scale(.05,.4)" : "scale(.4,.05)";
       const mid = isVertical(ed) ? "scale(.55,1.15)" : "scale(1.15,.55)";
@@ -726,10 +769,18 @@
       animate(parts.core, [{ transform: "translateX(-30px) scale(.2)" }, { transform: "translateX(6px) scale(1.25, .85)", offset: 0.5 }, { transform: "translateX(0) scale(1)" }], { duration: 560, easing: ease });
       animate(parts.d1, [{ transform: "translate(-10px, 20px) scale(.2)" }, { transform: "translate(20px,-26px) scale(1.2)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 700, easing: "ease-out" });
       animate(parts.d2, [{ transform: "translate(-10px,-20px) scale(.2)" }, { transform: "translate(24px,30px) scale(1.1)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 760, easing: "ease-out" });
-      animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: "backwards" });
+      const from = iconDotFrom;
+      iconDotFrom = null;
+      const icon = iconDot();
+      if (icon) icon.style.visibility = "";
+      if (from?.width && icon) flyDot(from, () => dot);
+      else animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: "backwards" });
     }
     function hideBlob(keyframes) {
       clearTimeout(splatTimer);
+      iconDotFrom = null;
+      const icon = iconDot();
+      if (icon) icon.style.visibility = "";
       clearHover();
       const gen = ++blobGen;
       const full = blob.style.transform;
@@ -750,12 +801,14 @@
       if (!edge || peeking) return;
       peeking = true;
       pointerOnButtons = false;
+      const from = dot.getBoundingClientRect();
       hideBlob((full) => [
         { transform: full, opacity: 1 },
         { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
         { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 }
       ]);
       onPeek(edge, along);
+      flyDot(from, iconDot);
       armIdle();
       debugLog("Buttons came out of the blob");
     }
@@ -774,6 +827,7 @@
       debugLog("Buttons went back into the blob");
     }
     function tearOff(clientX, clientY) {
+      const from = dot.getBoundingClientRect();
       pull = null;
       edge = null;
       blob.classList.remove("csl-edge-charging");
@@ -781,6 +835,7 @@
       resetParts();
       hideBlob((full) => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
       onTearOff(clientX, clientY);
+      flyDot(from, iconDot);
       debugLog("Blob torn off the edge");
     }
     function springBack() {
@@ -839,9 +894,9 @@
       const L = lx / BLOB_SCALE;
       parts.core.style.transform = `translateX(${L}px) scale(${1 - k * 0.2})`;
       dot.style.translate = `${lx}px 0px`;
-      const neck = (t, x0, y0, grow) => `translate(${20 + (13 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
-      parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
-      parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
+      const neck = (t, x0, y0, grow) => `translate(${20 + (10 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
+      parts.d1.style.transform = neck(0.36, 14, 42, 2.4);
+      parts.d2.style.transform = neck(0.7, 14, 118, 2.2);
       parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
       if (lx > tear) tearOff(e.clientX, e.clientY);
     }, { signal });
@@ -867,6 +922,7 @@
       clearHover();
       clearTimeout(splatTimer);
       clearTimeout(idleTimer);
+      stopFlight();
       svg.remove();
       wet.remove();
       blob.remove();
@@ -2274,7 +2330,7 @@
     navCaption.className = "compile-button-caption";
     const navIcon = document.createElement("span");
     navIcon.className = "creatio-satelite-button-icon";
-    navIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2.6" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><path d="M13.6 6.2A6 6 0 1 1 9.8 2.3"/><circle cx="12.6" cy="3.4" r="1.6" fill="currentColor" stroke="none"/></svg>`;
+    navIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle class="csl-icon-dot" cx="8" cy="8" r="2.6" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/><path d="M13.6 6.2A6 6 0 1 1 9.8 2.3"/><circle cx="12.6" cy="3.4" r="1.6" fill="currentColor" stroke="none"/></svg>`;
     navCaption.appendChild(navIcon);
     navCaption.appendChild(document.createTextNode("Clio satellite"));
     menuButtonWrapper.appendChild(navCaption);

@@ -3,13 +3,13 @@
 **Purpose:** Lets the user hide the floating buttons as a small black blob stuck to a screen edge. Pushing the buttons past an edge first shows a black wet spot there; pushed further, the buttons turn into the blob without the mouse being released. The buttons stay docked until the blob is pulled away from the edge further than a button is high; that tears it off into the buttons. A click on the blob, or resting the mouse on it for 2 s, only brings the buttons out for a while (a "peek"); they go back into the blob 10 s after the mouse left them and their menus, or at once on a click anywhere else on the page.
 
 **Public API:**
-- `PRESS_DISTANCE` (20 px), `EDGE_HOLD_MS` (600 ms), `TEAR_DISTANCE` (36 px, fallback when the button height is unknown), `PEEK_HOVER_MS` (2000 ms), `PEEK_IDLE_MS` (10 000 ms), `EDGE_GAP` (8 px), `EDGES`
+- `PRESS_DISTANCE` (20 px), `EDGE_HOLD_MS` (600 ms), `TEAR_DISTANCE` (36 px, fallback when the button height is unknown), `PEEK_HOVER_MS` (2000 ms), `PEEK_IDLE_MS` (10 000 ms), `EDGE_GAP` (8 px), `DOT_FLIGHT_MS` (420 ms), `EDGES`
 - `pressedEdge(rawX, rawY, width, height, vw, vh): { edge, over } | null` — which edge an unclamped box is pushed past and by how much
 - `isCursorAtEdge(edge, x, y, vw, vh): boolean`
 - `clampAlong(edge, along, vw, vh)`, `alongForRect(edge, rect, vw, vh)` — blob centre along the edge, kept on screen
 - `buttonsPositionFor(edge, along, width, height, vw, vh, gap?)` — where the buttons stand when they come out of the blob
 - `saveBlobState(pageType, edge, along)`, `loadBlobState(pageType, cb)`, `clearBlobState(pageType)` — `chrome.storage.local` key `menuEdgeBlob_{pageType}_{origin}`
-- `createEdgeBlob({ root, container, pageType, signal, tearDistance?, onBlob, onPeek, onPeekEnd, onTearOff })` → `{ edge, peeking, press(container, rawBox, clientX, clientY), release(), dock(edge, along) }`
+- `createEdgeBlob({ root, container, pageType, signal, tearDistance?, iconDot?, onBlob, onPeek, onPeekEnd, onTearOff })` → `{ edge, peeking, press(container, rawBox, clientX, clientY), release(), dock(edge, along) }`
 
 **Key decisions:**
 - The drag code stays in `floatingContainer.js`; this module only receives the unclamped box of the buttons on every move. That keeps one drag implementation and makes the edge logic a pure function (`pressedEdge`) that is unit tested without a browser.
@@ -24,6 +24,8 @@
 - `along` is stored as a fraction of the edge length so the blob keeps its spot after a window resize. The state is per page type and origin, like the drag position, and is removed when the blob becomes buttons again.
 - Styles are injected once as `<style id="csl-edge-blob-style">` instead of a manifest stylesheet: the shell and configuration pages load different CSS lists, and the mock e2e pages load none.
 - The squash animation marks the buttons `data-edge-docked` only when it ends, and only if that blob still exists: a blob torn off within those 200 ms must not hide the buttons the user is already dragging.
+- The orange dot of the blob and the orange dot on the icon of the first button (`.csl-icon-dot`, found through `iconDot()`) are one object for the eye: whenever the blob turns into the buttons (peek, tear-off) a separate `.csl-edge-flydot` flies from one to the other along a small arc, and back when the buttons squash into the blob. Both real dots are hidden during the flight. The target is measured on every animation frame, because the buttons are still popping in or being dragged; a fixed end point would land next to the icon.
+- The blob is flat: it stands out about 11 px from the edge and is spread along it (core 28×60, base 40×72 in the goo frame). The neck constants in the pull code use the same core centre (goo x = 30) and drop centres (y = 42 and 118).
 - `Element.animate` is missing in jsdom; the `animate()` helper applies the end state at once there.
 
 **Dependencies:** `debug.js`

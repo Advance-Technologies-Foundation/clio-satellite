@@ -355,6 +355,25 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
+  test('the orange dot of the blob flies into the dot on the icon of the first button', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    const hit = await dockAtLeftEdge(page);
+    const start = await page.locator('.csl-edge-dot').boundingBox();
+    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+
+    const flyer = page.locator('.csl-edge-flydot');
+    await expect(flyer).toBeVisible();
+    const iconDot = page.locator('.scripts-menu-button .csl-icon-dot');
+    await expect(iconDot).toHaveCSS('visibility', 'hidden');
+    // it lands on the icon dot and leaves the icon dot visible
+    await expect(flyer).toHaveCount(0);
+    await expect(iconDot).toHaveCSS('visibility', 'visible');
+    const end = await iconDot.boundingBox();
+    expect(end.x).toBeGreaterThan(start.x);
+  });
+
   test('resting the mouse on the blob for 2 seconds brings the buttons out; a shorter hover does not', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

@@ -13,6 +13,8 @@ export const PEEK_HOVER_MS = 2000;
 export const PEEK_IDLE_MS = 10000;
 // Gap between the edge and the buttons that come out of the blob
 export const EDGE_GAP = 8;
+// How long the orange dot flies between the blob and the icon of the first button
+export const DOT_FLIGHT_MS = 420;
 
 export const EDGES = ['left', 'right', 'top', 'bottom'];
 const BLOB_W = 36;
@@ -112,21 +114,23 @@ const CSS = `
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
-/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a shallow dome (core). */
-.csl-edge-base { left: 0; top: 50px; width: 44px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
+/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a flat dome (core). */
+.csl-edge-base { left: 0; top: 44px; width: 40px; height: 72px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 36px; }
 .csl-edge-wet .csl-edge-base { top: 40px; width: 46px; height: 80px; }
-.csl-edge-core { left: 16px; top: 54px; width: 34px; height: 52px; border-radius: 50%; }
+.csl-edge-core { left: 16px; top: 50px; width: 28px; height: 60px; border-radius: 50%; }
 .csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
-.csl-edge-d1 { left: 6px; top: 42px; }
-.csl-edge-d2 { left: 6px; top: 102px; }
+.csl-edge-d1 { left: 6px; top: 34px; }
+.csl-edge-d2 { left: 6px; top: 110px; }
 .csl-edge-shine { position: absolute; left: 4px; top: 17px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
 /* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
-.csl-edge-hit { position: absolute; left: 0; top: 11px; width: 20px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
-/* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
-.csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-hit { position: absolute; left: 0; top: 10px; width: 18px; height: 34px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+/* Orange button in the middle of the mound: core centre goo (30,80) -> blob (4.5, 27) */
+.csl-edge-dot { position: absolute; left: 2px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
 /* While the mouse rests on the blob the ring grows until the buttons come out */
 .csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
+/* The orange dot on its way between the blob and the icon of the first button */
+.csl-edge-flydot { position: fixed; z-index: 10000; border-radius: 50%; background: #ff5722; pointer-events: none; }
 `;
 
 function ensureStyles() {
@@ -196,6 +200,7 @@ function cancelAnimations(el) {
  * Options:
  *  container                 - the floating buttons, squashed back into the blob when a peek ends
  *  tearDistance()            - how far (px) the blob has to be pulled away from the edge to tear off
+ *  iconDot()                 - the orange dot on the icon of the first button; the blob's dot flies into it
  * Callbacks:
  *  onBlob()                  - buttons became a blob: stop the drag, hide the buttons
  *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile
@@ -205,6 +210,7 @@ function cancelAnimations(el) {
 export function createEdgeBlob({
   root, container, pageType, signal,
   tearDistance = () => TEAR_DISTANCE,
+  iconDot = () => container?.querySelector('.csl-icon-dot'),
   onBlob, onPeek, onPeekEnd, onTearOff,
 }) {
   ensureStyles();
@@ -236,6 +242,8 @@ export function createEdgeBlob({
   let idleTimer = null;
   let pointerOnButtons = false;
   let blobGen = 0;            // bumped whenever the blob is shown or hidden: stale animation ends are ignored
+  let flight = null;          // the orange dot flying between the blob and the icon
+  let iconDotFrom = null;     // where the icon dot was when the buttons started squashing into the blob
 
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
@@ -260,6 +268,46 @@ export function createEdgeBlob({
   function resetParts() {
     for (const el of Object.values(parts)) el.style.transform = '';
     dot.style.translate = '';
+  }
+
+  // ── the orange dot flies between the blob and the icon of the first button ──
+  const centre = r => (r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width } : null);
+
+  function stopFlight() {
+    if (!flight) return;
+    cancelAnimationFrame(flight.frame);
+    flight.el.remove();
+    for (const el of flight.hide) el.style.visibility = '';
+    flight = null;
+  }
+
+  // `from` is a box, `to()` returns the target element: it is measured on every frame,
+  // so the dot follows the buttons while they pop in or are dragged
+  function flyDot(from, to) {
+    stopFlight();
+    const a = centre(from);
+    const target = to();
+    if (!a || !target || typeof requestAnimationFrame !== 'function') return;
+    const el = div('csl-edge-flydot', root);
+    const hide = [dot, target];
+    for (const h of hide) h.style.visibility = 'hidden';
+    flight = { el, hide, frame: 0 };
+    let start = null;
+    const step = (now) => {
+      start ??= now;
+      const t = Math.min(1, (now - start) / DOT_FLIGHT_MS);
+      const b = centre(to()?.getBoundingClientRect()) || a;
+      const e = 1 - Math.pow(1 - t, 3);   // ease-out
+      // a small hop sideways makes the path an arc instead of a straight line
+      const hop = Math.sin(Math.PI * t) * Math.min(40, Math.hypot(b.x - a.x, b.y - a.y) * 0.15);
+      const d = a.d + (b.d - a.d) * e;
+      el.style.width = el.style.height = d + 'px';
+      el.style.left = (a.x + (b.x - a.x) * e - d / 2) + 'px';
+      el.style.top = (a.y + (b.y - a.y) * e - d / 2 - hop) + 'px';
+      if (t < 1) flight.frame = requestAnimationFrame(step);
+      else stopFlight();
+    };
+    flight.frame = requestAnimationFrame(step);
   }
 
   // ── wet spot ──
@@ -298,6 +346,10 @@ export function createEdgeBlob({
 
   // the buttons squash into the edge, the blob splats out of the wet spot
   function squashInto(el, ed) {
+    stopFlight();
+    const icon = iconDot();
+    iconDotFrom = icon?.getBoundingClientRect() ?? null;
+    if (iconDotFrom?.width) icon.style.visibility = 'hidden';
     el.style.transformOrigin = ORIGIN[ed];
     const end = isVertical(ed) ? 'scale(.05,.4)' : 'scale(.4,.05)';
     const mid = isVertical(ed) ? 'scale(.55,1.15)' : 'scale(1.15,.55)';
@@ -325,12 +377,21 @@ export function createEdgeBlob({
     animate(parts.core, [{ transform: 'translateX(-30px) scale(.2)' }, { transform: 'translateX(6px) scale(1.25, .85)', offset: 0.5 }, { transform: 'translateX(0) scale(1)' }], { duration: 560, easing: ease });
     animate(parts.d1, [{ transform: 'translate(-10px, 20px) scale(.2)' }, { transform: 'translate(20px,-26px) scale(1.2)', offset: 0.4 }, { transform: 'translate(0,0) scale(1)' }], { duration: 700, easing: 'ease-out' });
     animate(parts.d2, [{ transform: 'translate(-10px,-20px) scale(.2)' }, { transform: 'translate(24px,30px) scale(1.1)', offset: 0.4 }, { transform: 'translate(0,0) scale(1)' }], { duration: 760, easing: 'ease-out' });
-    animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: 'backwards' });
+    const from = iconDotFrom;
+    iconDotFrom = null;
+    const icon = iconDot();
+    if (icon) icon.style.visibility = '';
+    if (from?.width && icon) flyDot(from, () => dot);
+    else animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: 'backwards' });
   }
 
   // ── blob -> buttons ──
   function hideBlob(keyframes) {
     clearTimeout(splatTimer);
+    // the splat that would fly the icon dot back into the blob will not run: show the icon dot again
+    iconDotFrom = null;
+    const icon = iconDot();
+    if (icon) icon.style.visibility = '';
     clearHover();
     const gen = ++blobGen;
     const full = blob.style.transform;
@@ -354,6 +415,7 @@ export function createEdgeBlob({
     if (!edge || peeking) return;
     peeking = true;
     pointerOnButtons = false;
+    const from = dot.getBoundingClientRect();
     // the blob swells for a moment and is absorbed by the edge
     hideBlob(full => [
       { transform: full, opacity: 1 },
@@ -361,6 +423,7 @@ export function createEdgeBlob({
       { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 },
     ]);
     onPeek(edge, along);
+    flyDot(from, iconDot);
     armIdle();
     debugLog('Buttons came out of the blob');
   }
@@ -383,6 +446,7 @@ export function createEdgeBlob({
   }
 
   function tearOff(clientX, clientY) {
+    const from = dot.getBoundingClientRect();
     pull = null;
     edge = null;
     blob.classList.remove('csl-edge-charging');
@@ -390,6 +454,7 @@ export function createEdgeBlob({
     resetParts();
     hideBlob(full => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
     onTearOff(clientX, clientY);
+    flyDot(from, iconDot);
     debugLog('Blob torn off the edge');
   }
 
@@ -462,11 +527,11 @@ export function createEdgeBlob({
     // the dot lives inside the rotated blob: local x points away from the edge
     dot.style.translate = `${lx}px 0px`;
     // the drops become the neck between the edge and the core; it thins as it stretches
-    // (goo frame: base anchor (20,80), core centre (33,80), drop centres d1 (14,50) and d2 (14,110))
+    // (goo frame: base anchor (20,80), core centre (30,80), drop centres d1 (14,42) and d2 (14,118))
     const neck = (t, x0, y0, grow) =>
-      `translate(${20 + (13 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
-    parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
-    parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
+      `translate(${20 + (10 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
+    parts.d1.style.transform = neck(0.36, 14, 42, 2.4);
+    parts.d2.style.transform = neck(0.7, 14, 118, 2.2);
     parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
     if (lx > tear) tearOff(e.clientX, e.clientY);
   }, { signal });
@@ -495,6 +560,7 @@ export function createEdgeBlob({
     clearHover();
     clearTimeout(splatTimer);
     clearTimeout(idleTimer);
+    stopFlight();
     svg.remove();
     wet.remove();
     blob.remove();

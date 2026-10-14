@@ -17,6 +17,7 @@
 - Icons are inline duotone SVGs (`MENU_ICONS.svg`, `ACTION_DETAILS.icon`, and the two button icons here): outline `currentColor`, accent `var(--csl-icon-accent)`, no ids/masks so they can be inlined many times. Colours are set in `menu-item.css`.
 
 - Buttons that come out of the docked edge blob open both menus at once (`openBothMenus`, passed to `setupFloatingContainer` as `onPeekShown`), so every action is two clicks away in every mode: blob + item when docked, button + item otherwise. The two menus are laid out side by side by `placeMenusSideBySide`; the outside-click handler ignores clicks on the blob, since that click is what opened them. Opening both sends one `menu_open` for each menu.
+- The orange dot of the "Clio satellite" icon carries the class `csl-icon-dot`: `edgeBlob.js` flies the dot of the blob into it and back.
 - `createScriptsMenu()` attaches the developer news indicator (`attachShellNews`) last and isolates it: a sync throw or async rejection is logged and never marks the menu as failed, so news can not trigger the menu re-creation loop.
 
 **Dependencies:** `debug.js`, `state.js`, `pageDetection.js`, `menuConfig.js`, `menuVisibility.js`, `analytics.js` (usage events)

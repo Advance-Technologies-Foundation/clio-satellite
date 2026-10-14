@@ -5,6 +5,7 @@ import {
   TEAR_DISTANCE,
   PEEK_HOVER_MS,
   PEEK_IDLE_MS,
+  DOT_FLIGHT_MS,
   pressedEdge,
   isCursorAtEdge,
   clampAlong,
@@ -473,5 +474,78 @@ describe('createEdgeBlob — the blob', () => {
     t.controller.abort();
     expect(t.root.querySelector('.csl-edge-blob')).toBeNull();
     expect(t.root.querySelector('.csl-edge-wet')).toBeNull();
+  });
+});
+
+describe('createEdgeBlob — the orange dot flies between the blob and the icon', () => {
+  const rect = (left, top, size) => () => ({ left, top, width: size, height: size, right: left + size, bottom: top + size });
+
+  function withIcon() {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    const t = setup();
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    icon.setAttribute('class', 'csl-icon-dot');
+    icon.getBoundingClientRect = rect(30, 316, 5);
+    t.container.appendChild(icon);
+    t.dot = t.root.querySelector('.csl-edge-dot');
+    t.dot.getBoundingClientRect = rect(2, 324, 5);
+    t.icon = icon;
+    t.blob.dock('left', 326);
+    return t;
+  }
+  const flyer = t => t.root.querySelector('.csl-edge-flydot');
+  const click = t => {
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    up();
+  };
+
+  it('on a peek the dot flies from the blob to the icon, the icon dot shows when it lands', () => {
+    const t = withIcon();
+    click(t);
+    expect(flyer(t)).not.toBeNull();
+    expect(t.icon.style.visibility).toBe('hidden');
+    vi.advanceTimersByTime(16);
+    expect(parseFloat(flyer(t).style.left)).toBeCloseTo(2, 0);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS + 32);
+    expect(flyer(t)).toBeNull();
+    expect(t.icon.style.visibility).toBe('');
+  });
+
+  it('the dot follows the icon while the buttons move', () => {
+    const t = withIcon();
+    click(t);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS / 2);
+    t.icon.getBoundingClientRect = rect(130, 316, 5);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS / 2 - 48);   // still flying
+    expect(parseFloat(flyer(t).style.left)).toBeGreaterThan(100);
+  });
+
+  it('when the peek ends the dot flies from the icon back into the blob', () => {
+    const t = withIcon();
+    click(t);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);   // the countdown started with the peek
+    vi.advanceTimersByTime(1);   // the splat after the squash
+    expect(t.icon.style.visibility).toBe('');   // the icon is shown again once its dot has left it
+    expect(flyer(t)).not.toBeNull();
+    expect(t.dot.style.visibility).toBe('hidden');
+    vi.advanceTimersByTime(DOT_FLIGHT_MS + 32);
+    expect(flyer(t)).toBeNull();
+    expect(t.dot.style.visibility).toBe('');
+  });
+
+  it('without an icon on the buttons nothing flies', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    const t = setup();
+    t.blob.dock('left', 326);
+    click(t);
+    expect(flyer(t)).toBeNull();
+  });
+
+  it('aborting the signal stops a flight', () => {
+    const t = withIcon();
+    click(t);
+    t.controller.abort();
+    expect(flyer(t)).toBeNull();
+    expect(t.icon.style.visibility).toBe('');
   });
 });
