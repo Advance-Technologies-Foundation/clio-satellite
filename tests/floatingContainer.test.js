@@ -376,7 +376,7 @@ describe('setupFloatingContainer — edge blob', () => {
     expect(fc.getAttribute('data-edge-docked')).toBe('left');
     expect(fc.hasAttribute('data-edge-peek')).toBe(false);
     expect(menu.classList.contains('visible')).toBe(false);
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(300);
     expect(ec.querySelector('.csl-edge-blob').hidden).toBe(false);
   });
 
@@ -415,7 +415,7 @@ describe('setupFloatingContainer — edge blob', () => {
   it('buttons out of the blob dragged less than a button height go back into their pool', () => {
     const { ec, fc } = dockAtLeftEdge();
     clickBlob(ec);
-    expect(ec.querySelector('.csl-edge-pool').hidden).toBe(false);
+    expect(ec.querySelector('.csl-edge-pool').hasAttribute('hidden')).toBe(false);
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 120, clientY: 320, bubbles: true }));
     expect(fc.style.left).toBe('20px');
@@ -440,7 +440,7 @@ describe('setupFloatingContainer — edge blob', () => {
     vi.advanceTimersByTime(10000 + 300);
     expect(fc.hasAttribute('data-edge-docked')).toBe(false);
     expect(ec.querySelector('.csl-edge-blob').hidden).toBe(true);
-    expect(ec.querySelector('.csl-edge-pool').hidden).toBe(true);
+    expect(ec.querySelector('.csl-edge-pool').hasAttribute('hidden')).toBe(true);
   });
 
   it('the blob tears off once pulled further than a button is high', () => {

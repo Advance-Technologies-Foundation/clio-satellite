@@ -18,7 +18,9 @@ import {
   bellHeight,
   colorLuminance,
   isDarkAt,
-  poolRectFor,
+  poolShapeFor,
+  poolHeight,
+  DOME_SHAPE,
 } from '../src/edgeBlob.js';
 
 const VW = 1280;
@@ -256,7 +258,7 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.blobEl.style.top).toBe(`${326 - 50}px`);
   });
 
-  it('dock() makes the blob splat out of the edge and fades the orange dot in', () => {
+  it('dock() slides the blob out of the edge and fades the orange dot in, without the drops of a splat', () => {
     const animated = [];
     Element.prototype.animate = function (keyframes) {
       animated.push({ el: this, keyframes });
@@ -264,15 +266,16 @@ describe('createEdgeBlob — the blob', () => {
     };
     try {
       const t = docked();
-      const bellEl = t.blobEl.querySelector('.csl-edge-bell');
       const dotEl = t.blobEl.querySelector('.csl-edge-dot');
       expect(t.blobEl.hidden).toBe(false);
-      expect(animated.find(x => x.el === bellEl)?.keyframes[0].transform).toBe('scaleY(.1) scaleX(.3)');
+      expect(animated.find(x => x.el === t.blobEl)?.keyframes[0].translate).toBe('-28px 0');
       expect(animated.find(x => x.el === dotEl)?.keyframes[0].opacity).toBe(0);
+      expect(animated.some(x => x.el.classList?.contains('csl-edge-drop'))).toBe(false);
     } finally {
       delete Element.prototype.animate;
     }
   });
+
 
   it('dock() on the right edge mirrors the blob', () => {
     const t = setup();
@@ -343,7 +346,7 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.blob.peeking).toBe(false);
     expect(t.blob.edge).toBe('left');
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(300);   // the pool shrinks back into the dome, then the blob takes its place
     expect(t.blobEl.hidden).toBe(false);
   });
 
@@ -379,7 +382,7 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
     expect(t.blob.peeking).toBe(false);
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(300);
     expect(t.blobEl.hidden).toBe(false);
     vi.advanceTimersByTime(PEEK_IDLE_MS);
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);   // the idle countdown was dropped
@@ -546,7 +549,7 @@ describe('createEdgeBlob — the orange dot flies between the blob and the icon'
     const t = withIcon();
     click(t);
     vi.advanceTimersByTime(PEEK_IDLE_MS);   // the countdown started with the peek
-    vi.advanceTimersByTime(1);   // the splat after the squash
+    vi.advanceTimersByTime(300);   // the pool shrinks back into the dome, the blob takes its place
     expect(t.icon.style.visibility).toBe('');   // the icon is shown again once its dot has left it
     expect(flyer(t)).not.toBeNull();
     expect(t.dot.style.visibility).toBe('hidden');
@@ -627,46 +630,60 @@ describe('the blob on a dark page', () => {
 });
 
 describe('the pool around the buttons out of the blob', () => {
-  it('poolRectFor runs from the screen edge to 6px past the far side of the buttons', () => {
+  it('poolShapeFor reaches from the screen edge to 6px past the far side of the buttons', () => {
     const box = { left: 8, top: 300, width: 50, height: 90 };
-    expect(poolRectFor('left', box, VW, VH)).toEqual({ left: 0, top: 294, width: 64, height: 102 });
-    expect(poolRectFor('right', { left: VW - 58, top: 300, width: 50, height: 90 }, VW, VH))
-      .toEqual({ left: VW - 64, top: 294, width: 64, height: 102 });
-    expect(poolRectFor('top', { left: 100, top: 8, width: 90, height: 50 }, VW, VH))
-      .toEqual({ left: 94, top: 0, width: 102, height: 64 });
+    expect(poolShapeFor('left', box, VW, VH)).toEqual({ c: 345, half: 51, depth: 64 });
+    expect(poolShapeFor('right', { left: VW - 58, top: 300, width: 50, height: 90 }, VW, VH)).toEqual({ c: 345, half: 51, depth: 64 });
+    expect(poolShapeFor('top', { left: 100, top: 8, width: 90, height: 50 }, VW, VH)).toEqual({ c: 145, half: 51, depth: 64 });
   });
 
-  it('a click on the blob shows the pool around the box onPeek returns; the pool sinks when the peek ends', () => {
-    const t = setup({ onPeek: vi.fn(() => ({ left: 8, top: 280, width: 50, height: 90 })) });
+  it('poolHeight is flat over the buttons, round at the ends and runs out along the edge', () => {
+    expect(poolHeight(0, 51, 64)).toBeCloseTo(64, 0);
+    expect(poolHeight(40, 51, 64)).toBeCloseTo(64, 0);
+    expect(poolHeight(51 + 2, 51, 64)).toBeLessThan(64);
+    expect(poolHeight(51 + 60, 51, 64)).toBeLessThan(1);
+    // half 0, depth 20 is the dome of the resting blob
+    expect(poolHeight(0, DOME_SHAPE.half, DOME_SHAPE.depth)).toBeCloseTo(bellHeight(0), 0);
+  });
+
+  function peekWith(options) {
+    const t = setup(options);
     t.blob.dock('left', 326);
     t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    const pool = t.root.querySelector('.csl-edge-pool');
-    expect(pool.hidden).toBe(false);
-    expect([pool.style.left, pool.style.top, pool.style.width, pool.style.height]).toEqual(['0px', '274px', '64px', '102px']);
+    return { ...t, pool: t.root.querySelector('.csl-edge-pool') };
+  }
+  const reach = path => Math.max(...path.match(/-?[\d.]+,-?[\d.]+/g).map(p => parseFloat(p)));
+
+  it('a click on the blob grows the pool out of the dome to the box onPeek returns; it shrinks back when the peek ends', () => {
+    const t = peekWith({ onPeek: vi.fn(() => ({ left: 8, top: 280, width: 50, height: 90 })) });
+    expect(t.pool.hasAttribute('hidden')).toBe(false);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeLessThan(25);   // starts as the dome
+    vi.advanceTimersByTime(400);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeCloseTo(64, 0);
     vi.advanceTimersByTime(PEEK_IDLE_MS);
-    expect(pool.hidden).toBe(true);
+    expect(t.pool.hasAttribute('hidden')).toBe(true);
+    expect(t.blobEl.hidden).toBe(false);
     t.controller.abort();
   });
 
   it('dragButtons stretches the pool, and tears it past the tear distance', () => {
     const onUndock = vi.fn(), onSnapBack = vi.fn();
     const box = { left: 8, top: 280, width: 50, height: 90 };
-    const t = setup({ onPeek: () => box, onUndock, onSnapBack });
-    t.blob.dock('left', 326);
-    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    const pool = t.root.querySelector('.csl-edge-pool');
+    const t = peekWith({ onPeek: () => box, onUndock, onSnapBack });
+    vi.advanceTimersByTime(400);
     expect(t.blob.dragButtons({ ...box, left: 8 + 30 })).toBe(false);
-    expect(pool.style.width).toBe(`${8 + 30 + 50 + 6}px`);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeCloseTo(8 + 30 + 50 + 6, 0);
     t.blob.releaseButtons();
     expect(onSnapBack).toHaveBeenCalledWith(box);
+    vi.advanceTimersByTime(450);
     expect(t.blob.dragButtons({ ...box, left: 8 + TEAR_DISTANCE + 1 })).toBe(true);
     expect(onUndock).toHaveBeenCalled();
     expect(t.blob.peeking).toBe(false);
     expect(t.blob.edge).toBeNull();
     expect(chrome.storage.local.remove).toHaveBeenCalled();
-    expect(pool.hidden).toBe(true);
+    vi.advanceTimersByTime(300);   // the torn pool runs back into the edge
+    expect(t.pool.hasAttribute('hidden')).toBe(true);
     // free buttons do not go back into a blob
     vi.advanceTimersByTime(PEEK_IDLE_MS * 2);
     expect(t.onPeekEnd).not.toHaveBeenCalled();

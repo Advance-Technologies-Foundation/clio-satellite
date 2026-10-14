@@ -7,7 +7,7 @@ import {
   loadAutoPosition,
   applyAutoPosition,
 } from './positionManager.js';
-import { createEdgeBlob, loadBlobState, buttonsPositionFor, TEAR_DISTANCE } from './edgeBlob.js';
+import { createEdgeBlob, loadBlobState, buttonsPositionFor, viewportWidth, viewportHeight, TEAR_DISTANCE } from './edgeBlob.js';
 import { hideMenuContainer } from './menuVisibility.js';
 
 // The mouse has to move this far before a press on the buttons counts as a drag, not a click
@@ -45,6 +45,9 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     opacity: 0;
     transition: opacity 0.3s ease;
   `;
+  // above the blob's pool (9996) and Creatio's fixed panels, under the blob (9998) and the menus (9999);
+  // inline !important beats the `z-index: 1000 !important` of the page stylesheets
+  floatingContainer.style.setProperty('z-index', '9997', 'important');
 
   let isDragging = false;
   let endDrag = null;
@@ -204,16 +207,18 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.removeAttribute('data-edge-docked');
       floatingContainer.setAttribute('data-edge-peek', edge);
       const box = visualBox();
-      const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
+      const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
       showButtonsAt(pos.x - box.offX, pos.y - box.offY);
       tearDistance();
       const peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
-      const vertical = edge === 'left' || edge === 'right';
-      // menus are placed from the button boxes, which the pop-in scales: wait for it to end
+      // the buttons are uncovered from the blob's side as the pool grows under them (300 ms, while the pool grows for 380 ms)
       const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
-      const pop = popIn({ left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' }[edge], vertical ? 'scale(.1,.5)' : 'scale(.5,.1)');
-      if (pop) pop.onfinish = shown;
+      const at = { left: '0% 50%', right: '100% 50%', top: '50% 0%', bottom: '50% 100%' }[edge];
+      const reveal = floatingContainer.animate?.(
+        [{ clipPath: `circle(0% at ${at})` }, { clipPath: `circle(150% at ${at})` }],
+        { duration: 300, easing: 'ease-out' });
+      if (reveal) reveal.onfinish = shown;
       else shown();
       return peekBox;
     },

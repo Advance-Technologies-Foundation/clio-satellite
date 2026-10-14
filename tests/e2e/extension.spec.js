@@ -361,6 +361,25 @@ test.describe('Edge blob', () => {
     await expect(blob).toHaveClass(dark ? /^(?!.*csl-edge-on-dark)/ : /csl-edge-on-dark/);
   });
 
+  test('a blob on the right edge stays above a fixed panel of the page', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.addInitScript(() => {
+      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
+    });
+    await page.goto(`${BASE}/shell/`);
+    await page.evaluate(() => {
+      const panel = document.createElement('div');
+      panel.style.cssText = 'position: fixed; right: 0; top: 0; width: 50px; height: 100vh; background: #1e2836; z-index: 5000;';
+      document.body.appendChild(panel);
+    });
+    await injectContentScript(page);
+    await expect(page.locator('.csl-edge-blob')).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(600);
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    const top = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.className, { x: hit.x + hit.width / 2, y: hit.y + hit.height / 2 });
+    expect(top).toBe('csl-edge-hit');
+  });
+
   test('buttons out of the blob sit in a dark pool; a short drag puts them back, a long one frees them for good', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
@@ -369,12 +388,14 @@ test.describe('Edge blob', () => {
     const pool = page.locator('.csl-edge-pool');
     await expect(pool).toBeVisible();
     await page.waitForTimeout(500);
-    const p = await pool.boundingBox();
+    const p = await pool.locator('path').boundingBox();
     const b = await page.locator('.creatio-satelite').boundingBox();
-    expect(p.x).toBe(0);
+    expect(p.x).toBeLessThanOrEqual(0);   // starts at the screen edge
     expect(p.x + p.width).toBeGreaterThanOrEqual(b.x + b.width);
     expect(p.y).toBeLessThan(b.y);
     expect(p.y + p.height).toBeGreaterThan(b.y + b.height);
+    // the buttons lie on the pool, not under it
+    expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('.creatio-satelite'), { x: b.x + b.width / 2, y: b.y + b.height / 2 })).toBe(true);
 
     // dragged less than a button is high: back into the pool, still docked
     const x = b.x + 10, y = b.y + 10;
@@ -543,7 +564,7 @@ test.describe('Edge blob', () => {
     expect(box.x + box.width / 2).toBeLessThan(550);
   });
 
-  test('the blob from the previous visit is restored with a splat', async ({ page }) => {
+  test('the blob from the previous visit slides out of the edge', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
       chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
@@ -551,14 +572,18 @@ test.describe('Edge blob', () => {
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);
 
-    // the blob splats out of the edge instead of popping up still (checked on the first frame it is shown)
+    // the blob slides out of the edge instead of popping up still, without the drops of a splat
+    // (checked on the first frame it is shown)
     const animated = await page.waitForFunction(() => {
       const blob = document.querySelector('.csl-edge-blob');
-      return blob && !blob.hidden && blob.querySelector('.csl-edge-bell').getAnimations().length;
+      if (!blob || blob.hidden) return 0;
+      const drops = [...blob.querySelectorAll('.csl-edge-drop')].some(d => d.getAnimations().length);
+      return drops ? -1 : blob.getAnimations().length;
     }, null, { polling: 'raf', timeout: 5000 });
     expect(await animated.jsonValue()).toBeGreaterThan(0);
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
+    await page.waitForTimeout(600);   // the slide is over
     const blob = await page.locator('.csl-edge-blob').boundingBox();
     expect(Math.round(blob.x + blob.width)).toBe(1280);
   });
