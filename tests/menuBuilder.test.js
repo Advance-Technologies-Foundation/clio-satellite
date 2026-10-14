@@ -145,6 +145,7 @@ describe('createScriptsMenu', () => {
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('click', { clientX: 5, clientY: 400, bubbles: true }));
+    vi.advanceTimersByTime(400);   // the menus open once the buttons are out of the blob
     expect(navMenu.classList.contains('visible')).toBe(true);
     expect(actMenu.classList.contains('visible')).toBe(true);
     expect(actMenu.querySelectorAll('[data-item-marker]').length).toBeGreaterThan(0);
@@ -153,7 +154,7 @@ describe('createScriptsMenu', () => {
   it('resting the mouse on the docked blob also opens both menus', () => {
     const { hit, navMenu, actMenu } = dockedMenu();
     hit.dispatchEvent(new MouseEvent('mouseenter'));
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000 + 400);
     expect(navMenu.classList.contains('visible')).toBe(true);
     expect(actMenu.classList.contains('visible')).toBe(true);
   });

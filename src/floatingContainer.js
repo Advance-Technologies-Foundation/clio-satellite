@@ -7,7 +7,7 @@ import {
   loadAutoPosition,
   applyAutoPosition,
 } from './positionManager.js';
-import { createEdgeBlob, loadBlobState, buttonsPositionFor, TEAR_DISTANCE } from './edgeBlob.js';
+import { createEdgeBlob, loadBlobState, buttonsPositionFor, viewportWidth, viewportHeight, TEAR_DISTANCE } from './edgeBlob.js';
 import { hideMenuContainer } from './menuVisibility.js';
 
 // The mouse has to move this far before a press on the buttons counts as a drag, not a click
@@ -45,6 +45,9 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     opacity: 0;
     transition: opacity 0.3s ease;
   `;
+  // above the blob's pool (9996) and Creatio's fixed panels, under the blob (9998) and the menus (9999);
+  // inline !important beats the `z-index: 1000 !important` of the page stylesheets
+  floatingContainer.style.setProperty('z-index', '9997', 'important');
 
   let isDragging = false;
   let endDrag = null;
@@ -72,12 +75,29 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     return { left, top, width: right - left, height: bottom - top, offX: left - c.left, offY: top - c.top };
   };
 
+  // The buttons themselves: the pool of the blob is drawn around them, not around the container,
+  // which the page stylesheets pad and which may lie elsewhere (the buttons are absolutely positioned)
+  const buttonsBox = () => {
+    const r = buttonWrapper.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: r.width, height: r.height };
+  };
+
+  // moves the container so that the buttons stand at (left, top)
+  const moveButtonsTo = (left, top) => {
+    const b = buttonsBox();
+    const c = floatingContainer.getBoundingClientRect();
+    showButtonsAt(c.left + left - b.left, c.top + top - b.top);
+  };
+
   const closeMenus = () => {
     document.querySelectorAll('.scripts-menu-container, .actions-menu-container').forEach(hideMenuContainer);
   };
 
-  // `moved: true` starts a drag that is already under way (the buttons torn off a blob)
+  // `moved: true` starts a drag that is already under way (the buttons torn off a blob).
+  // The buttons out of a docked blob (a peek) stay in their pool until dragged further than a button is high.
+  let peekDrag = false;
   const beginDrag = (clientX, clientY, { moved = false } = {}) => {
+    peekDrag = edgeBlob.peeking;
     const startX = clientX, startY = clientY;
     // a running pop-in scales the container: measured mid-animation, the buttons would jump
     floatingContainer.getAnimations?.().forEach(a => a.cancel());
@@ -101,6 +121,12 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.style.left = newX + 'px';
       floatingContainer.style.top = newY + 'px';
       floatingContainer.style.right = 'auto';
+      if (peekDrag) {
+        // the pool stretches after the buttons; torn, it lets them go (edgeBlob calls onUndock)
+        const b = buttonsBox();
+        edgeBlob.dragButtons(b.width ? b : { left: newX + box.offX, top: newY + box.offY, width: box.width, height: box.height });
+        return;
+      }
       // pushed far enough past an edge, the buttons turn into a blob (edgeBlob calls onBlob)
       edgeBlob.press(floatingContainer, { left: rawX + box.offX, top: rawY + box.offY, width: box.width, height: box.height }, e.clientX, e.clientY);
     };
@@ -120,6 +146,11 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       if (!wasDragging) return;   // a plain click on a button: leave its menu to the button
       suppressClick = true;
       setTimeout(() => { suppressClick = false; }, 0);   // no click follows when the mouse was released elsewhere
+      if (peekDrag) {   // not dragged out of the pool: the buttons go back, nothing is saved
+        peekDrag = false;
+        edgeBlob.releaseButtons();
+        return;
+      }
       floatingContainer.setAttribute('data-user-positioned', 'true');
       // the drag has set left/top; the box can still be scaled by the pop-in after a tear-off
       saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
@@ -141,8 +172,8 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
 
   floatingContainer.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
-    // buttons out of a docked blob stay where they are: only pulling the blob undocks them
-    if (edgeBlob.peeking) return;
+    // on their way back into the blob the buttons are no longer theirs to drag
+    if (edgeBlob.closing) return;
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       beginDrag(e.clientX, e.clientY);
       e.preventDefault();
@@ -179,6 +210,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
   const edgeBlob = createEdgeBlob({
     root: extensionContainer,
     container: floatingContainer,
+    buttons: () => buttonWrapper,
     pageType,
     signal: resizeAbortController.signal,
     tearDistance,
@@ -192,23 +224,45 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     onPeek: (edge, along) => {
       floatingContainer.removeAttribute('data-edge-docked');
       floatingContainer.setAttribute('data-edge-peek', edge);
-      floatingContainer.style.cursor = 'default';
-      const box = visualBox();
-      const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
+      // the buttons themselves, not the padded container, stand 8 px from the edge, centred on the blob;
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
-      showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+      let peekBox;
+      const b = buttonsBox();
+      if (b.width) {
+        const at = buttonsPositionFor(edge, along, b.width, b.height, viewportWidth(), viewportHeight());
+        moveButtonsTo(at.x, at.y);
+        peekBox = buttonsBox();
+      } else {   // the wrapper has no box (jsdom): place the container by its own box
+        const box = visualBox();
+        const pos = buttonsPositionFor(edge, along, box.width, box.height, viewportWidth(), viewportHeight());
+        showButtonsAt(pos.x - box.offX, pos.y - box.offY);
+        peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
+      }
       tearDistance();
-      const vertical = edge === 'left' || edge === 'right';
-      // menus are placed from the button boxes, which the pop-in scales: wait for it to end
+      // the buttons are uncovered from the spot of the blob as the pool grows under them
       const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
-      const pop = popIn({ left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' }[edge], vertical ? 'scale(.1,.5)' : 'scale(.5,.1)');
-      if (pop) pop.onfinish = shown;
+      const reveal = edgeBlob.uncoverButtons();
+      if (reveal) reveal.onfinish = shown;
       else shown();
+      return peekBox;
     },
     onPeekEnd: () => {
       closeMenus();
       floatingContainer.removeAttribute('data-edge-peek');
-      floatingContainer.style.cursor = 'move';
+    },
+    onUndock: () => {
+      peekDrag = false;
+      floatingContainer.removeAttribute('data-edge-peek');
+      floatingContainer.style.cursor = 'grabbing';
+    },
+    onSnapBack: (box) => {
+      // a snap-back still running would be measured as part of the position
+      floatingContainer.getAnimations?.().forEach(a => a.cancel());
+      const from = buttonWrapper.getBoundingClientRect().width ? buttonsBox() : visualBox();
+      const dx = from.left - box.left, dy = from.top - box.top;
+      const c = floatingContainer.getBoundingClientRect();
+      showButtonsAt(c.left - dx, c.top - dy);
+      floatingContainer.animate?.([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: 420, easing: 'cubic-bezier(.34,1.56,.64,1)' });
     },
     onTearOff: (clientX, clientY) => {
       floatingContainer.removeAttribute('data-edge-docked');

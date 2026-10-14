@@ -13,15 +13,23 @@ export const PEEK_HOVER_MS = 2000;
 export const PEEK_IDLE_MS = 10000;
 // Gap between the edge and the buttons that come out of the blob
 export const EDGE_GAP = 8;
+// How long the orange dot flies between the blob and the icon of the first button
+export const DOT_FLIGHT_MS = 420;
 
 export const EDGES = ['left', 'right', 'top', 'bottom'];
 const BLOB_W = 36;
-const BLOB_H = 54;
-const BLOB_SCALE = 0.45;   // the goo shapes are drawn in an 80x120 frame and scaled down to 36x54
+const BLOB_H = 100;
+const BLOB_SCALE = 0.45;   // the goo shapes are drawn in an 80x160 frame and scaled down to 36x72
+const GOO_TOP = (BLOB_H - 160 * BLOB_SCALE) / 2;   // the goo frame sits in the middle of the taller blob
 const ROT = { left: 0, top: 90, right: 180, bottom: -90 };
 const ORIGIN = { left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' };
 const STYLE_ID = 'csl-edge-blob-style';
+const BLOB_COLOR = '#151515';
 const FILTER_ID = 'csl-edge-blob-goo';
+
+// The viewport without its scrollbars: a blob on the right edge of a page with a scrollbar must not hide under it
+export const viewportWidth = () => document.documentElement?.clientWidth || window.innerWidth;
+export const viewportHeight = () => document.documentElement?.clientHeight || window.innerHeight;
 
 export function isVertical(edge) {
   return edge === 'left' || edge === 'right';
@@ -65,6 +73,9 @@ export function buttonsPositionFor(edge, along, width, height, vw, vh, gap = EDG
   return { x, y: vh - height - gap };
 }
 
+// Space (px) between the buttons and the outline of the pool around them
+export const POOL_PAD = 6;
+
 // ─── Persistence ─────────────────────────────────────────────────────────────
 // Stored per page type and origin, like the drag position. `along` is a fraction of the
 // edge length, so the blob stays on the same spot after the window is resized.
@@ -104,29 +115,44 @@ export function clearBlobState(pageType) {
 const CSS = `
 .creatio-satelite-floating[data-edge-docked] { display: none !important; }
 .csl-edge-wet, .csl-edge-blob { position: fixed; width: ${BLOB_W}px; height: ${BLOB_H}px; pointer-events: none; }
-.csl-edge-wet { z-index: 1001; opacity: .9; }
-.csl-edge-blob { z-index: 1000; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+.csl-edge-wet { z-index: 9998; opacity: .9; }
+.csl-edge-blob { z-index: 9998; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
 .csl-edge-wet[hidden], .csl-edge-blob[hidden] { display: none; }
 .csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
-.csl-edge-scale { position: absolute; left: 0; top: 0; width: 80px; height: 120px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
+.csl-edge-scale { position: absolute; left: 0; top: ${GOO_TOP}px; width: 80px; height: 160px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
-.csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
-.csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
-/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a shallow dome (core). */
-.csl-edge-base { left: 0; top: 50px; width: 44px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
-.csl-edge-wet .csl-edge-base { top: 40px; width: 46px; height: 80px; }
-.csl-edge-core { left: 16px; top: 54px; width: 34px; height: 52px; border-radius: 50%; }
+.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }
+.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }
+/* Layers: pool 9996 < buttons 9997 < blob 9998 < menus 9999 < flying dot 10000, high enough for Creatio's
+   own fixed panels along the edges not to cover the blob.
+   The pool the buttons sit in while they are out of the blob is one viewport-sized SVG; only the shape
+   itself takes the mouse */
+.csl-edge-pool { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9996; pointer-events: none; overflow: visible; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+.csl-edge-pool path { pointer-events: auto; }
+/* shrinking back into the blob or the edge: clicks go through to the page */
+.csl-edge-pool[data-closing] path { pointer-events: none; }
+.csl-edge-pool[hidden] { display: none; }
+/* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
+   the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
+   draw such tails (its threshold eats thin parts), so the goo shapes stay inside the bell until the blob is
+   pulled and only then make the neck and the core that follows the mouse.
+   Goo frame: the screen edge is x = 20, the middle of the blob y = 100. */
+.csl-edge-bell { position: absolute; left: 0; top: 0; width: ${BLOB_W}px; height: ${BLOB_H}px; overflow: visible; transform-origin: 0 50%; }
+.csl-edge-base { left: 0; top: 70px; width: 30px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
+.csl-edge-wet .csl-edge-base { top: 50px; width: 40px; height: 100px; }
+.csl-edge-core { left: -15px; top: 85px; width: 70px; height: 30px; border-radius: 50%; }
 .csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
-.csl-edge-d1 { left: 6px; top: 42px; }
-.csl-edge-d2 { left: 6px; top: 102px; }
-.csl-edge-shine { position: absolute; left: 4px; top: 17px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
+.csl-edge-d1 { left: 6px; top: 56px; }
+.csl-edge-d2 { left: 6px; top: 128px; }
 /* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
-.csl-edge-hit { position: absolute; left: 0; top: 11px; width: 20px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
-/* Orange button in the middle of the mound: core centre goo (33,80) -> blob (5.9, 27) */
-.csl-edge-dot { position: absolute; left: 3.4px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-hit { position: absolute; left: 0; top: ${BLOB_H / 2 - 18}px; width: 24px; height: 36px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+/* Orange button in the middle of the dome */
+.csl-edge-dot { position: absolute; left: 8.5px; top: ${BLOB_H / 2 - 2.5}px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
 /* While the mouse rests on the blob the ring grows until the buttons come out */
 .csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
+/* The orange dot on its way between the blob and the icon of the first button */
+.csl-edge-flydot { position: fixed; z-index: 10000; border-radius: 50%; background: #ff5722; pointer-events: none; }
 `;
 
 function ensureStyles() {
@@ -144,10 +170,104 @@ function div(className, parent) {
   return el;
 }
 
+// How far (px) the resting blob stands out from the edge at `d` px from its middle.
+// A round dome (circle of radius DOME_R whose centre is DOME_C px from the edge) on a long thin gaussian
+// skirt, merged with a smooth union of their distance fields: the dome stays round on top and flows into
+// the skirt through concave fillets, and the skirt runs out along the edge without a corner.
+const DOME_R = 13, DOME_C = 7, DOME_FILLET = 12;
+const skirt = d => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
+function bellField(x, d) {
+  const a = Math.hypot(x - DOME_C, d) - DOME_R;
+  const b = x - skirt(d);
+  const h = Math.max(DOME_FILLET - Math.abs(a - b), 0) / DOME_FILLET;
+  return Math.min(a, b) - h * h * DOME_FILLET / 4;
+}
+export function bellHeight(d) {
+  if (bellField(0, d) > 0) return 0;
+  let lo = 0, hi = 40;   // the field grows away from the edge: find where it crosses zero
+  for (let i = 0; i < 30; i++) {
+    const m = (lo + hi) / 2;
+    if (bellField(m, d) <= 0) lo = m; else hi = m;
+  }
+  return lo;
+}
+
+// How far (px) the pool stands out from the edge at `d` px from its middle (left-edge frame).
+// The same build as the bell: a box `depth` px deep and 2*half px long along the edge, rounded by POOL_R
+// on the far side, merged with a thin skirt by a smooth union, so it flows into the edge like the resting
+// blob. With half = 0 and depth = 20 it is the dome of the bell, so the pool can grow out of the blob.
+export const POOL_R = 13;
+const POOL_FILLET = 12;
+function poolField(x, d, half, depth) {
+  const hx = (depth + POOL_R) / 2, cx = (depth - POOL_R) / 2;
+  const qx = Math.abs(x - cx) - Math.max(hx - POOL_R, 0);
+  const qy = Math.abs(d) - Math.max(half - POOL_R, 0);
+  const a = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - POOL_R;
+  const out = Math.max(0, Math.abs(d) - half);
+  const b = x - 3 * Math.exp(-(out * out) / (2 * 22 * 22));
+  const h = Math.max(POOL_FILLET - Math.abs(a - b), 0) / POOL_FILLET;
+  return Math.min(a, b) - h * h * POOL_FILLET / 4;
+}
+export function poolHeight(d, half, depth) {
+  if (poolField(0, d, half, depth) > 0) return 0;
+  let lo = 0, hi = depth + 20;
+  for (let i = 0; i < 24; i++) {
+    const m = (lo + hi) / 2;
+    if (poolField(m, d, half, depth) <= 0) lo = m; else hi = m;
+  }
+  return lo;
+}
+
+// The dome of the resting blob as a pool shape
+export const DOME_SHAPE = { half: 0, depth: 20 };
+
+// Pool shape around the box of the buttons: centre along the edge, half length and depth
+export function poolShapeFor(edge, box, vw, vh, pad = POOL_PAD) {
+  if (isVertical(edge)) {
+    const depth = edge === 'left' ? box.left + box.width + pad : vw - box.left + pad;
+    return { c: box.top + box.height / 2, half: box.height / 2 + pad, depth };
+  }
+  const depth = edge === 'top' ? box.top + box.height + pad : vh - box.top + pad;
+  return { c: box.left + box.width / 2, half: box.width / 2 + pad, depth };
+}
+
+// SVG path of a pool shape on the screen
+export function poolPath(edge, shape, vw, vh) {
+  const reach = shape.half + 90;
+  const pts = [];
+  for (let d = -reach; d <= reach; d += 2) {
+    const h = poolHeight(d, shape.half, shape.depth);
+    const a = shape.c + d;
+    const p = { left: [h, a], right: [vw - h, a], top: [a, h], bottom: [a, vh - h] }[edge];
+    pts.push(`${p[0].toFixed(1)},${p[1].toFixed(1)}`);
+  }
+  const s = shape.c - reach, e = shape.c + reach;
+  const ends = { left: [[-4, e], [-4, s]], right: [[vw + 4, e], [vw + 4, s]], top: [[e, -4], [s, -4]], bottom: [[e, vh + 4], [s, vh + 4]] }[edge];
+  return `M${pts.join(' L')} L${ends[0].join(',')} L${ends[1].join(',')} Z`;
+}
+
+function bellPath() {
+  const pts = [];
+  for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
+  return `M-4,0 L${pts.join(' L')} L-4,${BLOB_H} Z`;
+}
+
+function bell(parent) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'csl-edge-bell');
+  svg.setAttribute('viewBox', `0 0 ${BLOB_W} ${BLOB_H}`);
+  svg.innerHTML = `<path d="${bellPath()}"/>`;
+  parent.appendChild(svg);
+  return svg;
+}
+
 function gooShapes(parent, withCore) {
+  const bellEl = withCore ? bell(parent) : null;
   const scale = div('csl-edge-scale', parent);
   const goo = div('csl-edge-goo', scale);
   const parts = { base: div('csl-edge-base', goo) };
+  if (bellEl) parts.bell = bellEl;
   if (withCore) parts.core = div('csl-edge-core', goo);
   parts.d1 = div('csl-edge-drop csl-edge-d1', goo);
   parts.d2 = div('csl-edge-drop csl-edge-d2', goo);
@@ -196,16 +316,23 @@ function cancelAnimations(el) {
  * Options:
  *  container                 - the floating buttons, squashed back into the blob when a peek ends
  *  tearDistance()            - how far (px) the blob has to be pulled away from the edge to tear off
+ *  iconDot()                 - the orange dot on the icon of the first button; the blob's dot flies into it
+ *  buttons()                 - the element that holds the buttons (clipped while they go back into the blob)
  * Callbacks:
  *  onBlob()                  - buttons became a blob: stop the drag, hide the buttons
- *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile
+ *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile; returns the box
+ *                              of the buttons ({ left, top, width, height }), around which the dark pool is drawn
  *  onPeekEnd()               - the buttons go back into the blob: close their menus
  *  onTearOff(clientX, clientY) - the blob was pulled off the edge: show the buttons under the cursor and keep dragging
+ *  onUndock()                - the buttons out of the blob were dragged out of their pool: they stay free, the drag goes on
+ *  onSnapBack(box)           - the buttons were dragged less than a button height and let go: put them back at `box`
  */
 export function createEdgeBlob({
   root, container, pageType, signal,
   tearDistance = () => TEAR_DISTANCE,
-  onBlob, onPeek, onPeekEnd, onTearOff,
+  iconDot = () => container?.querySelector('.csl-icon-dot'),
+  buttons = () => container?.firstElementChild || container,
+  onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack,
 }) {
   ensureStyles();
 
@@ -214,7 +341,6 @@ export function createEdgeBlob({
   wet.hidden = true;
   const wetGrow = div('csl-edge-wet-grow', wet);
   gooShapes(wetGrow, false);
-  div('csl-edge-shine', wetGrow);
 
   const blob = div('csl-edge-blob');
   blob.hidden = true;
@@ -223,7 +349,15 @@ export function createEdgeBlob({
   const dot = div('csl-edge-dot', blob);
   hit.title = 'Clio satellite';
 
-  root.append(svg, wet, blob);
+  // while the buttons are out of the blob they sit in this pool grown out of it, so it is clear they go back into it
+  const pool = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  pool.setAttribute('class', 'csl-edge-pool');
+  pool.innerHTML = '<path/>';
+  // an SVG element has no `hidden` property: the attribute is used
+  pool.setAttribute('hidden', '');
+  const poolShapeEl = pool.firstChild;
+
+  root.append(svg, wet, pool, blob);
 
   let edge = null;
   let along = 0;
@@ -236,9 +370,17 @@ export function createEdgeBlob({
   let idleTimer = null;
   let pointerOnButtons = false;
   let blobGen = 0;            // bumped whenever the blob is shown or hidden: stale animation ends are ignored
+  let flight = null;          // the orange dot flying between the blob and the icon
+  let iconDotFrom = null;     // where the icon dot was when the buttons started squashing into the blob
+  let peekBox = null;         // where the buttons stand while they are out of the blob
+  let dragBox = null;         // where they are being dragged to, while still in the pool
+  let poolGen = 0;            // bumped whenever the pool starts changing: stale animation frames are ignored
+  let poolShape = null;       // { c, half, depth } of the pool now on screen
+  let closing = false;        // the pool is carrying the buttons back into the blob
+  let poolEdge = null;        // the edge the pool stands on (kept while it snaps back after the blob is gone)
 
-  const vw = () => window.innerWidth;
-  const vh = () => window.innerHeight;
+  const vw = viewportWidth;
+  const vh = viewportHeight;
 
   function placeOnEdge(el, ed, a) {
     const half = BLOB_W / 2;
@@ -260,6 +402,54 @@ export function createEdgeBlob({
   function resetParts() {
     for (const el of Object.values(parts)) el.style.transform = '';
     dot.style.translate = '';
+  }
+
+  // ── the orange dot flies between the blob and the icon of the first button ──
+  const centre = r => (r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width } : null);
+
+  // where the orange dot of the blob is (or will be), measured without the blob being shown
+  function domeDot() {
+    const k = 11;   // centre of the dot from the edge
+    const p = { left: [k, along], right: [vw() - k, along], top: [along, k], bottom: [along, vh() - k] }[edge];
+    const rect = { left: p[0] - 2.5, top: p[1] - 2.5, width: 5, height: 5 };
+    return { style: {}, getBoundingClientRect: () => rect };
+  }
+
+  function stopFlight() {
+    if (!flight) return;
+    cancelAnimationFrame(flight.frame);
+    flight.el.remove();
+    for (const el of flight.hide) el.style.visibility = '';
+    flight = null;
+  }
+
+  // `from` is a box, `to()` returns the target element: it is measured on every frame,
+  // so the dot follows the buttons while they pop in or are dragged
+  function flyDot(from, to) {
+    stopFlight();
+    const a = centre(from);
+    const target = to();
+    if (!a || !target || typeof requestAnimationFrame !== 'function') return;
+    const el = div('csl-edge-flydot', root);
+    const hide = [dot, target].filter(h => h instanceof Element);
+    for (const h of hide) h.style.visibility = 'hidden';
+    flight = { el, hide, frame: 0 };
+    let start = null;
+    const step = (now) => {
+      start ??= now;
+      const t = Math.min(1, (now - start) / DOT_FLIGHT_MS);
+      const b = centre(to()?.getBoundingClientRect()) || a;
+      const e = 1 - Math.pow(1 - t, 3);   // ease-out
+      // a small hop sideways makes the path an arc instead of a straight line
+      const hop = Math.sin(Math.PI * t) * Math.min(40, Math.hypot(b.x - a.x, b.y - a.y) * 0.15);
+      const d = a.d + (b.d - a.d) * e;
+      el.style.width = el.style.height = d + 'px';
+      el.style.left = (a.x + (b.x - a.x) * e - d / 2) + 'px';
+      el.style.top = (a.y + (b.y - a.y) * e - d / 2 - hop) + 'px';
+      if (t < 1) flight.frame = requestAnimationFrame(step);
+      else stopFlight();
+    };
+    flight.frame = requestAnimationFrame(step);
   }
 
   // ── wet spot ──
@@ -298,6 +488,17 @@ export function createEdgeBlob({
 
   // the buttons squash into the edge, the blob splats out of the wet spot
   function squashInto(el, ed) {
+    const squashed = squashButtons(el, ed);
+    clearTimeout(splatTimer);
+    splatTimer = setTimeout(splat, squashed ? 90 : 0);
+  }
+
+  // the buttons squash into the edge and hide; returns whether they are animated
+  function squashButtons(el, ed) {
+    stopFlight();
+    const icon = iconDot();
+    iconDotFrom = icon?.getBoundingClientRect() ?? null;
+    if (iconDotFrom?.width) icon.style.visibility = 'hidden';
     el.style.transformOrigin = ORIGIN[ed];
     const end = isVertical(ed) ? 'scale(.05,.4)' : 'scale(.4,.05)';
     const mid = isVertical(ed) ? 'scale(.55,1.15)' : 'scale(1.15,.55)';
@@ -311,8 +512,7 @@ export function createEdgeBlob({
       if (gen === blobGen && edge === ed && !peeking) el.setAttribute('data-edge-docked', edge);
     });
     if (!squash) el.setAttribute('data-edge-docked', edge);
-    clearTimeout(splatTimer);
-    splatTimer = setTimeout(splat, squash ? 90 : 0);
+    return !!squash;
   }
 
   function splat() {
@@ -321,16 +521,28 @@ export function createEdgeBlob({
     cancelAnimations(wet);
     wet.hidden = true;
     const ease = 'cubic-bezier(.2,1.6,.4,1)';
-    animate(parts.base, [{ transform: 'scaleY(.1) scaleX(.3)' }, { transform: 'scaleY(1.5) scaleX(1.1)', offset: 0.45 }, { transform: 'scaleY(1)' }], { duration: 520, easing: 'ease-out' });
+    for (const el of [parts.base, parts.bell]) {
+      animate(el, [{ transform: 'scaleY(.1) scaleX(.3)' }, { transform: 'scaleY(1.15) scaleX(1.1)', offset: 0.45 }, { transform: 'scaleY(1)' }], { duration: 520, easing: 'ease-out' });
+    }
     animate(parts.core, [{ transform: 'translateX(-30px) scale(.2)' }, { transform: 'translateX(6px) scale(1.25, .85)', offset: 0.5 }, { transform: 'translateX(0) scale(1)' }], { duration: 560, easing: ease });
     animate(parts.d1, [{ transform: 'translate(-10px, 20px) scale(.2)' }, { transform: 'translate(20px,-26px) scale(1.2)', offset: 0.4 }, { transform: 'translate(0,0) scale(1)' }], { duration: 700, easing: 'ease-out' });
     animate(parts.d2, [{ transform: 'translate(-10px,-20px) scale(.2)' }, { transform: 'translate(24px,30px) scale(1.1)', offset: 0.4 }, { transform: 'translate(0,0) scale(1)' }], { duration: 760, easing: 'ease-out' });
-    animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: 'backwards' });
+    const from = iconDotFrom;
+    iconDotFrom = null;
+    const icon = iconDot();
+    if (icon) icon.style.visibility = '';
+    if (from?.width && icon) flyDot(from, () => dot);
+    else animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 260, fill: 'backwards' });
   }
 
   // ── blob -> buttons ──
-  function hideBlob(keyframes) {
+  // `keyframes(full)` animates the blob out; null hides it at once
+  function hideBlob(keyframes, duration = 260) {
     clearTimeout(splatTimer);
+    // the splat that would fly the icon dot back into the blob will not run: show the icon dot again
+    iconDotFrom = null;
+    const icon = iconDot();
+    if (icon) icon.style.visibility = '';
     clearHover();
     const gen = ++blobGen;
     const full = blob.style.transform;
@@ -339,7 +551,8 @@ export function createEdgeBlob({
       blob.hidden = true;
       resetParts();
     };
-    if (!animate(blob, keyframes(full), { duration: 260, easing: 'ease-in' }, done)) done();
+    cancelAnimations(blob);
+    if (!keyframes || !animate(blob, keyframes(full), { duration, easing: 'ease-in' }, done)) done();
   }
 
   function clearHover() {
@@ -348,21 +561,133 @@ export function createEdgeBlob({
     blob.classList.remove('csl-edge-charging');
   }
 
-  // The buttons come out next to the edge for a while; the blob stays docked
+  // ── the pool ──
+  function drawPool(shape) {
+    poolShape = shape;
+    poolShapeEl.setAttribute('d', poolPath(poolEdge, shape, vw(), vh()));
+    if (clipped) clipToPool(shape);
+  }
+
+  const mix = (a, b, t) => a + (b - a) * t;
+  const easeOutBack = t => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
+  const easeIn = t => t * t;
+
+  // Morphs the pool from one shape into another frame by frame (the path is rebuilt on each frame)
+  function morphPool(from, to, duration, ease, done) {
+    const gen = ++poolGen;
+    if (typeof requestAnimationFrame !== 'function') {
+      drawPool(to);
+      done?.();
+      return;
+    }
+    let start = null;
+    const step = (now) => {
+      if (gen !== poolGen) return;
+      start ??= now;
+      const t = Math.min(1, (now - start) / duration);
+      const k = ease(t);
+      drawPool({ c: mix(from.c, to.c, k), half: Math.max(0, mix(from.half, to.half, k)), depth: Math.max(0, mix(from.depth, to.depth, k)) });
+      if (t < 1) requestAnimationFrame(step);
+      else done?.();
+    };
+    requestAnimationFrame(step);
+  }
+
+  const domeShape = () => ({ c: along, ...DOME_SHAPE });
+
+  // the pool grows out of the dome of the blob to the buttons
+  function showPool(box) {
+    poolEdge = edge;
+    const from = domeShape();
+    drawPool(from);
+    pool.removeAttribute('data-closing');
+    pool.removeAttribute('hidden');
+    morphPool(from, poolShapeFor(edge, box, vw(), vh()), 380, easeOutBack, () => {
+      const reveal = clipped?.reveal;
+      stopClip();
+      reveal?.onfinish?.();
+    });
+  }
+
+  function hidePool() {
+    ++poolGen;
+    stopClip();
+    pool.setAttribute('hidden', '');
+    poolShape = null;
+  }
+
+  // The buttons come out next to the edge for a while, in a pool grown out of the blob; the blob stays docked
   function peek() {
     clearHover();
     if (!edge || peeking) return;
     peeking = true;
     pointerOnButtons = false;
-    // the blob swells for a moment and is absorbed by the edge
-    hideBlob(full => [
-      { transform: full, opacity: 1 },
-      { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
-      { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 },
-    ]);
-    onPeek(edge, along);
+    const from = dot.getBoundingClientRect();
+    // the pool starts as the dome of the blob, so the blob is swapped for it at once
+    hideBlob(null);
+    peekBox = onPeek(edge, along) || container?.getBoundingClientRect() || null;
+    if (peekBox) showPool(peekBox);
+    else stopClip();   // no pool to come out with: show the buttons whole
+    flyDot(from, iconDot);
     armIdle();
     debugLog('Buttons came out of the blob');
+  }
+
+  // The buttons out of the blob are dragged to `box`: the pool stretches after them; dragged further from the
+  // edge than a button is high, the pool tears and the buttons are free for good
+  function dragButtons(box) {
+    if (!peeking || !peekBox) return false;
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
+    if (away <= tearDistance()) {
+      ++poolGen;   // the growing animation must not pull the pool back
+      // dragged before they were fully out: show them whole, but do not report them shown (that opens the menus)
+      stopClip();
+      dragBox = box;
+      drawPool(poolShapeFor(edge, box, vw(), vh()));
+      return false;
+    }
+    undock();
+    return true;
+  }
+
+  function undock() {
+    stopClip();   // torn during the reveal: the free buttons must not follow the retreating pool
+    dragBox = null;
+    peeking = false;
+    pointerOnButtons = false;
+    edge = null;
+    peekBox = null;
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    clearBlobState(pageType);
+    // the torn pool runs back into the edge
+    pool.setAttribute('data-closing', '');
+    if (poolShape) morphPool(poolShape, { c: poolShape.c, half: 0, depth: 0 }, 220, easeIn, hidePool);
+    else hidePool();
+    onUndock?.();
+    debugLog('Buttons dragged out of the blob');
+  }
+
+  // The drag ended before the pool tore: the buttons and the pool go back
+  // Moved along the edge, they stay there and the blob moves with them; moved away from it, they go back.
+  function releaseButtons() {
+    if (!peeking || !peekBox) return;
+    const box = { ...peekBox };
+    if (dragBox) {
+      if (isVertical(edge)) box.top = clamp(dragBox.top, 8, vh() - box.height - 8);
+      else box.left = clamp(dragBox.left, 8, vw() - box.width - 8);
+    }
+    dragBox = null;
+    if (box.top !== peekBox.top || box.left !== peekBox.left) {
+      peekBox = box;
+      along = clampAlong(edge, isVertical(edge) ? box.top + box.height / 2 : box.left + box.width / 2, vw(), vh());
+      saveBlobState(pageType, edge, along);
+    }
+    if (poolShape) morphPool(poolShape, poolShapeFor(edge, peekBox, vw(), vh()), 420, easeOutBack);
+    onSnapBack?.(peekBox);
+    armIdle();
   }
 
   // Counts the idle time down only while the mouse is off the buttons and their menus
@@ -378,11 +703,84 @@ export function createEdgeBlob({
     peeking = false;
     pointerOnButtons = false;
     onPeekEnd?.();
-    squashInto(container, edge);
+    peekBox = null;
+    const ed = edge;
+    // the dot flies from the icon into the dome while the pool carries the buttons back into the blob
+    stopFlight();
+    iconDotFrom = null;
+    const icon = iconDot();
+    const from = icon?.getBoundingClientRect();
+    if (from?.width && typeof requestAnimationFrame === 'function') flyDot(from, domeDot);
+    const gen = ++blobGen;
+    closing = true;
+    const covered = poolShape && !pool.hasAttribute('hidden') && startClip();
+    if (!covered) container.setAttribute('data-edge-docked', ed);
+    const back = () => {
+      closing = false;
+      hidePool();
+      if (gen !== blobGen || edge !== ed || peeking) return;
+      container.setAttribute('data-edge-docked', ed);
+      // the pool is the dome again: the blob takes its place
+      placeBlob();
+      resetParts();
+      blob.hidden = false;
+    };
+    pool.setAttribute('data-closing', '');
+    if (poolShape && !pool.hasAttribute('hidden')) morphPool(poolShape, domeShape(), 300, easeIn, back);
+    else back();
     debugLog('Buttons went back into the blob');
   }
 
+  // While the pool grows or shrinks the buttons are clipped to it, so they come out of the blob and go back
+  // into it together with the pool, from the side of the edge
+  let clipped = null;         // { el, reveal } while the buttons follow the pool
+  function clipToPool(shape) {
+    const el = clipped?.el;
+    const r = el?.getBoundingClientRect();
+    if (!r?.width) return;
+    const lo = shape.c - shape.half + POOL_PAD, hi = shape.c + shape.half - POOL_PAD, reach = shape.depth - POOL_PAD;
+    // the part of the buttons inside the pool: along the edge between its ends, away from it up to its depth
+    let top = 0, right = 0, bottom = 0, left = 0;
+    if (isVertical(poolEdge)) {
+      top = lo - r.top;
+      bottom = r.bottom - hi;
+      if (poolEdge === 'left') right = r.right - reach;
+      else left = (vw() - reach) - r.left;
+    } else {
+      left = lo - r.left;
+      right = r.right - hi;
+      if (poolEdge === 'top') bottom = r.bottom - reach;
+      else top = (vh() - reach) - r.top;
+    }
+    const px = v => `${Math.max(0, v).toFixed(1)}px`;
+    el.style.clipPath = `inset(${px(top)} ${px(right)} ${px(bottom)} ${px(left)} round 8px)`;
+  }
+
+  function startClip() {
+    const el = buttons();
+    if (!el || typeof requestAnimationFrame !== 'function') return null;
+    clipped = { el, reveal: { onfinish: null } };
+    return clipped;
+  }
+
+  function stopClip() {
+    if (clipped) clipped.el.style.clipPath = '';
+    clipped = null;
+  }
+
+  // The buttons are uncovered as the pool grows under them; the returned handle's onfinish runs when they are
+  // fully out (null when there is nothing to animate: they are shown at once)
+  function uncoverButtons() {
+    const c = startClip();
+    if (!c) return null;
+    poolEdge = edge;
+    clipToPool(domeShape());
+    return c.reveal;
+  }
+
+
   function tearOff(clientX, clientY) {
+    const from = dot.getBoundingClientRect();
     pull = null;
     edge = null;
     blob.classList.remove('csl-edge-charging');
@@ -390,6 +788,7 @@ export function createEdgeBlob({
     resetParts();
     hideBlob(full => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
     onTearOff(clientX, clientY);
+    flyDot(from, iconDot);
     debugLog('Blob torn off the edge');
   }
 
@@ -451,7 +850,7 @@ export function createEdgeBlob({
       // pushed into the edge: the blob flattens
       const push = Math.min(30, -lx) / 30;
       parts.core.style.transform = `translateX(${-push * 8}px) scale(${1 - push * 0.25}, ${1 + push * 0.18})`;
-      parts.base.style.transform = `scaleY(${1 + push * 0.3})`;
+      parts.base.style.transform = parts.bell.style.transform = `scaleY(${1 + push * 0.3})`;
       parts.d1.style.transform = parts.d2.style.transform = dot.style.translate = '';
       return;
     }
@@ -462,12 +861,14 @@ export function createEdgeBlob({
     // the dot lives inside the rotated blob: local x points away from the edge
     dot.style.translate = `${lx}px 0px`;
     // the drops become the neck between the edge and the core; it thins as it stretches
-    // (goo frame: base anchor (20,80), core centre (33,80), drop centres d1 (14,50) and d2 (14,110))
+    // (goo frame: base anchor (20,100), core centre (20,100), drop centres d1 (14,64) and d2 (14,136))
     const neck = (t, x0, y0, grow) =>
-      `translate(${20 + (13 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
-    parts.d1.style.transform = neck(0.36, 14, 50, 2.4);
-    parts.d2.style.transform = neck(0.7, 14, 110, 2.2);
+      `translate(${20 + L * t - x0}px, ${100 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
+    parts.d1.style.transform = neck(0.36, 14, 64, 2.4);
+    parts.d2.style.transform = neck(0.7, 14, 136, 2.2);
     parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
+    // the skirt is pulled together towards the neck
+    parts.bell.style.transform = `scaleY(${1 - k * 0.3})`;
     if (lx > tear) tearOff(e.clientX, e.clientY);
   }, { signal });
 
@@ -485,6 +886,9 @@ export function createEdgeBlob({
   }, { signal });
 
   window.addEventListener('resize', () => {
+    // the buttons and the pool stand at viewport coordinates of the old size: send them back into the blob,
+    // which is placed for the new size (not while they are being dragged)
+    if (peeking && !dragBox) endPeek();
     if (!edge || peeking) return;
     along = clampAlong(edge, along, vw(), vh());
     placeBlob();
@@ -495,14 +899,24 @@ export function createEdgeBlob({
     clearHover();
     clearTimeout(splatTimer);
     clearTimeout(idleTimer);
+    stopFlight();
+    ++poolGen;   // a running morph stops at its next frame
+    ++blobGen;
+    stopClip();
     svg.remove();
     wet.remove();
     blob.remove();
+    pool.remove();
   });
 
   return {
     get edge() { return edge; },
     get peeking() { return peeking; },
+    // the buttons are on their way back into the blob: they cannot be dragged meanwhile
+    get closing() { return closing; },
+    dragButtons,
+    releaseButtons,
+    uncoverButtons,
 
     // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
     // where the drag would put it without clamping it to the viewport.
@@ -542,13 +956,20 @@ export function createEdgeBlob({
       dryWet();
     },
 
-    // Shows the blob at once, without animation (restoring the state saved on a previous visit)
+    // Restores the blob saved on a previous visit: it slides out of the edge with a small overshoot and the
+    // orange dot fades in. Simpler than the splat of a new blob (no drops): the page is still loading.
     dock(ed, a) {
       blobGen++;
+      clearTimeout(splatTimer);
+      iconDotFrom = null;
       edge = ed;
       along = clampAlong(ed, a, vw(), vh());
       placeBlob();
+      resetParts();
       blob.hidden = false;
+      const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
+      animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
+      animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
     },
   };
 }

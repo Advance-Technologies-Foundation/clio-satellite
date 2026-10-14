@@ -373,53 +373,105 @@ describe('setupFloatingContainer — edge blob', () => {
     ec.appendChild(menu);
     clickBlob(ec);
     vi.advanceTimersByTime(PEEK_IDLE_MS);
-    expect(fc.getAttribute('data-edge-docked')).toBe('left');
     expect(fc.hasAttribute('data-edge-peek')).toBe(false);
     expect(menu.classList.contains('visible')).toBe(false);
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(400);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
     expect(ec.querySelector('.csl-edge-blob').hidden).toBe(false);
   });
 
-  it('reports the buttons shown once they finished popping in out of the blob', () => {
+  it('reports the buttons shown once they are uncovered out of the blob', () => {
     const ec = makeExtension();
     const onPeekShown = vi.fn();
-    const fc = setupFloatingContainer('shell', makeWrapper(), ec, { onPeekShown });
+    const wrapper = makeWrapper();
+    const fc = setupFloatingContainer('shell', wrapper, ec, { onPeekShown });
     fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    const pop = { onfinish: null };
-    fc.animate = () => pop;
     clickBlob(ec);
-    expect(onPeekShown).not.toHaveBeenCalled();   // the button boxes are still scaled
-    pop.onfinish();
+    expect(onPeekShown).not.toHaveBeenCalled();   // the buttons are still coming out with the pool
+    vi.advanceTimersByTime(400);
     expect(onPeekShown).toHaveBeenCalledTimes(1);
   });
 
-  it('does not report the buttons shown when they went back into the blob during the pop-in', () => {
+  it('does not report the buttons shown when they went back into the blob while being uncovered', () => {
     const ec = makeExtension();
     const onPeekShown = vi.fn();
-    const fc = setupFloatingContainer('shell', makeWrapper(), ec, { onPeekShown });
+    const wrapper = makeWrapper();
+    const fc = setupFloatingContainer('shell', wrapper, ec, { onPeekShown });
     fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    const pop = { onfinish: null };
-    fc.animate = () => pop;
     clickBlob(ec);
     fc.removeAttribute('data-edge-peek');
-    pop.onfinish();
+    vi.advanceTimersByTime(400);
     expect(onPeekShown).not.toHaveBeenCalled();
   });
 
-  it('buttons out of the blob cannot be dragged away', () => {
+  it('buttons on their way back into the blob cannot be dragged', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    vi.advanceTimersByTime(400);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // a press on the page
+    const left = fc.style.left;
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 300, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.style.left).toBe(left);
+    vi.advanceTimersByTime(400);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('a drag started while the buttons are still coming out does not open the menus and leaves no clip', () => {
+    const ec = makeExtension();
+    const onPeekShown = vi.fn();
+    const wrapper = makeWrapper();
+    const fc = setupFloatingContainer('shell', wrapper, ec, { onPeekShown });
+    fc.getBoundingClientRect = () => ({ left: 0, top: 300, width: 200, height: 40, right: 200, bottom: 340 });
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 25, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    clickBlob(ec);
+    vi.advanceTimersByTime(100);   // still coming out
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 340, bubbles: true }));
+    vi.advanceTimersByTime(400);
+    expect(onPeekShown).not.toHaveBeenCalled();
+    expect(wrapper.style.clipPath).toBe('');
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+
+  it('buttons out of the blob dragged less than a button height go back into their pool', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    expect(ec.querySelector('.csl-edge-pool').hasAttribute('hidden')).toBe(false);
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 120, clientY: 320, bubbles: true }));
+    expect(fc.style.left).toBe('20px');
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.style.left).toBe('8px');
+    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    // still out of the blob: they go back into it after the idle time
+    vi.advanceTimersByTime(10000 + 400);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('buttons out of the blob dragged further than a button height leave the blob for good', () => {
     const { ec, fc } = dockAtLeftEdge();
     clickBlob(ec);
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-peek')).toBe(false);
+    expect(chrome.storage.local.remove).toHaveBeenCalled();
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    expect(fc.style.left).toBe('8px');
-    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+    expect(fc.style.left).toBe('300px');
+    vi.advanceTimersByTime(10000 + 300);
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(ec.querySelector('.csl-edge-blob').hidden).toBe(true);
+    expect(ec.querySelector('.csl-edge-pool').hasAttribute('hidden')).toBe(true);
   });
 
   it('the blob tears off once pulled further than a button is high', () => {

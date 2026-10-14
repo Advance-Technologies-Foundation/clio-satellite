@@ -5,6 +5,7 @@ import {
   TEAR_DISTANCE,
   PEEK_HOVER_MS,
   PEEK_IDLE_MS,
+  DOT_FLIGHT_MS,
   pressedEdge,
   isCursorAtEdge,
   clampAlong,
@@ -14,6 +15,10 @@ import {
   loadBlobState,
   clearBlobState,
   createEdgeBlob,
+  bellHeight,
+  poolShapeFor,
+  poolHeight,
+  DOME_SHAPE,
 } from '../src/edgeBlob.js';
 
 const VW = 1280;
@@ -68,8 +73,8 @@ describe('isCursorAtEdge', () => {
 
 describe('clampAlong / alongForRect', () => {
   it('keeps the whole blob on screen', () => {
-    expect(clampAlong('left', 0, VW, VH)).toBe(27);
-    expect(clampAlong('left', VH, VW, VH)).toBe(VH - 27);
+    expect(clampAlong('left', 0, VW, VH)).toBe(50);
+    expect(clampAlong('left', VH, VW, VH)).toBe(VH - 50);
     expect(clampAlong('top', 500, VW, VH)).toBe(500);
   });
 
@@ -244,12 +249,31 @@ describe('createEdgeBlob — the blob', () => {
     return t;
   }
 
-  it('dock() shows the blob at once on the given edge', () => {
+  it('dock() shows the blob on the given edge', () => {
     const t = docked();
     expect(t.blobEl.hidden).toBe(false);
     expect(t.blobEl.style.left).toBe('0px');
-    expect(t.blobEl.style.top).toBe(`${326 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${326 - 50}px`);
   });
+
+  it('dock() slides the blob out of the edge and fades the orange dot in, without the drops of a splat', () => {
+    const animated = [];
+    Element.prototype.animate = function (keyframes) {
+      animated.push({ el: this, keyframes });
+      return { cancel() {}, onfinish: null };
+    };
+    try {
+      const t = docked();
+      const dotEl = t.blobEl.querySelector('.csl-edge-dot');
+      expect(t.blobEl.hidden).toBe(false);
+      expect(animated.find(x => x.el === t.blobEl)?.keyframes[0].translate).toBe('-28px 0');
+      expect(animated.find(x => x.el === dotEl)?.keyframes[0].opacity).toBe(0);
+      expect(animated.some(x => x.el.classList?.contains('csl-edge-drop'))).toBe(false);
+    } finally {
+      delete Element.prototype.animate;
+    }
+  });
+
 
   it('dock() on the right edge mirrors the blob', () => {
     const t = setup();
@@ -319,8 +343,8 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
     expect(t.blob.peeking).toBe(false);
     expect(t.blob.edge).toBe('left');
+    vi.advanceTimersByTime(400);   // the pool carries the buttons back into the dome, then the blob takes its place
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(100);
     expect(t.blobEl.hidden).toBe(false);
   });
 
@@ -355,8 +379,8 @@ describe('createEdgeBlob — the blob', () => {
     page.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
     expect(t.blob.peeking).toBe(false);
+    vi.advanceTimersByTime(400);
     expect(t.container.getAttribute('data-edge-docked')).toBe('left');
-    vi.advanceTimersByTime(100);
     expect(t.blobEl.hidden).toBe(false);
     vi.advanceTimersByTime(PEEK_IDLE_MS);
     expect(t.onPeekEnd).toHaveBeenCalledTimes(1);   // the idle countdown was dropped
@@ -403,7 +427,7 @@ describe('createEdgeBlob — the blob', () => {
     move(10, 426);
     up();
     expect(t.onPeek).not.toHaveBeenCalled();
-    expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${426 - 50}px`);
     const cb = vi.fn();
     loadBlobState('shell', cb);
     expect(cb).toHaveBeenCalledWith({ edge: 'left', along: 426 });
@@ -451,7 +475,7 @@ describe('createEdgeBlob — the blob', () => {
     const t = setup();
     t.blob.press(t.container, raw(-PRESS_DISTANCE), 80, 320);
     move(80, 420);   // slide along the edge without releasing the mouse
-    expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${426 - 50}px`);
     up();
     expect(t.onPeek).not.toHaveBeenCalled();
   });
@@ -473,5 +497,210 @@ describe('createEdgeBlob — the blob', () => {
     t.controller.abort();
     expect(t.root.querySelector('.csl-edge-blob')).toBeNull();
     expect(t.root.querySelector('.csl-edge-wet')).toBeNull();
+  });
+});
+
+describe('createEdgeBlob — the orange dot flies between the blob and the icon', () => {
+  const rect = (left, top, size) => () => ({ left, top, width: size, height: size, right: left + size, bottom: top + size });
+
+  function withIcon() {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    const t = setup();
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    icon.setAttribute('class', 'csl-icon-dot');
+    icon.getBoundingClientRect = rect(30, 316, 5);
+    t.container.appendChild(icon);
+    t.dot = t.root.querySelector('.csl-edge-dot');
+    t.dot.getBoundingClientRect = rect(2, 324, 5);
+    t.icon = icon;
+    t.blob.dock('left', 326);
+    return t;
+  }
+  const flyer = t => t.root.querySelector('.csl-edge-flydot');
+  const click = t => {
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    up();
+  };
+
+  it('on a peek the dot flies from the blob to the icon, the icon dot shows when it lands', () => {
+    const t = withIcon();
+    click(t);
+    expect(flyer(t)).not.toBeNull();
+    expect(t.icon.style.visibility).toBe('hidden');
+    vi.advanceTimersByTime(16);
+    expect(parseFloat(flyer(t).style.left)).toBeCloseTo(2, 0);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS + 32);
+    expect(flyer(t)).toBeNull();
+    expect(t.icon.style.visibility).toBe('');
+  });
+
+  it('the dot follows the icon while the buttons move', () => {
+    const t = withIcon();
+    click(t);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS / 2);
+    t.icon.getBoundingClientRect = rect(130, 316, 5);
+    vi.advanceTimersByTime(DOT_FLIGHT_MS / 2 - 48);   // still flying
+    expect(parseFloat(flyer(t).style.left)).toBeGreaterThan(100);
+  });
+
+  it('when the peek ends the dot flies from the icon back into the blob', () => {
+    const t = withIcon();
+    click(t);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);   // the countdown started with the peek
+    vi.advanceTimersByTime(400);   // the pool shrinks back into the dome, the blob takes its place
+    expect(t.icon.style.visibility).toBe('');   // the icon is shown again once its dot has left it
+    expect(flyer(t)).not.toBeNull();
+    expect(t.dot.style.visibility).toBe('hidden');
+    vi.advanceTimersByTime(DOT_FLIGHT_MS + 32);
+    expect(flyer(t)).toBeNull();
+    expect(t.dot.style.visibility).toBe('');
+  });
+
+  it('without an icon on the buttons nothing flies', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+    const t = setup();
+    t.blob.dock('left', 326);
+    click(t);
+    expect(flyer(t)).toBeNull();
+  });
+
+  it('aborting the signal stops a flight', () => {
+    const t = withIcon();
+    click(t);
+    t.controller.abort();
+    expect(flyer(t)).toBeNull();
+    expect(t.icon.style.visibility).toBe('');
+  });
+});
+
+describe('bellHeight', () => {
+  it('is highest in the middle and runs out to almost nothing at the ends of the blob', () => {
+    expect(bellHeight(0)).toBeGreaterThan(18);
+    expect(bellHeight(20)).toBeLessThan(bellHeight(0) / 3);
+    expect(bellHeight(50)).toBeLessThan(0.5);
+    expect(bellHeight(-12)).toBeCloseTo(bellHeight(12));
+  });
+});
+
+describe('the pool around the buttons out of the blob', () => {
+  it('poolShapeFor reaches from the screen edge to 6px past the far side of the buttons', () => {
+    const box = { left: 8, top: 300, width: 50, height: 90 };
+    expect(poolShapeFor('left', box, VW, VH)).toEqual({ c: 345, half: 51, depth: 64 });
+    expect(poolShapeFor('right', { left: VW - 58, top: 300, width: 50, height: 90 }, VW, VH)).toEqual({ c: 345, half: 51, depth: 64 });
+    expect(poolShapeFor('top', { left: 100, top: 8, width: 90, height: 50 }, VW, VH)).toEqual({ c: 145, half: 51, depth: 64 });
+  });
+
+  it('poolHeight is flat over the buttons, round at the ends and runs out along the edge', () => {
+    expect(poolHeight(0, 51, 64)).toBeCloseTo(64, 0);
+    expect(poolHeight(40, 51, 64)).toBeCloseTo(64, 0);
+    expect(poolHeight(51 + 2, 51, 64)).toBeLessThan(64);
+    expect(poolHeight(51 + 60, 51, 64)).toBeLessThan(1);
+    // half 0, depth 20 is the dome of the resting blob
+    expect(poolHeight(0, DOME_SHAPE.half, DOME_SHAPE.depth)).toBeCloseTo(bellHeight(0), 0);
+  });
+
+  function peekWith(options, beforeClick) {
+    const t = setup(options);
+    beforeClick?.(t.blob);
+    t.blob.dock('left', 326);
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    return { ...t, pool: t.root.querySelector('.csl-edge-pool') };
+  }
+  const reach = path => Math.max(...path.match(/-?[\d.]+,-?[\d.]+/g).map(p => parseFloat(p)));
+
+  it('a click on the blob grows the pool out of the dome to the box onPeek returns; it shrinks back when the peek ends', () => {
+    const t = peekWith({ onPeek: vi.fn(() => ({ left: 8, top: 280, width: 50, height: 90 })) });
+    expect(t.pool.hasAttribute('hidden')).toBe(false);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeLessThan(25);   // starts as the dome
+    vi.advanceTimersByTime(400);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeCloseTo(64, 0);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);
+    expect(t.pool.hasAttribute('hidden')).toBe(true);
+    expect(t.blobEl.hidden).toBe(false);
+    t.controller.abort();
+  });
+
+  it('buttons dragged along the edge stay there and take the blob with them', () => {
+    const onSnapBack = vi.fn();
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    const t = peekWith({ onPeek: () => box, onSnapBack });
+    vi.advanceTimersByTime(400);
+    chrome.storage.local.set.mockClear?.();
+    // 150 px down and 10 px away from the edge: the move along the edge is kept, the move away is not
+    expect(t.blob.dragButtons({ ...box, left: 18, top: 430 })).toBe(false);
+    t.blob.releaseButtons();
+    expect(onSnapBack).toHaveBeenCalledWith({ ...box, top: 430 });
+    expect(chrome.storage.local.set).toHaveBeenCalledWith(
+      { [KEY]: expect.objectContaining({ edge: 'left', along: (430 + 45) / VH }) }, expect.any(Function));
+    // the blob comes back at the new spot
+    vi.advanceTimersByTime(PEEK_IDLE_MS + 400);
+    expect(t.blobEl.style.top).toBe(`${430 + 45 - 50}px`);
+    t.controller.abort();
+  });
+
+  it('buttons torn out during the reveal are not left clipped to the retreating pool', () => {
+    const btns = document.createElement('div');
+    btns.getBoundingClientRect = () => ({ left: 8, top: 280, right: 58, bottom: 370, width: 50, height: 90 });
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    let api = null;
+    // like the floating container: onPeek places the buttons and starts uncovering them
+    const t = peekWith({ onPeek: () => { api.uncoverButtons(); return box; }, buttons: () => btns, onUndock: vi.fn()}, (blob) => { api = blob; });
+    vi.advanceTimersByTime(50);   // still coming out
+    expect(btns.style.clipPath).toMatch(/^inset/);
+    expect(t.blob.dragButtons({ ...box, left: 8 + TEAR_DISTANCE + 20 })).toBe(true);
+    expect(btns.style.clipPath).toBe('');
+    vi.advanceTimersByTime(300);
+    expect(btns.style.clipPath).toBe('');
+    t.controller.abort();
+  });
+
+  it('abort removes the pool and stops its animation', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(50);
+    t.controller.abort();
+    expect(t.pool.isConnected).toBe(false);
+    expect(() => vi.advanceTimersByTime(400)).not.toThrow();
+  });
+
+  it('a window resize while the buttons are out sends them back into the blob', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(new Event('resize'));
+    expect(t.blob.peeking).toBe(false);
+    expect(t.onPeekEnd).toHaveBeenCalledTimes(1);
+    t.controller.abort();
+  });
+
+  it('the pool shrinking back lets clicks through to the page', () => {
+    const t = peekWith({ onPeek: () => ({ left: 8, top: 280, width: 50, height: 90 }) });
+    vi.advanceTimersByTime(400);
+    expect(t.pool.hasAttribute('data-closing')).toBe(false);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // a press on the page
+    expect(t.pool.hasAttribute('data-closing')).toBe(true);
+    t.controller.abort();
+  });
+
+  it('dragButtons stretches the pool, and tears it past the tear distance', () => {
+    const onUndock = vi.fn(), onSnapBack = vi.fn();
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    const t = peekWith({ onPeek: () => box, onUndock, onSnapBack });
+    vi.advanceTimersByTime(400);
+    expect(t.blob.dragButtons({ ...box, left: 8 + 30 })).toBe(false);
+    expect(reach(t.pool.firstChild.getAttribute('d'))).toBeCloseTo(8 + 30 + 50 + 6, 0);
+    t.blob.releaseButtons();
+    expect(onSnapBack).toHaveBeenCalledWith(box);
+    vi.advanceTimersByTime(450);
+    expect(t.blob.dragButtons({ ...box, left: 8 + TEAR_DISTANCE + 1 })).toBe(true);
+    expect(onUndock).toHaveBeenCalled();
+    expect(t.blob.peeking).toBe(false);
+    expect(t.blob.edge).toBeNull();
+    expect(chrome.storage.local.remove).toHaveBeenCalled();
+    vi.advanceTimersByTime(300);   // the torn pool runs back into the edge
+    expect(t.pool.hasAttribute('hidden')).toBe(true);
+    // free buttons do not go back into a blob
+    vi.advanceTimersByTime(PEEK_IDLE_MS * 2);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    t.controller.abort();
   });
 });
