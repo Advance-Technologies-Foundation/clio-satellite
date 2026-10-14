@@ -579,12 +579,29 @@
     parent?.appendChild(el5);
     return el5;
   }
+  var DOME_R = 13;
+  var DOME_C = 7;
+  var DOME_FILLET = 12;
+  var skirt = (d) => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
+  function bellField(x, d) {
+    const a = Math.hypot(x - DOME_C, d) - DOME_R;
+    const b = x - skirt(d);
+    const h = Math.max(DOME_FILLET - Math.abs(a - b), 0) / DOME_FILLET;
+    return Math.min(a, b) - h * h * DOME_FILLET / 4;
+  }
   function bellHeight(d) {
-    return 19 * Math.exp(-(d * d) / (2 * 8 * 8)) + 3 * Math.exp(-(d * d) / (2 * 22 * 22));
+    if (bellField(0, d) > 0) return 0;
+    let lo = 0, hi = 40;
+    for (let i = 0; i < 30; i++) {
+      const m = (lo + hi) / 2;
+      if (bellField(m, d) <= 0) lo = m;
+      else hi = m;
+    }
+    return lo;
   }
   function bellPath() {
     const pts = [];
-    for (let y = 0; y <= BLOB_H; y += 2) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
+    for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
     return `M-4,0 L${pts.join(" L")} L-4,${BLOB_H} Z`;
   }
   function bell(parent) {

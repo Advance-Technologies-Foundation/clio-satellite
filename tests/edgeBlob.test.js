@@ -553,7 +553,7 @@ describe('createEdgeBlob — the orange dot flies between the blob and the icon'
 
 describe('bellHeight', () => {
   it('is highest in the middle and runs out to almost nothing at the ends of the blob', () => {
-    expect(bellHeight(0)).toBeGreaterThan(20);
+    expect(bellHeight(0)).toBeGreaterThan(18);
     expect(bellHeight(20)).toBeLessThan(bellHeight(0) / 3);
     expect(bellHeight(50)).toBeLessThan(0.5);
     expect(bellHeight(-12)).toBeCloseTo(bellHeight(12));
