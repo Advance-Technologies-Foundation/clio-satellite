@@ -15,6 +15,7 @@ import {
   loadBlobState,
   clearBlobState,
   createEdgeBlob,
+  bellHeight,
 } from '../src/edgeBlob.js';
 
 const VW = 1280;
@@ -69,8 +70,8 @@ describe('isCursorAtEdge', () => {
 
 describe('clampAlong / alongForRect', () => {
   it('keeps the whole blob on screen', () => {
-    expect(clampAlong('left', 0, VW, VH)).toBe(27);
-    expect(clampAlong('left', VH, VW, VH)).toBe(VH - 27);
+    expect(clampAlong('left', 0, VW, VH)).toBe(50);
+    expect(clampAlong('left', VH, VW, VH)).toBe(VH - 50);
     expect(clampAlong('top', 500, VW, VH)).toBe(500);
   });
 
@@ -249,7 +250,7 @@ describe('createEdgeBlob — the blob', () => {
     const t = docked();
     expect(t.blobEl.hidden).toBe(false);
     expect(t.blobEl.style.left).toBe('0px');
-    expect(t.blobEl.style.top).toBe(`${326 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${326 - 50}px`);
   });
 
   it('dock() on the right edge mirrors the blob', () => {
@@ -404,7 +405,7 @@ describe('createEdgeBlob — the blob', () => {
     move(10, 426);
     up();
     expect(t.onPeek).not.toHaveBeenCalled();
-    expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${426 - 50}px`);
     const cb = vi.fn();
     loadBlobState('shell', cb);
     expect(cb).toHaveBeenCalledWith({ edge: 'left', along: 426 });
@@ -452,7 +453,7 @@ describe('createEdgeBlob — the blob', () => {
     const t = setup();
     t.blob.press(t.container, raw(-PRESS_DISTANCE), 80, 320);
     move(80, 420);   // slide along the edge without releasing the mouse
-    expect(t.blobEl.style.top).toBe(`${426 - 27}px`);
+    expect(t.blobEl.style.top).toBe(`${426 - 50}px`);
     up();
     expect(t.onPeek).not.toHaveBeenCalled();
   });
@@ -547,5 +548,14 @@ describe('createEdgeBlob — the orange dot flies between the blob and the icon'
     t.controller.abort();
     expect(flyer(t)).toBeNull();
     expect(t.icon.style.visibility).toBe('');
+  });
+});
+
+describe('bellHeight', () => {
+  it('is highest in the middle and runs out to almost nothing at the ends of the blob', () => {
+    expect(bellHeight(0)).toBeGreaterThan(10);
+    expect(bellHeight(20)).toBeLessThan(bellHeight(0) / 3);
+    expect(bellHeight(50)).toBeLessThan(0.3);
+    expect(bellHeight(-12)).toBeCloseTo(bellHeight(12));
   });
 });

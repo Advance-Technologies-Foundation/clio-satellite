@@ -468,8 +468,9 @@
   var DOT_FLIGHT_MS = 420;
   var EDGES = ["left", "right", "top", "bottom"];
   var BLOB_W = 36;
-  var BLOB_H = 54;
+  var BLOB_H = 100;
   var BLOB_SCALE = 0.45;
+  var GOO_TOP = (BLOB_H - 160 * BLOB_SCALE) / 2;
   var ROT = { left: 0, top: 90, right: 180, bottom: -90 };
   var ORIGIN = { left: "left center", right: "right center", top: "center top", bottom: "center bottom" };
   var STYLE_ID = "csl-edge-blob-style";
@@ -538,22 +539,27 @@
 .csl-edge-blob { z-index: 1000; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
 .csl-edge-wet[hidden], .csl-edge-blob[hidden] { display: none; }
 .csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
-.csl-edge-scale { position: absolute; left: 0; top: 0; width: 80px; height: 120px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
+.csl-edge-scale { position: absolute; left: 0; top: ${GOO_TOP}px; width: 80px; height: 160px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
-/* Goo frame: the screen edge is x = 20. A wide low foot along the edge (base + drops) and a flat dome (core). */
-.csl-edge-base { left: 0; top: 44px; width: 40px; height: 72px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 36px; }
-.csl-edge-wet .csl-edge-base { top: 40px; width: 46px; height: 80px; }
-.csl-edge-core { left: 16px; top: 50px; width: 28px; height: 60px; border-radius: 50%; }
+/* At rest the blob is a crisp bell (csl-edge-bell, blob px): a low dome in the middle and a thin skirt along
+   the edge that runs out to nothing at both ends, like a drop of liquid on a surface. The goo filter cannot
+   draw such tails (its threshold eats thin parts), so the goo shapes stay inside the bell until the blob is
+   pulled and only then make the neck and the core that follows the mouse.
+   Goo frame: the screen edge is x = 20, the middle of the blob y = 100. */
+.csl-edge-bell { position: absolute; left: 0; top: 0; width: ${BLOB_W}px; height: ${BLOB_H}px; overflow: visible; transform-origin: 0 50%; }
+.csl-edge-base { left: 0; top: 70px; width: 30px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
+.csl-edge-wet .csl-edge-base { top: 50px; width: 40px; height: 100px; }
+.csl-edge-core { left: 0; top: 85px; width: 40px; height: 30px; border-radius: 50%; }
 .csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
-.csl-edge-d1 { left: 6px; top: 34px; }
-.csl-edge-d2 { left: 6px; top: 110px; }
-.csl-edge-shine { position: absolute; left: 4px; top: 17px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
+.csl-edge-d1 { left: 6px; top: 56px; }
+.csl-edge-d2 { left: 6px; top: 128px; }
+.csl-edge-shine { position: absolute; left: 4px; top: ${BLOB_H / 2 - 8}px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
 /* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
-.csl-edge-hit { position: absolute; left: 0; top: 10px; width: 18px; height: 34px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
-/* Orange button in the middle of the mound: core centre goo (30,80) -> blob (4.5, 27) */
-.csl-edge-dot { position: absolute; left: 2px; top: 24.5px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-hit { position: absolute; left: 0; top: ${BLOB_H / 2 - 16}px; width: 14px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+/* Orange button in the middle of the dome */
+.csl-edge-dot { position: absolute; left: 3px; top: ${BLOB_H / 2 - 2.5}px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
 /* While the mouse rests on the blob the ring grows until the buttons come out */
 .csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
@@ -573,10 +579,31 @@
     parent?.appendChild(el5);
     return el5;
   }
+  function bellHeight(d) {
+    return 9 * Math.exp(-(d * d) / (2 * 8 * 8)) + 2.5 * Math.exp(-(d * d) / (2 * 22 * 22));
+  }
+  function bellPath() {
+    const pts = [];
+    for (let y = 0; y <= BLOB_H; y += 2) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
+    return `M-4,0 L${pts.join(" L")} L-4,${BLOB_H} Z`;
+  }
+  function bell(parent) {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "csl-edge-bell");
+    svg.setAttribute("viewBox", `0 0 ${BLOB_W} ${BLOB_H}`);
+    svg.innerHTML = `<defs><linearGradient id="csl-edge-bell-fill" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#3a3a3a"/><stop offset=".6" stop-color="#111"/><stop offset="1" stop-color="#000"/>
+    </linearGradient></defs><path d="${bellPath()}" fill="url(#csl-edge-bell-fill)"/>`;
+    parent.appendChild(svg);
+    return svg;
+  }
   function gooShapes(parent, withCore) {
+    const bellEl = withCore ? bell(parent) : null;
     const scale = div("csl-edge-scale", parent);
     const goo = div("csl-edge-goo", scale);
     const parts = { base: div("csl-edge-base", goo) };
+    if (bellEl) parts.bell = bellEl;
     if (withCore) parts.core = div("csl-edge-core", goo);
     parts.d1 = div("csl-edge-drop csl-edge-d1", goo);
     parts.d2 = div("csl-edge-drop csl-edge-d2", goo);
@@ -765,7 +792,9 @@
       cancelAnimations(wet);
       wet.hidden = true;
       const ease = "cubic-bezier(.2,1.6,.4,1)";
-      animate(parts.base, [{ transform: "scaleY(.1) scaleX(.3)" }, { transform: "scaleY(1.5) scaleX(1.1)", offset: 0.45 }, { transform: "scaleY(1)" }], { duration: 520, easing: "ease-out" });
+      for (const el5 of [parts.base, parts.bell]) {
+        animate(el5, [{ transform: "scaleY(.1) scaleX(.3)" }, { transform: "scaleY(1.15) scaleX(1.1)", offset: 0.45 }, { transform: "scaleY(1)" }], { duration: 520, easing: "ease-out" });
+      }
       animate(parts.core, [{ transform: "translateX(-30px) scale(.2)" }, { transform: "translateX(6px) scale(1.25, .85)", offset: 0.5 }, { transform: "translateX(0) scale(1)" }], { duration: 560, easing: ease });
       animate(parts.d1, [{ transform: "translate(-10px, 20px) scale(.2)" }, { transform: "translate(20px,-26px) scale(1.2)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 700, easing: "ease-out" });
       animate(parts.d2, [{ transform: "translate(-10px,-20px) scale(.2)" }, { transform: "translate(24px,30px) scale(1.1)", offset: 0.4 }, { transform: "translate(0,0) scale(1)" }], { duration: 760, easing: "ease-out" });
@@ -885,7 +914,7 @@
       if (lx <= 0) {
         const push = Math.min(30, -lx) / 30;
         parts.core.style.transform = `translateX(${-push * 8}px) scale(${1 - push * 0.25}, ${1 + push * 0.18})`;
-        parts.base.style.transform = `scaleY(${1 + push * 0.3})`;
+        parts.base.style.transform = parts.bell.style.transform = `scaleY(${1 + push * 0.3})`;
         parts.d1.style.transform = parts.d2.style.transform = dot.style.translate = "";
         return;
       }
@@ -894,10 +923,11 @@
       const L = lx / BLOB_SCALE;
       parts.core.style.transform = `translateX(${L}px) scale(${1 - k * 0.2})`;
       dot.style.translate = `${lx}px 0px`;
-      const neck = (t, x0, y0, grow) => `translate(${20 + (10 + L) * t - x0}px, ${80 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
-      parts.d1.style.transform = neck(0.36, 14, 42, 2.4);
-      parts.d2.style.transform = neck(0.7, 14, 118, 2.2);
+      const neck = (t, x0, y0, grow) => `translate(${20 + L * t - x0}px, ${100 - y0}px) scale(${grow - k * k * (grow - 1.1)})`;
+      parts.d1.style.transform = neck(0.36, 14, 64, 2.4);
+      parts.d2.style.transform = neck(0.7, 14, 136, 2.2);
       parts.base.style.transform = `scaleY(${1 - k * 0.4}) translateX(${L * 0.08}px)`;
+      parts.bell.style.transform = `scaleY(${1 - k * 0.3})`;
       if (lx > tear) tearOff(e.clientX, e.clientY);
     }, { signal });
     document.addEventListener("mouseup", () => {
