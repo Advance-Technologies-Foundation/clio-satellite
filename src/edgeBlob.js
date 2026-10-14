@@ -123,15 +123,15 @@ const CSS = `
 .csl-edge-bell { position: absolute; left: 0; top: 0; width: ${BLOB_W}px; height: ${BLOB_H}px; overflow: visible; transform-origin: 0 50%; }
 .csl-edge-base { left: 0; top: 70px; width: 30px; height: 60px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; transform-origin: 20px 30px; }
 .csl-edge-wet .csl-edge-base { top: 50px; width: 40px; height: 100px; }
-.csl-edge-core { left: 0; top: 85px; width: 40px; height: 30px; border-radius: 50%; }
+.csl-edge-core { left: -15px; top: 85px; width: 70px; height: 30px; border-radius: 50%; }
 .csl-edge-drop { width: 16px; height: 16px; border-radius: 50%; }
 .csl-edge-d1 { left: 6px; top: 56px; }
 .csl-edge-d2 { left: 6px; top: 128px; }
 .csl-edge-shine { position: absolute; left: 4px; top: ${BLOB_H / 2 - 8}px; width: 4px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.35); filter: blur(1px); }
 /* Only the mound reacts to the mouse, not the empty corners of the 36x54 box */
-.csl-edge-hit { position: absolute; left: 0; top: ${BLOB_H / 2 - 16}px; width: 14px; height: 32px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
+.csl-edge-hit { position: absolute; left: 0; top: ${BLOB_H / 2 - 18}px; width: 24px; height: 36px; border-radius: 0 50% 50% 0; pointer-events: auto; cursor: pointer; }
 /* Orange button in the middle of the dome */
-.csl-edge-dot { position: absolute; left: 3px; top: ${BLOB_H / 2 - 2.5}px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
+.csl-edge-dot { position: absolute; left: 8.5px; top: ${BLOB_H / 2 - 2.5}px; width: 5px; height: 5px; border-radius: 50%; background: #ff5722; box-shadow: 0 0 0 1px rgba(255,87,34,.25); pointer-events: none; transition: box-shadow .15s ease; }
 .csl-edge-hit:hover + .csl-edge-dot { box-shadow: 0 0 0 2px rgba(255,87,34,.35); }
 /* While the mouse rests on the blob the ring grows until the buttons come out */
 .csl-edge-charging .csl-edge-dot { box-shadow: 0 0 0 4px rgba(255,87,34,.45); transition: box-shadow ${PEEK_HOVER_MS}ms linear; }
@@ -157,7 +157,7 @@ function div(className, parent) {
 // How far (px) the resting blob stands out from the edge at `d` px from its middle:
 // a narrow dome on a long thin skirt, both gaussian, so the outline runs out along the edge without a corner
 export function bellHeight(d) {
-  return 9 * Math.exp(-(d * d) / (2 * 8 * 8)) + 2.5 * Math.exp(-(d * d) / (2 * 22 * 22));
+  return 19 * Math.exp(-(d * d) / (2 * 8 * 8)) + 3 * Math.exp(-(d * d) / (2 * 22 * 22));
 }
 
 function bellPath() {
