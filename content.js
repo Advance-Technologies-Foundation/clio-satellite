@@ -577,17 +577,65 @@
   var DARK_LUMINANCE = 0.13;
   var SHADE_WATCH_MS = 2e4;
   var SHADE_SETTLE_MS = 400;
+  var imageCanvas = null;
+  function imageLuminanceAt(img, x, y) {
+    if (img.tagName !== "IMG" || !img.complete || !img.naturalWidth) return null;
+    const r = img.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    try {
+      imageCanvas ??= document.createElement("canvas").getContext?.("2d", { willReadFrequently: true }) ?? null;
+      if (!imageCanvas) return null;
+      imageCanvas.canvas.width = imageCanvas.canvas.height = 1;
+      const sx = Math.min(img.naturalWidth - 1, Math.max(0, (x - r.left) / r.width * img.naturalWidth));
+      const sy = Math.min(img.naturalHeight - 1, Math.max(0, (y - r.top) / r.height * img.naturalHeight));
+      imageCanvas.clearRect(0, 0, 1, 1);
+      imageCanvas.drawImage(img, sx, sy, 1, 1, 0, 0, 1, 1);
+      const [cr, cg, cb, ca] = imageCanvas.getImageData(0, 0, 1, 1).data;
+      return ca < 128 ? null : luminance(cr, cg, cb);
+    } catch {
+      return null;
+    }
+  }
+  function backgroundLuminance(el5, x, y) {
+    const cs = getComputedStyle(el5);
+    return imageLuminanceAt(el5, x, y) ?? colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
+  }
+  function elementsAtByBox(x, y, own, depth = 4) {
+    const found = [];
+    const walk = (parent, level) => {
+      for (const el5 of parent.children) {
+        if (own?.contains(el5) || el5 === own) continue;
+        const r = el5.getBoundingClientRect();
+        if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+        const cs = getComputedStyle(el5);
+        if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") continue;
+        found.push(el5);
+        if (level < depth) walk(el5, level + 1);
+      }
+    };
+    if (document.body) walk(document.body, 1);
+    return found;
+  }
+  var describe = (el5, lum) => {
+    const cls = String(el5.className?.baseVal ?? el5.className ?? "").split(" ")[0];
+    return `${el5.tagName.toLowerCase()}${cls ? "." + cls : ""} ${lum.toFixed(3)}`;
+  };
   function shadeAt(x, y, own) {
     const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [];
-    const page = stack.filter((el5) => !own?.contains(el5));
-    for (const el5 of [...page, document.body, document.documentElement]) {
+    const page = stack.filter((el5) => !own?.contains(el5) && el5 !== document.body && el5 !== document.documentElement);
+    for (const el5 of page) {
+      const lum = backgroundLuminance(el5, x, y);
+      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el5, lum) };
+    }
+    for (const el5 of elementsAtByBox(x, y, own).reverse()) {
+      if (page.includes(el5)) continue;
+      const lum = backgroundLuminance(el5, x, y);
+      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: `${describe(el5, lum)} (by box)` };
+    }
+    for (const el5 of [document.body, document.documentElement]) {
       if (!el5) continue;
-      const cs = getComputedStyle(el5);
-      const lum = colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-      if (lum !== null) {
-        const cls = String(el5.className?.baseVal ?? el5.className ?? "").split(" ")[0];
-        return { dark: lum < DARK_LUMINANCE, by: `${el5.tagName.toLowerCase()}${cls ? "." + cls : ""} ${lum.toFixed(3)}` };
-      }
+      const lum = backgroundLuminance(el5, x, y);
+      if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el5, lum) };
     }
     return { dark: false, by: "none" };
   }

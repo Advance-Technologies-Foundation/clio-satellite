@@ -339,6 +339,20 @@ test.describe('Edge blob', () => {
     return page.locator('.csl-edge-hit').boundingBox();
   }
 
+  test('the blob turns dark grey over a dark background the page keeps out of hit testing', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    // like Creatio's header: a full-page gradient with pointer-events: none
+    await page.evaluate(() => {
+      const bg = document.createElement('div');
+      bg.style.cssText = 'position: fixed; inset: 0; background: linear-gradient(123deg, rgb(0, 6, 49), rgb(20, 2, 44)); pointer-events: none; z-index: 0;';
+      document.body.appendChild(bg);
+    });
+    await dockAtLeftEdge(page);
+    await expect(page.locator('.csl-edge-blob')).toHaveClass(/csl-edge-on-dark/);
+    expect(await page.locator('.csl-edge-blob').getAttribute('data-shade')).toMatch(/by box/);
+  });
+
   test('the blob turns dark grey on a dark part of the page and black again on a light one', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

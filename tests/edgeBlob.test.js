@@ -21,6 +21,7 @@ import {
   SHADE_SETTLE_MS,
   SHADE_WATCH_MS,
   isDarkAt,
+  shadeAt,
   poolShapeFor,
   poolHeight,
   DOME_SHAPE,
@@ -606,6 +607,17 @@ describe('the blob on a dark page', () => {
     expect(gradientLuminance('linear-gradient(90deg, rgb(255, 255, 255) 0%, rgb(240, 240, 240) 100%)')).toBeGreaterThan(0.8);
     expect(gradientLuminance('none')).toBeNull();
     expect(gradientLuminance('url("a.png")')).toBeNull();
+  });
+
+  it('isDarkAt finds a background left out of hit testing (pointer-events: none) by its box', () => {
+    const header = document.createElement('div');
+    header.style.backgroundImage = 'linear-gradient(rgb(0, 6, 49), rgb(20, 2, 44))';
+    header.style.pointerEvents = 'none';
+    header.getBoundingClientRect = () => ({ left: 0, top: 0, right: VW, bottom: VH, width: VW, height: VH });
+    document.body.appendChild(header);
+    document.elementsFromPoint = () => [document.body, document.documentElement];
+    expect(shadeAt(18, 400, null)).toEqual({ dark: true, by: expect.stringMatching(/^div .* \(by box\)$/) });
+    header.remove();
   });
 
   it('isDarkAt reads a dark gradient background', () => {

@@ -168,17 +168,74 @@ export const SHADE_SETTLE_MS = 400;
 // Whether the page under (x, y) is dark: the background colour (or gradient) of the topmost page element
 // there that has one, skipping the extension's own elements (inside `own`). Images and canvases are not
 // looked into.
+// Luminance of an <img> at a point of the screen, read from its pixels (null when not loaded, transparent
+// there, or from another origin, whose pixels cannot be read)
+let imageCanvas = null;
+function imageLuminanceAt(img, x, y) {
+  if (img.tagName !== 'IMG' || !img.complete || !img.naturalWidth) return null;
+  const r = img.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  try {
+    imageCanvas ??= document.createElement('canvas').getContext?.('2d', { willReadFrequently: true }) ?? null;
+    if (!imageCanvas) return null;
+    imageCanvas.canvas.width = imageCanvas.canvas.height = 1;
+    const sx = Math.min(img.naturalWidth - 1, Math.max(0, (x - r.left) / r.width * img.naturalWidth));
+    const sy = Math.min(img.naturalHeight - 1, Math.max(0, (y - r.top) / r.height * img.naturalHeight));
+    imageCanvas.clearRect(0, 0, 1, 1);
+    imageCanvas.drawImage(img, sx, sy, 1, 1, 0, 0, 1, 1);
+    const [cr, cg, cb, ca] = imageCanvas.getImageData(0, 0, 1, 1).data;
+    return ca < 128 ? null : luminance(cr, cg, cb);
+  } catch {
+    return null;
+  }
+}
+
+function backgroundLuminance(el, x, y) {
+  const cs = getComputedStyle(el);
+  return imageLuminanceAt(el, x, y) ?? colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
+}
+
+// Page elements at a point found by their boxes, not by hit testing: an element with `pointer-events: none`
+// is left out of elementsFromPoint (on a live Creatio page only `body` was hit under its dark header). Topmost last, a few levels deep.
+function elementsAtByBox(x, y, own, depth = 4) {
+  const found = [];
+  const walk = (parent, level) => {
+    for (const el of parent.children) {
+      if (own?.contains(el) || el === own) continue;
+      const r = el.getBoundingClientRect();
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      found.push(el);
+      if (level < depth) walk(el, level + 1);
+    }
+  };
+  if (document.body) walk(document.body, 1);
+  return found;
+}
+
+const describe = (el, lum) => {
+  const cls = String(el.className?.baseVal ?? el.className ?? '').split(' ')[0];
+  return `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} ${lum.toFixed(3)}`;
+};
+
 export function shadeAt(x, y, own) {
   const stack = typeof document.elementsFromPoint === 'function' ? document.elementsFromPoint(x, y) : [];
-  const page = stack.filter(el => !own?.contains(el));
-  for (const el of [...page, document.body, document.documentElement]) {
+  const page = stack.filter(el => !own?.contains(el) && el !== document.body && el !== document.documentElement);
+  for (const el of page) {
+    const lum = backgroundLuminance(el, x, y);
+    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el, lum) };
+  }
+  // nothing with a background was hit: look for one by the boxes, topmost first
+  for (const el of elementsAtByBox(x, y, own).reverse()) {
+    if (page.includes(el)) continue;
+    const lum = backgroundLuminance(el, x, y);
+    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: `${describe(el, lum)} (by box)` };
+  }
+  for (const el of [document.body, document.documentElement]) {
     if (!el) continue;
-    const cs = getComputedStyle(el);
-    const lum = colorLuminance(cs.backgroundColor) ?? gradientLuminance(cs.backgroundImage);
-    if (lum !== null) {
-      const cls = String(el.className?.baseVal ?? el.className ?? '').split(' ')[0];
-      return { dark: lum < DARK_LUMINANCE, by: `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} ${lum.toFixed(3)}` };
-    }
+    const lum = backgroundLuminance(el, x, y);
+    if (lum !== null) return { dark: lum < DARK_LUMINANCE, by: describe(el, lum) };
   }
   return { dark: false, by: 'none' };
 }
