@@ -68,6 +68,19 @@ export function buttonsPositionFor(edge, along, width, height, vw, vh, gap = EDG
   return { x, y: vh - height - gap };
 }
 
+// The dark pool the buttons sit in while they are out of the blob: from the screen edge to the far side
+// of the buttons, POOL_PAD px around them
+export const POOL_PAD = 6;
+export function poolRectFor(edge, box, vw, vh, pad = POOL_PAD) {
+  let left = box.left - pad, top = box.top - pad;
+  let right = box.left + box.width + pad, bottom = box.top + box.height + pad;
+  if (edge === 'left') left = 0;
+  if (edge === 'right') right = vw;
+  if (edge === 'top') top = 0;
+  if (edge === 'bottom') bottom = vh;
+  return { left, top, width: right - left, height: bottom - top };
+}
+
 // ─── Persistence ─────────────────────────────────────────────────────────────
 // Stored per page type and origin, like the drag position. `along` is a fraction of the
 // edge length, so the blob stays on the same spot after the window is resized.
@@ -149,6 +162,9 @@ const CSS = `
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
 /* On a dark page the black blob turns dark grey so it can still be seen */
+.csl-edge-pool { position: fixed; z-index: 999; pointer-events: auto; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+.csl-edge-pool[hidden] { display: none; }
+.csl-edge-pool.csl-edge-on-dark { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
 .csl-edge-on-dark .csl-edge-goo > div { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
 .csl-edge-on-dark .csl-edge-bell stop:nth-child(1) { stop-color: #555; }
 .csl-edge-on-dark .csl-edge-bell stop:nth-child(2) { stop-color: #3a3a3a; }
@@ -289,15 +305,18 @@ function cancelAnimations(el) {
  *  iconDot()                 - the orange dot on the icon of the first button; the blob's dot flies into it
  * Callbacks:
  *  onBlob()                  - buttons became a blob: stop the drag, hide the buttons
- *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile
+ *  onPeek(edge, along)       - show the buttons next to the edge, the blob is hidden meanwhile; returns the box
+ *                              of the buttons ({ left, top, width, height }), around which the dark pool is drawn
  *  onPeekEnd()               - the buttons go back into the blob: close their menus
  *  onTearOff(clientX, clientY) - the blob was pulled off the edge: show the buttons under the cursor and keep dragging
+ *  onUndock()                - the buttons out of the blob were dragged out of their pool: they stay free, the drag goes on
+ *  onSnapBack(box)           - the buttons were dragged less than a button height and let go: put them back at `box`
  */
 export function createEdgeBlob({
   root, container, pageType, signal,
   tearDistance = () => TEAR_DISTANCE,
   iconDot = () => container?.querySelector('.csl-icon-dot'),
-  onBlob, onPeek, onPeekEnd, onTearOff,
+  onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack,
 }) {
   ensureStyles();
 
@@ -315,7 +334,11 @@ export function createEdgeBlob({
   const dot = div('csl-edge-dot', blob);
   hit.title = 'Clio satellite';
 
-  root.append(svg, wet, blob);
+  // while the buttons are out of the blob they sit in this dark pool, so it is clear they go back into it
+  const pool = div('csl-edge-pool');
+  pool.hidden = true;
+
+  root.append(svg, wet, pool, blob);
 
   let edge = null;
   let along = 0;
@@ -330,6 +353,8 @@ export function createEdgeBlob({
   let blobGen = 0;            // bumped whenever the blob is shown or hidden: stale animation ends are ignored
   let flight = null;          // the orange dot flying between the blob and the icon
   let iconDotFrom = null;     // where the icon dot was when the buttons started squashing into the blob
+  let peekBox = null;         // where the buttons stand while they are out of the blob
+  let poolGen = 0;            // bumped whenever the pool is shown or hidden: stale animation ends are ignored
 
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
@@ -501,23 +526,107 @@ export function createEdgeBlob({
     blob.classList.remove('csl-edge-charging');
   }
 
-  // The buttons come out next to the edge for a while; the blob stays docked
+  // ── the pool ──
+  function placePool(box) {
+    const r = poolRectFor(edge, box, vw(), vh());
+    pool.style.left = r.left + 'px';
+    pool.style.top = r.top + 'px';
+    pool.style.width = r.width + 'px';
+    pool.style.height = r.height + 'px';
+    const R = '16px';
+    pool.dataset.edge = edge;
+    pool.style.borderRadius = { left: `0 ${R} ${R} 0`, right: `${R} 0 0 ${R}`, top: `0 0 ${R} ${R}`, bottom: `${R} ${R} 0 0` }[edge];
+    return r;
+  }
+
+  // The pool scales from (to) the size of the blob, around the spot of the blob on the edge
+  function blobScale(r) {
+    const ox = { left: 0, right: r.width }[edge] ?? along - r.left;
+    const oy = { top: 0, bottom: r.height }[edge] ?? along - r.top;
+    pool.style.transformOrigin = `${ox}px ${oy}px`;
+    return isVertical(edge) ? `scale(${Math.min(1, 22 / r.width)}, ${Math.min(1, 40 / r.height)})`
+      : `scale(${Math.min(1, 40 / r.width)}, ${Math.min(1, 22 / r.height)})`;
+  }
+
+  function showPool(box) {
+    const gen = ++poolGen;
+    cancelAnimations(pool);
+    pool.classList.toggle('csl-edge-on-dark', blob.classList.contains('csl-edge-on-dark'));
+    const r = placePool(box);
+    pool.hidden = false;
+    const small = blobScale(r);
+    const over = isVertical(edge) ? 'scale(1.04, 1)' : 'scale(1, 1.04)';
+    animate(pool, [{ transform: small, offset: 0 }, { transform: over, offset: 0.6 }, { transform: 'none' }],
+      { duration: 380, easing: 'cubic-bezier(.34,1.3,.64,1)' }, () => { if (gen === poolGen) pool.style.transform = ''; });
+  }
+
+  // the pool shrinks back into the blob (or, torn, into the edge) and is hidden
+  function hidePool(keyframes, duration) {
+    if (pool.hidden) return;
+    const gen = ++poolGen;
+    cancelAnimations(pool);
+    const done = () => { if (gen === poolGen) pool.hidden = true; };
+    if (!animate(pool, keyframes, { duration, easing: 'ease-in' }, done)) done();
+  }
+
+  function sinkPool() {
+    const small = blobScale(pool.getBoundingClientRect());
+    hidePool([{ transform: 'none', opacity: 1 }, { transform: small, opacity: 1, offset: 0.8 }, { transform: small, opacity: 0 }], 240);
+  }
+
+  // The buttons come out next to the edge for a while, in a dark pool grown out of the blob; the blob stays docked
   function peek() {
     clearHover();
     if (!edge || peeking) return;
     peeking = true;
     pointerOnButtons = false;
     const from = dot.getBoundingClientRect();
-    // the blob swells for a moment and is absorbed by the edge
-    hideBlob(full => [
-      { transform: full, opacity: 1 },
-      { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
-      { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 },
-    ]);
-    onPeek(edge, along);
+    // the pool grows out of the blob under the buttons, the blob melts into it
+    hideBlob(full => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
+    peekBox = onPeek(edge, along) || container?.getBoundingClientRect() || null;
+    if (peekBox) showPool(peekBox);
     flyDot(from, iconDot);
     armIdle();
     debugLog('Buttons came out of the blob');
+  }
+
+  // The buttons out of the blob are dragged to `box`: the pool stretches after them; dragged further from the
+  // edge than a button is high, the pool tears and the buttons are free for good
+  function dragButtons(box) {
+    if (!peeking || !peekBox) return false;
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
+    if (away <= tearDistance()) {
+      placePool(box);
+      return false;
+    }
+    undock();
+    return true;
+  }
+
+  function undock() {
+    peeking = false;
+    pointerOnButtons = false;
+    edge = null;
+    peekBox = null;
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    clearBlobState(pageType);
+    // the torn pool snaps back into the edge
+    const back = { left: 'translateX(-40px)', right: 'translateX(40px)', top: 'translateY(-40px)', bottom: 'translateY(40px)' }[pool.dataset.edge] || '';
+    hidePool([{ transform: 'none', opacity: 1 }, { transform: `${back} scale(.6)`, opacity: 0 }], 220);
+    onUndock?.();
+    debugLog('Buttons dragged out of the blob');
+  }
+
+  // The drag ended before the pool tore: the buttons and the pool go back
+  function releaseButtons() {
+    if (!peeking || !peekBox) return;
+    placePool(peekBox);
+    animate(pool, [{ opacity: 0.85 }, { opacity: 1 }], { duration: 200 });
+    onSnapBack?.(peekBox);
+    armIdle();
   }
 
   // Counts the idle time down only while the mouse is off the buttons and their menus
@@ -533,6 +642,8 @@ export function createEdgeBlob({
     peeking = false;
     pointerOnButtons = false;
     onPeekEnd?.();
+    peekBox = null;
+    sinkPool();
     squashInto(container, edge);
     debugLog('Buttons went back into the blob');
   }
@@ -663,6 +774,8 @@ export function createEdgeBlob({
   return {
     get edge() { return edge; },
     get peeking() { return peeking; },
+    dragButtons,
+    releaseButtons,
 
     // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
     // where the drag would put it without clamping it to the viewport.

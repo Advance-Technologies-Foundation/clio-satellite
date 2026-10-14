@@ -412,14 +412,35 @@ describe('setupFloatingContainer — edge blob', () => {
     expect(onPeekShown).not.toHaveBeenCalled();
   });
 
-  it('buttons out of the blob cannot be dragged away', () => {
+  it('buttons out of the blob dragged less than a button height go back into their pool', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    expect(ec.querySelector('.csl-edge-pool').hidden).toBe(false);
+    fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 120, clientY: 320, bubbles: true }));
+    expect(fc.style.left).toBe('20px');
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(fc.style.left).toBe('8px');
+    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    // still out of the blob: they go back into it after the idle time
+    vi.advanceTimersByTime(10000 + 300);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('buttons out of the blob dragged further than a button height leave the blob for good', () => {
     const { ec, fc } = dockAtLeftEdge();
     clickBlob(ec);
     fc.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 320, bubbles: true }));
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 400, clientY: 320, bubbles: true }));
+    expect(fc.hasAttribute('data-edge-peek')).toBe(false);
+    expect(chrome.storage.local.remove).toHaveBeenCalled();
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    expect(fc.style.left).toBe('8px');
-    expect(fc.getAttribute('data-edge-peek')).toBe('left');
+    expect(fc.style.left).toBe('300px');
+    vi.advanceTimersByTime(10000 + 300);
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(ec.querySelector('.csl-edge-blob').hidden).toBe(true);
+    expect(ec.querySelector('.csl-edge-pool').hidden).toBe(true);
   });
 
   it('the blob tears off once pulled further than a button is high', () => {

@@ -18,6 +18,7 @@ import {
   bellHeight,
   colorLuminance,
   isDarkAt,
+  poolRectFor,
 } from '../src/edgeBlob.js';
 
 const VW = 1280;
@@ -619,5 +620,56 @@ describe('the blob on a dark page', () => {
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
     t.blob.dock('left', 600);
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
+    t.controller.abort();
+    t.root.remove();
+    dark.remove();
+  });
+});
+
+describe('the pool around the buttons out of the blob', () => {
+  it('poolRectFor runs from the screen edge to 6px past the far side of the buttons', () => {
+    const box = { left: 8, top: 300, width: 50, height: 90 };
+    expect(poolRectFor('left', box, VW, VH)).toEqual({ left: 0, top: 294, width: 64, height: 102 });
+    expect(poolRectFor('right', { left: VW - 58, top: 300, width: 50, height: 90 }, VW, VH))
+      .toEqual({ left: VW - 64, top: 294, width: 64, height: 102 });
+    expect(poolRectFor('top', { left: 100, top: 8, width: 90, height: 50 }, VW, VH))
+      .toEqual({ left: 94, top: 0, width: 102, height: 64 });
+  });
+
+  it('a click on the blob shows the pool around the box onPeek returns; the pool sinks when the peek ends', () => {
+    const t = setup({ onPeek: vi.fn(() => ({ left: 8, top: 280, width: 50, height: 90 })) });
+    t.blob.dock('left', 326);
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    const pool = t.root.querySelector('.csl-edge-pool');
+    expect(pool.hidden).toBe(false);
+    expect([pool.style.left, pool.style.top, pool.style.width, pool.style.height]).toEqual(['0px', '274px', '64px', '102px']);
+    vi.advanceTimersByTime(PEEK_IDLE_MS);
+    expect(pool.hidden).toBe(true);
+    t.controller.abort();
+  });
+
+  it('dragButtons stretches the pool, and tears it past the tear distance', () => {
+    const onUndock = vi.fn(), onSnapBack = vi.fn();
+    const box = { left: 8, top: 280, width: 50, height: 90 };
+    const t = setup({ onPeek: () => box, onUndock, onSnapBack });
+    t.blob.dock('left', 326);
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 326, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    const pool = t.root.querySelector('.csl-edge-pool');
+    expect(t.blob.dragButtons({ ...box, left: 8 + 30 })).toBe(false);
+    expect(pool.style.width).toBe(`${8 + 30 + 50 + 6}px`);
+    t.blob.releaseButtons();
+    expect(onSnapBack).toHaveBeenCalledWith(box);
+    expect(t.blob.dragButtons({ ...box, left: 8 + TEAR_DISTANCE + 1 })).toBe(true);
+    expect(onUndock).toHaveBeenCalled();
+    expect(t.blob.peeking).toBe(false);
+    expect(t.blob.edge).toBeNull();
+    expect(chrome.storage.local.remove).toHaveBeenCalled();
+    expect(pool.hidden).toBe(true);
+    // free buttons do not go back into a blob
+    vi.advanceTimersByTime(PEEK_IDLE_MS * 2);
+    expect(t.onPeekEnd).not.toHaveBeenCalled();
+    t.controller.abort();
   });
 });

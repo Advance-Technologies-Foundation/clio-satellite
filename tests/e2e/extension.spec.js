@@ -361,6 +361,47 @@ test.describe('Edge blob', () => {
     await expect(blob).toHaveClass(dark ? /^(?!.*csl-edge-on-dark)/ : /csl-edge-on-dark/);
   });
 
+  test('buttons out of the blob sit in a dark pool; a short drag puts them back, a long one frees them for good', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    const hit = await dockAtLeftEdge(page);
+    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    const pool = page.locator('.csl-edge-pool');
+    await expect(pool).toBeVisible();
+    await page.waitForTimeout(500);
+    const p = await pool.boundingBox();
+    const b = await page.locator('.creatio-satelite').boundingBox();
+    expect(p.x).toBe(0);
+    expect(p.x + p.width).toBeGreaterThanOrEqual(b.x + b.width);
+    expect(p.y).toBeLessThan(b.y);
+    expect(p.y + p.height).toBeGreaterThan(b.y + b.height);
+
+    // dragged less than a button is high: back into the pool, still docked
+    const x = b.x + 10, y = b.y + 10;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 20, y, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-peek', 'left');
+    await expect.poll(async () => (await page.locator('.creatio-satelite').boundingBox()).x).toBe(8);
+
+    // dragged further: the pool tears, the buttons stay where they were let go
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 200, y + 40, { steps: 10 });
+    await page.mouse.up();
+    await expect(page.locator('.creatio-satelite-floating')).not.toHaveAttribute('data-edge-peek', /./);
+    await expect(pool).toBeHidden();
+    const free = await page.locator('.creatio-satelite').boundingBox();
+    expect(free.x).toBeGreaterThan(150);
+    // no blob comes back, not even on the next visit
+    const key = 'menuEdgeBlob_shell_http://localhost:3737';
+    expect(await page.evaluate(k => new Promise(r => chrome.storage.local.get([k], res => r(res[k] ?? null))), key)).toBeNull();
+    await page.mouse.move(600, 600);
+    await page.waitForTimeout(500);
+    await expect(page.locator('.csl-edge-blob')).toBeHidden();
+  });
+
   test('a click on the blob brings the buttons out next to the edge with both menus open, still docked', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);

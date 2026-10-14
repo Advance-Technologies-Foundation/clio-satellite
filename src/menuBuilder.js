@@ -337,8 +337,8 @@ export function createScriptsMenu() {
   document.addEventListener('click', (event) => {
     const ec = document.querySelector('.creatio-satelite-extension-container');
     if (!ec) return;
-    // the click on the docked blob is what opens the menus
-    if (event.target.closest?.('.csl-edge-blob')) return;
+    // the click on the docked blob is what opens the menus; the pool around the buttons belongs to them
+    if (event.target.closest?.('.csl-edge-blob, .csl-edge-pool')) return;
     const mb = ec.querySelector('.scripts-menu-button');
     const ab = ec.querySelector('.actions-button');
     const mc = ec.querySelector('.scripts-menu-container');

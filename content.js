@@ -506,6 +506,16 @@
     if (edge === "top") return { x, y: gap };
     return { x, y: vh - height - gap };
   }
+  var POOL_PAD = 6;
+  function poolRectFor(edge, box, vw, vh, pad = POOL_PAD) {
+    let left = box.left - pad, top = box.top - pad;
+    let right = box.left + box.width + pad, bottom = box.top + box.height + pad;
+    if (edge === "left") left = 0;
+    if (edge === "right") right = vw;
+    if (edge === "top") top = 0;
+    if (edge === "bottom") bottom = vh;
+    return { left, top, width: right - left, height: bottom - top };
+  }
   var blobKey = (pageType) => `menuEdgeBlob_${pageType}_${window.location.origin}`;
   function saveBlobState(pageType, edge, along) {
     const span = isVertical(edge) ? window.innerHeight : window.innerWidth;
@@ -567,6 +577,9 @@
 .csl-edge-goo > div { position: absolute; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); }
 .csl-edge-wet .csl-edge-goo > div { background: radial-gradient(circle at 35% 40%, #2b2b2b, #050505 70%); }
 /* On a dark page the black blob turns dark grey so it can still be seen */
+.csl-edge-pool { position: fixed; z-index: 999; pointer-events: auto; background: linear-gradient(135deg, #3a3a3a, #111 60%, #000); filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+.csl-edge-pool[hidden] { display: none; }
+.csl-edge-pool.csl-edge-on-dark { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
 .csl-edge-on-dark .csl-edge-goo > div { background: linear-gradient(135deg, #555, #3a3a3a 60%, #2a2a2a); }
 .csl-edge-on-dark .csl-edge-bell stop:nth-child(1) { stop-color: #555; }
 .csl-edge-on-dark .csl-edge-bell stop:nth-child(2) { stop-color: #3a3a3a; }
@@ -688,7 +701,9 @@
     onBlob,
     onPeek,
     onPeekEnd,
-    onTearOff
+    onTearOff,
+    onUndock,
+    onSnapBack
   }) {
     ensureStyles();
     const svg = gooFilter();
@@ -703,7 +718,9 @@
     const hit = div("csl-edge-hit", blob);
     const dot = div("csl-edge-dot", blob);
     hit.title = "Clio satellite";
-    root.append(svg, wet, blob);
+    const pool = div("csl-edge-pool");
+    pool.hidden = true;
+    root.append(svg, wet, pool, blob);
     let edge = null;
     let along = 0;
     let pull = null;
@@ -717,6 +734,8 @@
     let blobGen = 0;
     let flight = null;
     let iconDotFrom = null;
+    let peekBox = null;
+    let poolGen = 0;
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
     function placeOnEdge(el5, ed, a) {
@@ -873,21 +892,97 @@
       hoverTimer = null;
       blob.classList.remove("csl-edge-charging");
     }
+    function placePool(box) {
+      const r = poolRectFor(edge, box, vw(), vh());
+      pool.style.left = r.left + "px";
+      pool.style.top = r.top + "px";
+      pool.style.width = r.width + "px";
+      pool.style.height = r.height + "px";
+      const R = "16px";
+      pool.dataset.edge = edge;
+      pool.style.borderRadius = { left: `0 ${R} ${R} 0`, right: `${R} 0 0 ${R}`, top: `0 0 ${R} ${R}`, bottom: `${R} ${R} 0 0` }[edge];
+      return r;
+    }
+    function blobScale(r) {
+      const ox = { left: 0, right: r.width }[edge] ?? along - r.left;
+      const oy = { top: 0, bottom: r.height }[edge] ?? along - r.top;
+      pool.style.transformOrigin = `${ox}px ${oy}px`;
+      return isVertical(edge) ? `scale(${Math.min(1, 22 / r.width)}, ${Math.min(1, 40 / r.height)})` : `scale(${Math.min(1, 40 / r.width)}, ${Math.min(1, 22 / r.height)})`;
+    }
+    function showPool(box) {
+      const gen = ++poolGen;
+      cancelAnimations(pool);
+      pool.classList.toggle("csl-edge-on-dark", blob.classList.contains("csl-edge-on-dark"));
+      const r = placePool(box);
+      pool.hidden = false;
+      const small = blobScale(r);
+      const over = isVertical(edge) ? "scale(1.04, 1)" : "scale(1, 1.04)";
+      animate(
+        pool,
+        [{ transform: small, offset: 0 }, { transform: over, offset: 0.6 }, { transform: "none" }],
+        { duration: 380, easing: "cubic-bezier(.34,1.3,.64,1)" },
+        () => {
+          if (gen === poolGen) pool.style.transform = "";
+        }
+      );
+    }
+    function hidePool(keyframes, duration) {
+      if (pool.hidden) return;
+      const gen = ++poolGen;
+      cancelAnimations(pool);
+      const done = () => {
+        if (gen === poolGen) pool.hidden = true;
+      };
+      if (!animate(pool, keyframes, { duration, easing: "ease-in" }, done)) done();
+    }
+    function sinkPool() {
+      const small = blobScale(pool.getBoundingClientRect());
+      hidePool([{ transform: "none", opacity: 1 }, { transform: small, opacity: 1, offset: 0.8 }, { transform: small, opacity: 0 }], 240);
+    }
     function peek() {
       clearHover();
       if (!edge || peeking) return;
       peeking = true;
       pointerOnButtons = false;
       const from = dot.getBoundingClientRect();
-      hideBlob((full) => [
-        { transform: full, opacity: 1 },
-        { transform: `${full} scale(1.25)`, opacity: 1, offset: 0.3 },
-        { transform: `${full} translateX(-20px) scale(.2)`, opacity: 0 }
-      ]);
-      onPeek(edge, along);
+      hideBlob((full) => [{ transform: full, opacity: 1 }, { transform: full, opacity: 0 }]);
+      peekBox = onPeek(edge, along) || container?.getBoundingClientRect() || null;
+      if (peekBox) showPool(peekBox);
       flyDot(from, iconDot);
       armIdle();
       debugLog("Buttons came out of the blob");
+    }
+    function dragButtons(box) {
+      if (!peeking || !peekBox) return false;
+      clearTimeout(idleTimer);
+      idleTimer = null;
+      const away = { left: box.left - peekBox.left, right: peekBox.left - box.left, top: box.top - peekBox.top, bottom: peekBox.top - box.top }[edge];
+      if (away <= tearDistance()) {
+        placePool(box);
+        return false;
+      }
+      undock();
+      return true;
+    }
+    function undock() {
+      peeking = false;
+      pointerOnButtons = false;
+      edge = null;
+      peekBox = null;
+      clearTimeout(idleTimer);
+      idleTimer = null;
+      clearBlobState(pageType);
+      const back = { left: "translateX(-40px)", right: "translateX(40px)", top: "translateY(-40px)", bottom: "translateY(40px)" }[pool.dataset.edge] || "";
+      hidePool([{ transform: "none", opacity: 1 }, { transform: `${back} scale(.6)`, opacity: 0 }], 220);
+      onUndock?.();
+      debugLog("Buttons dragged out of the blob");
+    }
+    function releaseButtons() {
+      if (!peeking || !peekBox) return;
+      placePool(peekBox);
+      animate(pool, [{ opacity: 0.85 }, { opacity: 1 }], { duration: 200 });
+      onSnapBack?.(peekBox);
+      armIdle();
     }
     function armIdle() {
       clearTimeout(idleTimer);
@@ -900,6 +995,8 @@
       peeking = false;
       pointerOnButtons = false;
       onPeekEnd?.();
+      peekBox = null;
+      sinkPool();
       squashInto(container, edge);
       debugLog("Buttons went back into the blob");
     }
@@ -1012,6 +1109,8 @@
       get peeking() {
         return peeking;
       },
+      dragButtons,
+      releaseButtons,
       // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
       // where the drag would put it without clamping it to the viewport.
       press(container2, raw, clientX, clientY) {
@@ -1113,7 +1212,9 @@
     const closeMenus = () => {
       document.querySelectorAll(".scripts-menu-container, .actions-menu-container").forEach(hideMenuContainer);
     };
+    let peekDrag = false;
     const beginDrag = (clientX, clientY, { moved = false } = {}) => {
+      peekDrag = edgeBlob.peeking;
       const startX = clientX, startY = clientY;
       floatingContainer.getAnimations?.().forEach((a) => a.cancel());
       const rect = floatingContainer.getBoundingClientRect();
@@ -1134,6 +1235,10 @@
         floatingContainer.style.left = newX + "px";
         floatingContainer.style.top = newY + "px";
         floatingContainer.style.right = "auto";
+        if (peekDrag) {
+          edgeBlob.dragButtons({ left: newX + box.offX, top: newY + box.offY, width: box.width, height: box.height });
+          return;
+        }
         edgeBlob.press(floatingContainer, { left: rawX + box.offX, top: rawY + box.offY, width: box.width, height: box.height }, e.clientX, e.clientY);
       };
       const stop = () => {
@@ -1152,6 +1257,11 @@
         setTimeout(() => {
           suppressClick = false;
         }, 0);
+        if (peekDrag) {
+          peekDrag = false;
+          edgeBlob.releaseButtons();
+          return;
+        }
         floatingContainer.setAttribute("data-user-positioned", "true");
         saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
         debugLog(`${isShell ? "Shell" : "Configuration"} container manually positioned`);
@@ -1169,7 +1279,6 @@
     };
     floatingContainer.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
-      if (edgeBlob.peeking) return;
       if (e.target === floatingContainer || e.target.closest(".creatio-satelite")) {
         beginDrag(e.clientX, e.clientY);
         e.preventDefault();
@@ -1212,11 +1321,11 @@
       onPeek: (edge, along) => {
         floatingContainer.removeAttribute("data-edge-docked");
         floatingContainer.setAttribute("data-edge-peek", edge);
-        floatingContainer.style.cursor = "default";
         const box = visualBox();
         const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
         showButtonsAt(pos.x - box.offX, pos.y - box.offY);
         tearDistance();
+        const peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
         const vertical = edge === "left" || edge === "right";
         const shown = () => {
           if (floatingContainer.hasAttribute("data-edge-peek")) onPeekShown?.();
@@ -1224,11 +1333,22 @@
         const pop = popIn({ left: "left center", right: "right center", top: "center top", bottom: "center bottom" }[edge], vertical ? "scale(.1,.5)" : "scale(.5,.1)");
         if (pop) pop.onfinish = shown;
         else shown();
+        return peekBox;
       },
       onPeekEnd: () => {
         closeMenus();
         floatingContainer.removeAttribute("data-edge-peek");
-        floatingContainer.style.cursor = "move";
+      },
+      onUndock: () => {
+        peekDrag = false;
+        floatingContainer.removeAttribute("data-edge-peek");
+        floatingContainer.style.cursor = "grabbing";
+      },
+      onSnapBack: (box) => {
+        const from = visualBox();
+        const dx = from.left - box.left, dy = from.top - box.top;
+        showButtonsAt(box.left - from.offX, box.top - from.offY);
+        floatingContainer.animate?.([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 420, easing: "cubic-bezier(.34,1.56,.64,1)" });
       },
       onTearOff: (clientX, clientY) => {
         floatingContainer.removeAttribute("data-edge-docked");
@@ -2467,7 +2587,7 @@
     document.addEventListener("click", (event) => {
       const ec = document.querySelector(".creatio-satelite-extension-container");
       if (!ec) return;
-      if (event.target.closest?.(".csl-edge-blob")) return;
+      if (event.target.closest?.(".csl-edge-blob, .csl-edge-pool")) return;
       const mb = ec.querySelector(".scripts-menu-button");
       const ab = ec.querySelector(".actions-button");
       const mc = ec.querySelector(".scripts-menu-container");

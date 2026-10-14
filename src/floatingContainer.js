@@ -76,8 +76,11 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     document.querySelectorAll('.scripts-menu-container, .actions-menu-container').forEach(hideMenuContainer);
   };
 
-  // `moved: true` starts a drag that is already under way (the buttons torn off a blob)
+  // `moved: true` starts a drag that is already under way (the buttons torn off a blob).
+  // The buttons out of a docked blob (a peek) stay in their pool until dragged further than a button is high.
+  let peekDrag = false;
   const beginDrag = (clientX, clientY, { moved = false } = {}) => {
+    peekDrag = edgeBlob.peeking;
     const startX = clientX, startY = clientY;
     // a running pop-in scales the container: measured mid-animation, the buttons would jump
     floatingContainer.getAnimations?.().forEach(a => a.cancel());
@@ -101,6 +104,11 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       floatingContainer.style.left = newX + 'px';
       floatingContainer.style.top = newY + 'px';
       floatingContainer.style.right = 'auto';
+      if (peekDrag) {
+        // the pool stretches after the buttons; torn, it lets them go (edgeBlob calls onUndock)
+        edgeBlob.dragButtons({ left: newX + box.offX, top: newY + box.offY, width: box.width, height: box.height });
+        return;
+      }
       // pushed far enough past an edge, the buttons turn into a blob (edgeBlob calls onBlob)
       edgeBlob.press(floatingContainer, { left: rawX + box.offX, top: rawY + box.offY, width: box.width, height: box.height }, e.clientX, e.clientY);
     };
@@ -120,6 +128,11 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
       if (!wasDragging) return;   // a plain click on a button: leave its menu to the button
       suppressClick = true;
       setTimeout(() => { suppressClick = false; }, 0);   // no click follows when the mouse was released elsewhere
+      if (peekDrag) {   // not dragged out of the pool: the buttons go back, nothing is saved
+        peekDrag = false;
+        edgeBlob.releaseButtons();
+        return;
+      }
       floatingContainer.setAttribute('data-user-positioned', 'true');
       // the drag has set left/top; the box can still be scaled by the pop-in after a tear-off
       saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
@@ -141,8 +154,6 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
 
   floatingContainer.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
-    // buttons out of a docked blob stay where they are: only pulling the blob undocks them
-    if (edgeBlob.peeking) return;
     if (e.target === floatingContainer || e.target.closest('.creatio-satelite')) {
       beginDrag(e.clientX, e.clientY);
       e.preventDefault();
@@ -192,23 +203,34 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     onPeek: (edge, along) => {
       floatingContainer.removeAttribute('data-edge-docked');
       floatingContainer.setAttribute('data-edge-peek', edge);
-      floatingContainer.style.cursor = 'default';
       const box = visualBox();
       const pos = buttonsPositionFor(edge, along, box.width, box.height, window.innerWidth, window.innerHeight);
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
       showButtonsAt(pos.x - box.offX, pos.y - box.offY);
       tearDistance();
+      const peekBox = { left: pos.x, top: pos.y, width: box.width, height: box.height };
       const vertical = edge === 'left' || edge === 'right';
       // menus are placed from the button boxes, which the pop-in scales: wait for it to end
       const shown = () => { if (floatingContainer.hasAttribute('data-edge-peek')) onPeekShown?.(); };
       const pop = popIn({ left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' }[edge], vertical ? 'scale(.1,.5)' : 'scale(.5,.1)');
       if (pop) pop.onfinish = shown;
       else shown();
+      return peekBox;
     },
     onPeekEnd: () => {
       closeMenus();
       floatingContainer.removeAttribute('data-edge-peek');
-      floatingContainer.style.cursor = 'move';
+    },
+    onUndock: () => {
+      peekDrag = false;
+      floatingContainer.removeAttribute('data-edge-peek');
+      floatingContainer.style.cursor = 'grabbing';
+    },
+    onSnapBack: (box) => {
+      const from = visualBox();
+      const dx = from.left - box.left, dy = from.top - box.top;
+      showButtonsAt(box.left - from.offX, box.top - from.offY);
+      floatingContainer.animate?.([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: 420, easing: 'cubic-bezier(.34,1.56,.64,1)' });
     },
     onTearOff: (clientX, clientY) => {
       floatingContainer.removeAttribute('data-edge-docked');
