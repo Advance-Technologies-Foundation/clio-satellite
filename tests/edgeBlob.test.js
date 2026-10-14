@@ -18,7 +18,7 @@ import {
   bellHeight,
   colorLuminance,
   gradientLuminance,
-  SHADE_RECHECK_MS,
+  SHADE_RECHECKS_MS,
   isDarkAt,
   poolShapeFor,
   poolHeight,
@@ -624,8 +624,10 @@ describe('the blob on a dark page', () => {
     const t = setup();
     t.blob.dock('left', 300);
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
-    panel.style.background = 'rgb(20, 20, 20)';   // Creatio has drawn its dark panel meanwhile
-    vi.advanceTimersByTime(SHADE_RECHECK_MS);
+    vi.advanceTimersByTime(1000);
+    panel.style.background = 'rgb(20, 20, 20)';   // Creatio has drawn its dark header meanwhile
+    expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(false);
+    vi.advanceTimersByTime(SHADE_RECHECKS_MS[1] - 1000);
     expect(t.blobEl.classList.contains('csl-edge-on-dark')).toBe(true);
     t.controller.abort();
     t.root.remove();

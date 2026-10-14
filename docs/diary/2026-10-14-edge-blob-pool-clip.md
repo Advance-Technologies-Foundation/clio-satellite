@@ -9,3 +9,5 @@
 **Why:** user feedback: on the top and bottom edges the buttons stuck out of the pool while appearing and hiding; dragging the buttons in the pool always snapped them back; the blob never turned grey on their dark background.
 
 **Decision:** the dark background was not reproduced on a live Creatio (the stand could not be opened in Chrome); the likely causes handled are a gradient or `oklch()` background, which the check skipped, and the blob being restored before Creatio drew its dark panel. A one-shot re-check, not polling, as the user asked to avoid periodic checks.
+
+**Follow-up (checked on a live Creatio 8 shell):** the dark header is `div.mask-wrap` with a `linear-gradient` background under an `img.mountains-image`; the gradient is now read, so the blob turns grey there. The header is drawn 1–3 s after the blob is restored, so the background is re-checked at 0.5, 1.5, 3 and 6 s instead of once at 3 s, and the colour changes with a 0.4 s transition.

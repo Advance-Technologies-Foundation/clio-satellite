@@ -159,8 +159,9 @@ export function gradientLuminance(image) {
 
 // The black blob is hard to see below this luminance (about #666), so it turns dark grey there
 export const DARK_LUMINANCE = 0.13;
-// A blob restored on page load checks the background once more after this time (the page is still loading)
-export const SHADE_RECHECK_MS = 3000;
+// A blob restored on page load checks the background again at these times: Creatio draws its dark header
+// some time after the blob appears (about 1–3 s on a test stand). A few checks, not polling.
+export const SHADE_RECHECKS_MS = [500, 1500, 3000, 6000];
 
 // Whether the page under (x, y) is dark: the background colour (or gradient) of the topmost page element
 // there that has one, skipping the extension's own elements (inside `own`). Images and canvases are not
@@ -188,8 +189,8 @@ const CSS = `
 .csl-edge-wet-grow { position: absolute; inset: 0; transform-origin: 0 50%; transform: scale(var(--csl-wx, 0), var(--csl-wy, 0)); }
 .csl-edge-scale { position: absolute; left: 0; top: ${GOO_TOP}px; width: 80px; height: 160px; transform: scale(${BLOB_SCALE}); transform-origin: 0 0; }
 .csl-edge-goo { position: absolute; inset: -20px; filter: url(#${FILTER_ID}); }
-.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }
-.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }
+.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; transition: background-color .4s ease; }
+.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; transition: fill .4s ease; }
 /* On a dark page the black blob turns dark grey so it can still be seen; it stays one colour */
 .csl-edge-on-dark .csl-edge-goo > div { background: ${BLOB_COLOR_ON_DARK}; }
 .csl-edge-on-dark .csl-edge-bell path, .csl-edge-pool.csl-edge-on-dark path { fill: ${BLOB_COLOR_ON_DARK}; }
@@ -1033,8 +1034,8 @@ export function createEdgeBlob({
       const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
       animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
       animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
-      // the blob is restored while Creatio is still drawing the page: look at the background once more later
-      setTimeout(() => { if (!signal?.aborted) updateShade(); }, SHADE_RECHECK_MS);
+      // the blob is restored while Creatio is still drawing the page: look at the background again a few times
+      for (const ms of SHADE_RECHECKS_MS) setTimeout(() => { if (!signal?.aborted) updateShade(); }, ms);
     },
   };
 }
