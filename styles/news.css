@@ -156,6 +156,20 @@
 
 .csl-news-list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
 
+/* A thin rounded scrollbar in the colours of the panel instead of the system one.
+   Only the ::-webkit-scrollbar rules: in Chrome, scrollbar-width / scrollbar-color would override them. */
+.csl-news-list::-webkit-scrollbar { width: 10px; }
+.csl-news-list::-webkit-scrollbar-track { background: transparent; }
+.csl-news-list::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18) padding-box;
+}
+.csl-news-list::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.32) padding-box; }
+.csl-news--dark .csl-news-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18) padding-box; }
+.csl-news--dark .csl-news-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.34) padding-box; }
+.csl-news-list::-webkit-scrollbar-button { display: none; height: 0; }
+
 .csl-news-card {
   display: grid;
   grid-template-columns: 8px minmax(0, 1fr);

@@ -80,10 +80,10 @@ export function sideBySideLefts(first, second, vw, gap = 8) {
   return { first: a, second: b };
 }
 
-// Opens two menus next to each other under (or above) their buttons without overlapping
-export function placeMenusSideBySide(firstButton, firstMenu, secondButton, secondMenu) {
-  adjustMenuPosition(firstButton, firstMenu);
-  adjustMenuPosition(secondButton, secondMenu);
+// Opens two menus next to each other under (or above) one button without overlapping
+export function placeMenusSideBySide(button, firstMenu, secondMenu) {
+  adjustMenuPosition(button, firstMenu);
+  adjustMenuPosition(button, secondMenu);
   const { first, second } = sideBySideLefts(
     firstMenu.getBoundingClientRect(), secondMenu.getBoundingClientRect(), window.innerWidth
   );

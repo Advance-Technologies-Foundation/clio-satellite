@@ -3,6 +3,8 @@
 **Purpose:** Creates and manages the draggable floating container that holds the Clio Satellite buttons. Handles drag, resize, position save/restore, visibility, and hands the buttons over to the edge blob (`edgeBlob.js`).
 
 **Public API:**
+- `unpinTooltipPosition(buttons, tip, vw, vh, gap?)` — pure: where the tooltip of the unpin button stands: right of the buttons when it fits, otherwise left, centred on them vertically and kept on screen
+- `UNPIN_LABEL` — text of the unpin tooltip and its `aria-label`
 - `setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown }?): HTMLElement` — builds the floating `div`, attaches drag handlers, creates the edge blob controller, restores a saved blob or the saved position, sets up resize listener and MutationObserver (shell only)
 - `DRAG_THRESHOLD` — px the mouse has to move before a press on the buttons counts as a drag
 
@@ -19,3 +21,6 @@
 - `resizeAbortController` tears down the previous resize listener whenever `setupFloatingContainer` is called again, preventing listener accumulation.
 
 **Dependencies:** `debug.js`, `positionManager.js`, `edgeBlob.js` (blob controller and its storage), `menuVisibility.js` (closing menus when a drag starts or the buttons go into the blob)
+
+- Unpin button (`.csl-unpin-button`, SF Symbols `pin.slash` style icon): appended to the button wrapper right of the main button, shown (inline `display`) only while the buttons are out of the docked blob — set in `onPeek` before the buttons are measured, so the pool is drawn around it too; hidden on `onUndock`, `onTearOff` and after a click on it. A click calls `edgeBlob.unpin()` (the same undock as tearing the pool by a drag): the buttons stay where they are, the blob state is removed, the menus close and the position is saved. On the right edge the container moves right by the width the unpin button took, so the button keeps its distance to the edge. A click during `closing` does nothing.
+- The unpin tooltip (`.csl-unpin-tooltip`, `role="tooltip"`, `aria-describedby`) is a separate fixed element in the extension root, not a pseudo-element of the button: the buttons (z 9997) are under their menus (9999), so a tooltip inside them was covered by the open menus. It shows 300 ms after `mouseenter`/`focus`, beside the buttons (`unpinTooltipPosition`), never under them where the menus open, and hides on `mouseleave`, `blur`, `mousedown` and at the end of the peek.

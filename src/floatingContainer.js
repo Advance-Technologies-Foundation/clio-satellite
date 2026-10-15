@@ -15,6 +15,31 @@ export const DRAG_THRESHOLD = 4;
 
 let resizeAbortController = null;
 
+// SF Symbols "pin.slash" drawn in the stroke style of the other icons; the slash is cut out of the pin
+// by a stroke in the button colour (--csl-unpin-bg), like the SF Symbols slash
+const UNPIN_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.75 1.75h6.5M6 1.75v4.5L3.75 9.25h8.5L10 6.25v-4.5" fill="var(--csl-icon-accent, #ff5722)"/><path d="M8 9.25v5"/><path d="M2.25 1.75l11.5 12.5" stroke="var(--csl-unpin-bg, #1f2329)" stroke-width="3.5"/><path d="M2.25 1.75l11.5 12.5"/></svg>';
+export const UNPIN_LABEL = 'Unpin from the edge — keep the button here';
+
+// Where the tooltip stands: beside the buttons, right of them when it fits, otherwise left.
+// Not below or above them: that is where their menus open.
+export function unpinTooltipPosition(buttons, tip, vw, vh, gap = 8) {
+  const right = buttons.left + buttons.width + gap;
+  const left = right + tip.width <= vw - gap ? right : Math.max(gap, buttons.left - gap - tip.width);
+  const top = Math.max(gap, Math.min(vh - tip.height - gap, buttons.top + (buttons.height - tip.height) / 2));
+  return { left, top };
+}
+
+// Shown next to the buttons only while they are out of the docked blob
+function createUnpinButton() {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'csl-unpin-button';
+  btn.setAttribute('aria-label', UNPIN_LABEL);
+  btn.innerHTML = UNPIN_ICON;
+  btn.style.display = 'none';
+  return btn;
+}
+
 // onPeekShown() - the buttons came out of the docked blob and finished popping in
 export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown } = {}) {
   resizeAbortController?.abort();
@@ -88,6 +113,59 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     const c = floatingContainer.getBoundingClientRect();
     showButtonsAt(c.left + left - b.left, c.top + top - b.top);
   };
+
+  const unpinButton = createUnpinButton();
+  // The tooltip lives in the extension root, above the menus (the buttons are under them)
+  const unpinTip = document.createElement('div');
+  unpinTip.className = 'csl-unpin-tooltip';
+  unpinTip.setAttribute('role', 'tooltip');
+  unpinTip.id = 'csl-unpin-tooltip';
+  unpinTip.textContent = UNPIN_LABEL;
+  unpinTip.hidden = true;
+  unpinButton.setAttribute('aria-describedby', unpinTip.id);
+  let tipTimer = null;
+  const hideTip = () => {
+    clearTimeout(tipTimer);
+    tipTimer = null;
+    unpinTip.hidden = true;
+  };
+  const showTip = () => {
+    unpinTip.hidden = false;
+    const at = unpinTooltipPosition(buttonWrapper.getBoundingClientRect(), unpinTip.getBoundingClientRect(), viewportWidth(), viewportHeight());
+    unpinTip.style.left = at.left + 'px';
+    unpinTip.style.top = at.top + 'px';
+  };
+  const tipSoon = () => {
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(showTip, 300);
+  };
+  unpinButton.addEventListener('mouseenter', tipSoon);
+  unpinButton.addEventListener('focus', tipSoon);
+  unpinButton.addEventListener('mouseleave', hideTip);
+  unpinButton.addEventListener('blur', hideTip);
+  unpinButton.addEventListener('mousedown', hideTip);
+  resizeAbortController.signal.addEventListener('abort', () => { hideTip(); unpinTip.remove(); });
+
+  const showUnpin = (on) => {
+    unpinButton.style.display = on ? '' : 'none';
+    if (!on) hideTip();
+  };
+  unpinButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const edge = floatingContainer.getAttribute('data-edge-peek');
+    const before = buttonWrapper.getBoundingClientRect();
+    if (!edgeBlob.unpin()) return;
+    // the buttons stay where they came out of the blob: that is their saved position now.
+    // Without the unpin button they are narrower; on the right edge they keep their distance to it.
+    floatingContainer.style.cursor = 'move';
+    const shrunk = before.width - buttonWrapper.getBoundingClientRect().width;
+    if (edge === 'right' && shrunk > 0) {
+      floatingContainer.style.left = (parseFloat(floatingContainer.style.left) + shrunk) + 'px';
+    }
+    closeMenus();
+    saveMenuPosition(parseFloat(floatingContainer.style.left), parseFloat(floatingContainer.style.top), pageType);
+    debugLog('Buttons unpinned from the blob');
+  });
 
   const closeMenus = () => {
     document.querySelectorAll('.scripts-menu-container, .actions-menu-container').forEach(hideMenuContainer);
@@ -224,6 +302,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     onPeek: (edge, along) => {
       floatingContainer.removeAttribute('data-edge-docked');
       floatingContainer.setAttribute('data-edge-peek', edge);
+      showUnpin(true);   // before the buttons are measured: the pool is drawn around it too
       // the buttons themselves, not the padded container, stand 8 px from the edge, centred on the blob;
       // not saved as the drag position: the buttons belong to the blob until it is pulled off
       let peekBox;
@@ -248,10 +327,12 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     },
     onPeekEnd: () => {
       closeMenus();
+      hideTip();
       floatingContainer.removeAttribute('data-edge-peek');
     },
     onUndock: () => {
       peekDrag = false;
+      showUnpin(false);
       floatingContainer.removeAttribute('data-edge-peek');
       floatingContainer.style.cursor = 'grabbing';
     },
@@ -266,6 +347,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     },
     onTearOff: (clientX, clientY) => {
       floatingContainer.removeAttribute('data-edge-docked');
+      showUnpin(false);
       const box = visualBox();
       const x = Math.max(0, Math.min(window.innerWidth - box.width, clientX - box.width / 2)) - box.offX;
       const y = Math.max(0, Math.min(window.innerHeight - box.height, clientY - box.height / 2)) - box.offY;
@@ -285,8 +367,10 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     debugLog(`Restored the blob on the ${saved.edge} edge`);
   });
 
+  buttonWrapper.appendChild(unpinButton);
   floatingContainer.appendChild(buttonWrapper);
   extensionContainer.appendChild(floatingContainer);
+  extensionContainer.appendChild(unpinTip);
 
   buttonWrapper.classList.add(isShell ? 'creatio-satelite-shell' : 'creatio-satelite-configuration');
   buttonWrapper.style.flexDirection = 'row';

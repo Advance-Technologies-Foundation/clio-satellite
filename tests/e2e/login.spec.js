@@ -174,8 +174,7 @@ test.describe('Login flow — real credentials', () => {
 
     await page.waitForURL(/shell/i, { timeout: 40000 });
 
-    // Both satellite buttons must appear in the shell
+    // The satellite button must appear in the shell
     await expect(page.locator('.scripts-menu-button')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('.actions-button')).toBeVisible();
   });
 });

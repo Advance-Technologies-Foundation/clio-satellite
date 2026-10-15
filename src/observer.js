@@ -30,10 +30,9 @@ export function monitorButtons() {
 
   const ec = document.querySelector('.creatio-satelite-extension-container');
   const navBtn = ec ? ec.querySelector('.scripts-menu-button') : null;
-  const actBtn = ec ? ec.querySelector('.actions-button') : null;
   const floatingContainer = ec ? ec.querySelector('.creatio-satelite-floating') : null;
 
-  if (!ec || !navBtn || !actBtn || !floatingContainer) {
+  if (!ec || !navBtn || !floatingContainer) {
     debugLog('Extension elements missing, attempting restore...');
     document.querySelectorAll('.creatio-satelite-extension-container').forEach(el => el.remove());
     resetState();

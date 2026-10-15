@@ -123,12 +123,11 @@ describe('sideBySideLefts — both menus open at once', () => {
 });
 
 describe('placeMenusSideBySide', () => {
-  it('places two menus under their buttons without overlap', () => {
-    const navBtn = createFloatingButton({ left: 8, top: 300, right: 158, bottom: 334, width: 150, height: 34 });
-    const actBtn = createFloatingButton({ left: 166, top: 300, right: 213, bottom: 334, width: 47, height: 34 });
+  it('places two menus under one button without overlap', () => {
+    const btn = createFloatingButton({ left: 8, top: 300, right: 158, bottom: 334, width: 150, height: 34 });
     const nav = createMenu({ left: 8, top: 342, right: 228, bottom: 600, width: 220, height: 258 });
-    const act = createMenu({ left: 166, top: 342, right: 366, bottom: 500, width: 200, height: 158 });
-    placeMenusSideBySide(navBtn, nav, actBtn, act);
+    const act = createMenu({ left: 8, top: 342, right: 208, bottom: 500, width: 200, height: 158 });
+    placeMenusSideBySide(btn, nav, act);
     expect(nav.style.left).toBe('8px');
     expect(act.style.left).toBe('236px');
     expect(nav.style.top).toBe('342px');

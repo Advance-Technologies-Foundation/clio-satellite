@@ -17,7 +17,7 @@
     }
 
     /* Scripts Menu Button */
-    .scripts-menu-button, .actions-button {
+    .scripts-menu-button {
         position: relative;
         top: auto;
         left: auto;
@@ -39,84 +39,11 @@
         background-color: #0066cc;
     }
 
-    /* Actions Button */
-    .actions-button {
-        background-color: #ff5722;
-        position: relative;
-        padding-right: 8px !important;
-    }
-    
-    /* More specific selector for actions button padding */
-    .mat-focus-indicator.actions-button.mat-flat-button.mat-button-base.mat-accent {
-        padding-right: 8px !important;
-    }
-    
-    /* Configuration page specific actions button padding */
-    .creatio-satelite-configuration .actions-button,
-    .creatio-satelite-floating .actions-button {
-        padding-right: 8px !important;
-    }
-
-    .actions-button:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #333;
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        white-space: nowrap;
-        font-size: 12px;
-        font-family: "Roboto", sans-serif;
-        z-index: 9999;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        margin-bottom: 8px;
-        opacity: 0;
-        animation: tooltipFadeIn 0.3s ease-in-out forwards;
-        pointer-events: none;
-        max-width: 300px;
-        white-space: normal;
-        text-align: center;
-        line-height: 1.4;
-    }
-
-    .actions-button:hover::before {
-        content: '';
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        border: 5px solid transparent;
-        border-top-color: #333;
-        z-index: 1001;
-        margin-bottom: 3px;
-        opacity: 0;
-        animation: tooltipFadeIn 0.3s ease-in-out forwards;
-    }
-
-    @keyframes tooltipFadeIn {
-        from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(5px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-    }
-
     /* Scripts Menu Button Icon */
     .scripts-menu-button img {
         width: 24px;
         height: 24px;
         margin-right: 8px;
-    }
-
-    /* Actions Button Icon */
-    .actions-button-icon {
-        font-size: 20px;
     }
 
     /* Center Container for Toolbar Placement */
@@ -303,16 +230,14 @@
   align-items: center !important;
 }
 
-.creatio-satelite-shell .scripts-menu-button,
-.creatio-satelite-shell .actions-button {
+.creatio-satelite-shell .scripts-menu-button {
   height: 36px !important;
   font-size: 14px !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
 }
 
-.creatio-satelite-shell .scripts-menu-button:hover,
-.creatio-satelite-shell .actions-button:hover {
+.creatio-satelite-shell .scripts-menu-button:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
 }
@@ -332,8 +257,7 @@
   justify-content: center !important;
 }
 
-.creatio-satelite-floating[data-fallback-position] .scripts-menu-button,
-.creatio-satelite-floating[data-fallback-position] .actions-button {
+.creatio-satelite-floating[data-fallback-position] .scripts-menu-button {
   height: 38px !important;
   min-width: 140px !important;
   font-size: 14px !important;

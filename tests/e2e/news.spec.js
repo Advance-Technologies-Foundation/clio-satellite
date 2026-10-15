@@ -182,6 +182,55 @@ test.describe('Developer news in Shell', () => {
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
   });
 
+  test('the flyout stays above the actions menu that opens beside it', async ({ page }) => {
+    await loadShell(page);
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const flyout = page.locator('.csl-news-flyout');
+    await expect(flyout).toBeVisible();
+    const act = await page.locator('.actions-menu-container').boundingBox();
+    const box = await flyout.boundingBox();
+    // the actions menu stands where the flyout opens: the point in both shows the flyout
+    const x = Math.max(act.x, box.x) + 10, y = Math.max(act.y, box.y) + 10;
+    expect(x).toBeLessThan(Math.min(act.x + act.width, box.x + box.width));
+    const onTop = await page.evaluate(([px, py]) => Boolean(document.elementFromPoint(px, py)?.closest('.csl-news-flyout')), [x, y]);
+    expect(onTop).toBe(true);
+    // the actions menu does not show through the glass of the flyout
+    await expect(page.locator('.actions-menu-container')).toBeHidden();
+
+    // closing the flyout brings the actions menu back
+    await page.locator('.csl-news-row').click();
+    await expect(flyout).toBeHidden();
+    await expect(page.locator('.actions-menu-container')).toBeVisible();
+    await page.locator('.csl-news-row').click();
+    await expect(flyout).toBeVisible();
+
+    // closed with the menus, the navigation menu goes back to its usual layer
+    await page.mouse.click(5, 700);
+    await expect(flyout).toBeHidden();
+    await page.locator('.scripts-menu-button').click();
+    const z = await page.locator('.scripts-menu-container').evaluate(el => el.style.zIndex);
+    expect(z).toBe('9999');
+  });
+
+  test('the news list scrolls with a slim scrollbar in the panel style', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    const many = feed(Array.from({ length: 5 }, (_, i) => item(`s${i}`)));
+    await loadShell(page, { newsFeed: many, syncData: { newsOnboardedAt: 1 } });
+    await page.locator('.scripts-menu-button').click();
+    await page.locator('.csl-news-row').click();
+    const list = page.locator('.csl-news-flyout .csl-news-list');
+    const bar = await list.evaluate(el => {
+      const s = getComputedStyle(el, '::-webkit-scrollbar');
+      const t = getComputedStyle(el, '::-webkit-scrollbar-thumb');
+      return { width: s.width, radius: t.borderRadius, color: t.backgroundColor };
+    });
+    // headless Chrome hides scrollbars, so their styles are checked, not their drawn width
+    expect(bar.width).toBe('10px');
+    expect(bar.radius).toBe('8px');
+    expect(bar.color).toBe('rgba(255, 255, 255, 0.18)');
+  });
+
   test('the flyout is as tall as its news when there are few, without a scrollbar', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await loadShell(page);

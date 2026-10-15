@@ -14,7 +14,7 @@
 - `poolShapeFor(edge, box, vw, vh, pad?)` → `{ c, half, depth }` — pool around a box of buttons: centre along the edge, half length, depth from the edge to `pad` past their far side
 - `poolHeight(d, half, depth)`, `poolPath(edge, shape, vw, vh)` — the outline of a pool and its SVG path on the screen
 - `viewportWidth()`, `viewportHeight()` — the viewport without scrollbars (`documentElement.clientWidth/Height`)
-- `createEdgeBlob({ root, container, pageType, signal, tearDistance?, iconDot?, onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack, buttons? })` → `{ edge, peeking, press(container, rawBox, clientX, clientY), release(), dock(edge, along), dragButtons(box), releaseButtons(), uncoverButtons(), closing }`. `onPeek` returns the box of the buttons it placed; `dragButtons` returns `true` once the pool tore
+- `createEdgeBlob({ root, container, pageType, signal, tearDistance?, iconDot?, onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack, buttons? })` → `{ edge, peeking, press(container, rawBox, clientX, clientY), release(), dock(edge, along), dragButtons(box), releaseButtons(), uncoverButtons(), unpin(), closing }`. `unpin()` undocks the buttons that are out of the blob without a drag (the unpin button); returns `false` when there is no peek or the buttons are going back. `onPeek` returns the box of the buttons it placed; `dragButtons` returns `true` once the pool tore
 
 **Key decisions:**
 - The drag code stays in `floatingContainer.js`; this module only receives the unclamped box of the buttons on every move. That keeps one drag implementation and makes the edge logic a pure function (`pressedEdge`) that is unit tested without a browser.
