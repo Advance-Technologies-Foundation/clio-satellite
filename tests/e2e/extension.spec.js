@@ -57,7 +57,7 @@ test.describe('Shell page', () => {
     const nav = await page.locator('.scripts-menu-container').boundingBox();
     const act = await page.locator('.actions-menu-container').boundingBox();
     expect(act.x).toBeGreaterThanOrEqual(nav.x + nav.width);
-    expect(Math.round(nav.y)).toBe(Math.round(act.y));
+    expect(Math.abs(nav.y - act.y)).toBeLessThanOrEqual(1);   // same row; sub-pixel tops differ on CI
     expect(nav.y).toBeGreaterThan(btn.y + btn.height - 1);
   });
 
