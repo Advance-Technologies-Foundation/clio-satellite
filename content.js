@@ -2383,12 +2383,20 @@
   function onWindowResize() {
     if (ui.flyoutOpen) fitFlyoutHeight();
   }
+  var FLYOUT_MENU_Z = 1e4;
+  function raiseMenu(on) {
+    if (on) ui.menuContainer?.style.setProperty("z-index", String(FLYOUT_MENU_Z), "important");
+    else ui.menuContainer?.style.setProperty("z-index", "9999");
+    const actions = document.querySelector(".creatio-satelite-extension-container .actions-menu-container");
+    if (actions) actions.style.visibility = on ? "hidden" : "";
+  }
   async function setFlyout(open2) {
     if (!ui.flyout) return;
     const wasOpen = ui.flyoutOpen;
     ui.flyoutOpen = open2;
     ui.flyout.hidden = !open2;
     ui.row?.setAttribute("aria-expanded", String(open2));
+    raiseMenu(open2);
     if (open2) {
       if (!wasOpen) track("news_open", { surface: "shell" });
       placeFlyout();
@@ -2489,6 +2497,7 @@
       if (!model && ui.flyoutOpen) {
         ui.flyoutOpen = false;
         ui.flyout.hidden = true;
+        raiseMenu(false);
       }
       if (model && ui.flyoutOpen) {
         renderCards(ui.list, model.visible, model.ctx, { onVideoStart: (item) => markRead([item.id]).then(render) });
