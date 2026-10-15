@@ -134,7 +134,6 @@ describe('monitorButtons', () => {
     document.body.innerHTML = `
       <div class="creatio-satelite-extension-container">
         <button class="scripts-menu-button"></button>
-        <button class="actions-button"></button>
         <div class="creatio-satelite-floating"></div>
       </div>
     `;
@@ -149,7 +148,6 @@ describe('monitorButtons', () => {
       <crt-global-search></crt-global-search>
       <div class="creatio-satelite-extension-container">
         <button class="scripts-menu-button"></button>
-        <button class="actions-button"></button>
         <div class="creatio-satelite-floating"></div>
       </div>
     `;
@@ -171,7 +169,6 @@ describe('monitorButtons', () => {
       <crt-global-search></crt-global-search>
       <div class="creatio-satelite-extension-container">
         <button class="scripts-menu-button"></button>
-        <button class="actions-button"></button>
         <div class="creatio-satelite-floating"></div>
       </div>
     `;
@@ -193,7 +190,6 @@ describe('monitorButtons', () => {
       <crt-global-search></crt-global-search>
       <div class="creatio-satelite-extension-container">
         <button class="scripts-menu-button"></button>
-        <button class="actions-button"></button>
         <div class="creatio-satelite-floating"></div>
       </div>
     `;

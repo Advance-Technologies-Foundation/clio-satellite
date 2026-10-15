@@ -63,18 +63,6 @@
   box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12) !important;
 }
 
-/* Accent button styling (Actions) */
-.creatio-satelite-extension-container .actions-button.mat-accent {
-  background-color: #ff5722 !important;
-  color: #fff !important;
-  box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12) !important;
-}
-
-.creatio-satelite-extension-container .actions-button.mat-accent:hover {
-  background-color: #f4511e !important;
-  box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12) !important;
-}
-
 /* Button wrapper styling */
 .creatio-satelite-extension-container .mat-button-wrapper {
   padding: 0 !important;
@@ -300,8 +288,7 @@
   fill: none !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-button svg,
-.creatio-satelite-extension-container .actions-button svg {
+.creatio-satelite-extension-container .scripts-menu-button svg {
   color: #fff !important;
 }
 /* ------------------------------------------------------------------
@@ -316,8 +303,7 @@
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12), 0 4px 12px rgba(16, 24, 40, 0.14) !important;
 }
 
-.creatio-satelite-extension-container .creatio-satelite button.scripts-menu-button.mat-flat-button,
-.creatio-satelite-extension-container .creatio-satelite button.actions-button.mat-flat-button {
+.creatio-satelite-extension-container .creatio-satelite button.scripts-menu-button.mat-flat-button {
   height: 34px !important;
   min-height: 34px !important;
   line-height: 34px !important;
@@ -329,19 +315,11 @@
 }
 
 .creatio-satelite-extension-container .creatio-satelite button.scripts-menu-button.mat-flat-button {
-  border-radius: 8px 0 0 8px !important;
+  border-radius: 8px !important;
   padding: 0 12px !important;
 }
 
-.creatio-satelite-extension-container .creatio-satelite button.actions-button.mat-flat-button {
-  border-radius: 0 8px 8px 0 !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
-  min-width: 48px !important;
-  padding: 0 10px !important;
-}
-
 .creatio-satelite-extension-container .creatio-satelite button.scripts-menu-button.mat-flat-button:hover,
-.creatio-satelite-extension-container .creatio-satelite button.actions-button.mat-flat-button:hover,
 .creatio-satelite-extension-container .creatio-satelite button[aria-expanded="true"].mat-flat-button {
   background-color: #2c323b !important;
   box-shadow: none !important;
@@ -361,15 +339,8 @@
   height: 34px !important;
 }
 
-.creatio-satelite-extension-container .actions-button .compile-button-caption {
-  margin-right: 22px !important;
-  line-height: 34px !important;
-  height: 34px !important;
-}
-
-/* Light outline on graphite; the orange accent part keeps the segments recognisable */
-.creatio-satelite-extension-container .scripts-menu-button .compile-button-caption svg,
-.creatio-satelite-extension-container .actions-button .compile-button-caption svg {
+/* Light outline on graphite; the orange accent part keeps the icon recognisable */
+.creatio-satelite-extension-container .scripts-menu-button .compile-button-caption svg {
   color: #e5e7eb !important;
 }
 

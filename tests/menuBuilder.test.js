@@ -46,10 +46,11 @@ describe('createScriptsMenu', () => {
     expect(document.querySelector('.creatio-satelite-extension-container')).not.toBeNull();
   });
 
-  it('creates navigation and actions buttons', () => {
+  it('creates one button and no separate actions button', () => {
     createScriptsMenu();
+    expect(document.querySelectorAll('.creatio-satelite button').length).toBe(1);
     expect(document.querySelector('.scripts-menu-button')).not.toBeNull();
-    expect(document.querySelector('.actions-button')).not.toBeNull();
+    expect(document.querySelector('.actions-button')).toBeNull();
   });
 
   it('race condition: concurrent calls produce exactly one menu', () => {
@@ -71,60 +72,72 @@ describe('createScriptsMenu', () => {
     expect(result).toBe(false);
   });
 
-  it('clicking nav button twice toggles menu closed', () => {
+  function menus() {
+    return {
+      btn: document.querySelector('.scripts-menu-button'),
+      navMenu: document.querySelector('.scripts-menu-container'),
+      actMenu: document.querySelector('.actions-menu-container'),
+    };
+  }
+
+  it('a click on the button opens both menus at once', () => {
     createScriptsMenu();
-    const btn = document.querySelector('.scripts-menu-button');
-    const menu = document.querySelector('.scripts-menu-container');
-
+    const { btn, navMenu, actMenu } = menus();
     btn.click();
-    expect(menu.classList.contains('visible')).toBe(true);
-
-    btn.click();
-    expect(menu.classList.contains('visible')).toBe(false);
-    expect(menu.classList.contains('hidden')).toBe(true);
-  });
-
-  it('clicking actions button twice toggles menu closed', () => {
-    createScriptsMenu();
-    const btn = document.querySelector('.actions-button');
-    const menu = document.querySelector('.actions-menu-container');
-
-    btn.click();
-    expect(menu.classList.contains('visible')).toBe(true);
-
-    btn.click();
-    expect(menu.classList.contains('visible')).toBe(false);
-    expect(menu.classList.contains('hidden')).toBe(true);
-  });
-
-  it('opening nav menu closes actions menu', () => {
-    createScriptsMenu();
-    const navBtn = document.querySelector('.scripts-menu-button');
-    const actBtn = document.querySelector('.actions-button');
-    const navMenu = document.querySelector('.scripts-menu-container');
-    const actMenu = document.querySelector('.actions-menu-container');
-
-    actBtn.click();
-    expect(actMenu.classList.contains('visible')).toBe(true);
-
-    navBtn.click();
     expect(navMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.querySelectorAll('[data-item-marker]').length).toBeGreaterThan(0);
+  });
+
+  it('a second click on the button closes both menus', () => {
+    createScriptsMenu();
+    const { btn, navMenu, actMenu } = menus();
+    btn.click();
+    btn.click();
+    expect(navMenu.classList.contains('hidden')).toBe(true);
     expect(actMenu.classList.contains('hidden')).toBe(true);
   });
 
-  it('opening actions menu closes nav menu', () => {
+  it('a click on the button while only one menu is left open closes it', () => {
     createScriptsMenu();
-    const navBtn = document.querySelector('.scripts-menu-button');
-    const actBtn = document.querySelector('.actions-button');
-    const navMenu = document.querySelector('.scripts-menu-container');
-    const actMenu = document.querySelector('.actions-menu-container');
-
-    navBtn.click();
-    expect(navMenu.classList.contains('visible')).toBe(true);
-
-    actBtn.click();
-    expect(actMenu.classList.contains('visible')).toBe(true);
+    const { btn, navMenu, actMenu } = menus();
+    btn.click();
+    navMenu.classList.replace('visible', 'hidden');
+    btn.click();
+    expect(actMenu.classList.contains('hidden')).toBe(true);
     expect(navMenu.classList.contains('hidden')).toBe(true);
+  });
+
+  it('picking an item in one menu closes the other menu too', () => {
+    createScriptsMenu();
+    const { btn, navMenu, actMenu } = menus();
+    btn.click();
+    navMenu.querySelector('[data-item-marker="Users"]').click();
+    expect(navMenu.classList.contains('hidden')).toBe(true);
+    expect(actMenu.classList.contains('hidden')).toBe(true);
+
+    btn.click();
+    actMenu.querySelector('[data-item-marker="RestartApp"]').click();
+    expect(navMenu.classList.contains('hidden')).toBe(true);
+    expect(actMenu.classList.contains('hidden')).toBe(true);
+  });
+
+  it('a click inside a menu, not on an item, keeps both menus open', () => {
+    createScriptsMenu();
+    const { btn, navMenu, actMenu } = menus();
+    btn.click();
+    actMenu.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(navMenu.classList.contains('visible')).toBe(true);
+    expect(actMenu.classList.contains('visible')).toBe(true);
+  });
+
+  it('a click on the page closes both menus opened by the button', () => {
+    createScriptsMenu();
+    const { btn, navMenu, actMenu } = menus();
+    btn.click();
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(navMenu.classList.contains('hidden')).toBe(true);
+    expect(actMenu.classList.contains('hidden')).toBe(true);
   });
 
   function dockedMenu() {
@@ -174,16 +187,9 @@ describe('createScriptsMenu', () => {
     expect(item.textContent.trim()).toBe('Application management');
   });
 
-  it('gives the icon-only actions button an accessible name and tooltip', () => {
+  it('renders duotone SVG icons inline for menu items and the button', () => {
     createScriptsMenu();
-    const actBtn = document.querySelector('.actions-button');
-    expect(actBtn.getAttribute('aria-label')).toBe('Quick actions');
-    expect(actBtn.title).toBe('Quick actions');
-  });
-
-  it('renders duotone SVG icons inline for menu items and both buttons', () => {
-    createScriptsMenu();
-    for (const sel of ['[data-item-marker="Users"] mat-icon', '.scripts-menu-button', '.actions-button']) {
+    for (const sel of ['[data-item-marker="Users"] mat-icon', '.scripts-menu-button']) {
       const svg = document.querySelector(`${sel} svg`);
       expect(svg, sel).not.toBeNull();
       expect(svg.innerHTML).toContain('var(--csl-icon-accent');

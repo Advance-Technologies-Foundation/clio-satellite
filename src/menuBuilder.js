@@ -2,7 +2,7 @@ import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
-import { hideMenuContainer, showMenuContainer, adjustMenuPosition, placeMenusSideBySide } from './menuVisibility.js';
+import { hideMenuContainer, showMenuContainer, placeMenusSideBySide } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
 import { track } from './analytics.js';
@@ -274,22 +274,7 @@ export function createScriptsMenu() {
   menuButtonWrapper.appendChild(navCaption);
   menuButtonWrapper.appendChild(createArrowWrapper());
 
-  const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton('accent', 'actions-button', 'Quick actions');
-  actionsButton.setAttribute('aria-label', 'Quick actions');
-
-  const actionsCaption = document.createElement('div');
-  actionsCaption.className = 'compile-button-caption';
-
-  const actionsIcon = document.createElement('span');
-  actionsIcon.className = 'creatio-satelite-button-icon';
-  actionsIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.25 1.75L3.25 9.25h4.5l-1 5 6-7.5h-4.5z" fill="var(--csl-icon-accent, #ff5722)"/></svg>`;
-
-  actionsCaption.appendChild(actionsIcon);
-  actionsButtonWrapper.appendChild(actionsCaption);
-  actionsButtonWrapper.appendChild(createArrowWrapper());
-
   buttonWrapper.appendChild(menuButton);
-  buttonWrapper.appendChild(actionsButton);
 
   const menuContainer = buildNavMenu();
 
@@ -297,40 +282,36 @@ export function createScriptsMenu() {
   actionsMenuContainer.classList.add('actions-menu-container');
   hideMenuContainer(actionsMenuContainer);
 
-  actionsButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (actionsMenuContainer.classList.contains('visible')) {
-      hideMenuContainer(actionsMenuContainer);
-      return;
-    }
-    hideMenuContainer(menuContainer);
-    buildActionsMenu(actionsMenuContainer);
-    showMenuContainer(actionsMenuContainer);
-    track('menu_open', { menu: 'actions' });
-    adjustMenuPosition(actionsButton, actionsMenuContainer);
-  });
-
-  menuButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (menuContainer.classList.contains('visible')) {
-      hideMenuContainer(menuContainer);
-      return;
-    }
-    hideMenuContainer(actionsMenuContainer);
-    showMenuContainer(menuContainer);
-    track('menu_open', { menu: 'navigation' });
-    adjustMenuPosition(menuButton, menuContainer);
-  });
-
-  // Buttons that come out of the docked blob open both menus at once: the next click is the action
+  // The one button opens and closes both menus together, the same as the docked blob,
+  // so every action is two clicks away in every mode
   const openBothMenus = () => {
     buildActionsMenu(actionsMenuContainer);
     showMenuContainer(menuContainer);
     showMenuContainer(actionsMenuContainer);
     track('menu_open', { menu: 'navigation' });
     track('menu_open', { menu: 'actions' });
-    placeMenusSideBySide(menuButton, menuContainer, actionsButton, actionsMenuContainer);
+    placeMenusSideBySide(menuButton, menuContainer, actionsMenuContainer);
   };
+  const hideBothMenus = () => {
+    hideMenuContainer(menuContainer);
+    hideMenuContainer(actionsMenuContainer);
+  };
+  // the menu items close their own menu; the other one goes with it
+  menuContainer.addEventListener('click', event => {
+    if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+  });
+  actionsMenuContainer.addEventListener('click', event => {
+    if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+  });
+
+  menuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (menuContainer.classList.contains('visible') || actionsMenuContainer.classList.contains('visible')) {
+      hideBothMenus();
+      return;
+    }
+    openBothMenus();
+  });
 
   state.clickAbortController?.abort();
   state.clickAbortController = new AbortController();
@@ -340,11 +321,10 @@ export function createScriptsMenu() {
     // the click on the docked blob is what opens the menus; the pool around the buttons belongs to them
     if (event.target.closest?.('.csl-edge-blob, .csl-edge-pool')) return;
     const mb = ec.querySelector('.scripts-menu-button');
-    const ab = ec.querySelector('.actions-button');
-    const mc = ec.querySelector('.scripts-menu-container');
-    const amc = ec.querySelector('.actions-menu-container');
-    if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-    if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+    const menus = ec.querySelectorAll('.scripts-menu-container, .actions-menu-container');
+    if (!mb || mb.contains(event.target)) return;
+    if ([...menus].some(menu => menu.contains(event.target))) return;
+    menus.forEach(hideMenuContainer);
   }, { capture: true, signal: state.clickAbortController.signal });
 
   try {

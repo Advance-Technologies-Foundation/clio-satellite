@@ -273,9 +273,9 @@
     }
     return { first: a, second: b };
   }
-  function placeMenusSideBySide(firstButton, firstMenu, secondButton, secondMenu) {
-    adjustMenuPosition(firstButton, firstMenu);
-    adjustMenuPosition(secondButton, secondMenu);
+  function placeMenusSideBySide(button, firstMenu, secondMenu) {
+    adjustMenuPosition(button, firstMenu);
+    adjustMenuPosition(button, secondMenu);
     const { first, second } = sideBySideLefts(
       firstMenu.getBoundingClientRect(),
       secondMenu.getBoundingClientRect(),
@@ -2674,53 +2674,37 @@
     navCaption.appendChild(document.createTextNode("Clio satellite"));
     menuButtonWrapper.appendChild(navCaption);
     menuButtonWrapper.appendChild(createArrowWrapper());
-    const { btn: actionsButton, wrapper: actionsButtonWrapper } = createMatButton("accent", "actions-button", "Quick actions");
-    actionsButton.setAttribute("aria-label", "Quick actions");
-    const actionsCaption = document.createElement("div");
-    actionsCaption.className = "compile-button-caption";
-    const actionsIcon = document.createElement("span");
-    actionsIcon.className = "creatio-satelite-button-icon";
-    actionsIcon.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.25 1.75L3.25 9.25h4.5l-1 5 6-7.5h-4.5z" fill="var(--csl-icon-accent, #ff5722)"/></svg>`;
-    actionsCaption.appendChild(actionsIcon);
-    actionsButtonWrapper.appendChild(actionsCaption);
-    actionsButtonWrapper.appendChild(createArrowWrapper());
     buttonWrapper.appendChild(menuButton);
-    buttonWrapper.appendChild(actionsButton);
     const menuContainer = buildNavMenu();
     const actionsMenuContainer = document.createElement("div");
     actionsMenuContainer.classList.add("actions-menu-container");
     hideMenuContainer(actionsMenuContainer);
-    actionsButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (actionsMenuContainer.classList.contains("visible")) {
-        hideMenuContainer(actionsMenuContainer);
-        return;
-      }
-      hideMenuContainer(menuContainer);
-      buildActionsMenu(actionsMenuContainer);
-      showMenuContainer(actionsMenuContainer);
-      track("menu_open", { menu: "actions" });
-      adjustMenuPosition(actionsButton, actionsMenuContainer);
-    });
-    menuButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (menuContainer.classList.contains("visible")) {
-        hideMenuContainer(menuContainer);
-        return;
-      }
-      hideMenuContainer(actionsMenuContainer);
-      showMenuContainer(menuContainer);
-      track("menu_open", { menu: "navigation" });
-      adjustMenuPosition(menuButton, menuContainer);
-    });
     const openBothMenus = () => {
       buildActionsMenu(actionsMenuContainer);
       showMenuContainer(menuContainer);
       showMenuContainer(actionsMenuContainer);
       track("menu_open", { menu: "navigation" });
       track("menu_open", { menu: "actions" });
-      placeMenusSideBySide(menuButton, menuContainer, actionsButton, actionsMenuContainer);
+      placeMenusSideBySide(menuButton, menuContainer, actionsMenuContainer);
     };
+    const hideBothMenus = () => {
+      hideMenuContainer(menuContainer);
+      hideMenuContainer(actionsMenuContainer);
+    };
+    menuContainer.addEventListener("click", (event) => {
+      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+    });
+    actionsMenuContainer.addEventListener("click", (event) => {
+      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+    });
+    menuButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (menuContainer.classList.contains("visible") || actionsMenuContainer.classList.contains("visible")) {
+        hideBothMenus();
+        return;
+      }
+      openBothMenus();
+    });
     state.clickAbortController?.abort();
     state.clickAbortController = new AbortController();
     document.addEventListener("click", (event) => {
@@ -2728,11 +2712,10 @@
       if (!ec) return;
       if (event.target.closest?.(".csl-edge-blob, .csl-edge-pool")) return;
       const mb = ec.querySelector(".scripts-menu-button");
-      const ab = ec.querySelector(".actions-button");
-      const mc = ec.querySelector(".scripts-menu-container");
-      const amc = ec.querySelector(".actions-menu-container");
-      if (mb && mc && !mb.contains(event.target) && !mc.contains(event.target)) hideMenuContainer(mc);
-      if (ab && amc && !ab.contains(event.target) && !amc.contains(event.target)) hideMenuContainer(amc);
+      const menus = ec.querySelectorAll(".scripts-menu-container, .actions-menu-container");
+      if (!mb || mb.contains(event.target)) return;
+      if ([...menus].some((menu) => menu.contains(event.target))) return;
+      menus.forEach(hideMenuContainer);
     }, { capture: true, signal: state.clickAbortController.signal });
     try {
       setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
@@ -2780,9 +2763,8 @@
     if (state.menuCreating) return;
     const ec = document.querySelector(".creatio-satelite-extension-container");
     const navBtn = ec ? ec.querySelector(".scripts-menu-button") : null;
-    const actBtn = ec ? ec.querySelector(".actions-button") : null;
     const floatingContainer = ec ? ec.querySelector(".creatio-satelite-floating") : null;
-    if (!ec || !navBtn || !actBtn || !floatingContainer) {
+    if (!ec || !navBtn || !floatingContainer) {
       debugLog("Extension elements missing, attempting restore...");
       document.querySelectorAll(".creatio-satelite-extension-container").forEach((el5) => el5.remove());
       resetState();

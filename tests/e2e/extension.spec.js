@@ -18,22 +18,23 @@ test.describe('Shell page', () => {
     await expect(page.locator('.creatio-satelite-extension-container')).toBeAttached();
   });
 
-  test('scripts and actions buttons are rendered', async ({ page }) => {
+  test('one button is rendered, no separate actions button', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
     await expect(page.locator('.scripts-menu-button')).toBeVisible();
-    await expect(page.locator('.actions-button')).toBeVisible();
+    await expect(page.locator('.actions-button')).toHaveCount(0);
   });
 
-  test('scripts menu opens when button is clicked', async ({ page }) => {
+  test('both menus open when the button is clicked', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
-  test('scripts menu closes when clicking outside', async ({ page }) => {
+  test('both menus close when clicking outside', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
@@ -42,14 +43,21 @@ test.describe('Shell page', () => {
 
     await page.mouse.click(10, 400); // click far from menu
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/hidden/);
   });
 
-  test('actions menu opens when button is clicked', async ({ page }) => {
+  test('the two menus open side by side under the button without overlapping', async ({ page }) => {
     await load(page, '/shell/');
+    await page.addStyleTag({ url: '/styles/shell.css' });
+    await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
-
-    await page.locator('.actions-button').click();
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await page.locator('.scripts-menu-button').click();
+    const btn = await page.locator('.scripts-menu-button').boundingBox();
+    const nav = await page.locator('.scripts-menu-container').boundingBox();
+    const act = await page.locator('.actions-menu-container').boundingBox();
+    expect(act.x).toBeGreaterThanOrEqual(nav.x + nav.width);
+    expect(Math.round(nav.y)).toBe(Math.round(act.y));
+    expect(nav.y).toBeGreaterThan(btn.y + btn.height - 1);
   });
 
   test('menu opens and item clicks are reported as anonymous usage events', async ({ page }) => {
@@ -58,12 +66,14 @@ test.describe('Shell page', () => {
     await page.locator('.scripts-menu-button').click();
     // Unstyled test page: the items exist but are not laid out, so dispatch the clicks
     await page.locator('[data-item-marker="SysSettings"]').dispatchEvent('click');
-    await page.locator('.actions-button').click();
+    await page.locator('.scripts-menu-button').click();
     await page.locator('.actions-menu-container [data-item-marker="RestartApp"]').dispatchEvent('click');
     const events = await page.evaluate(() => window.__sentMessages.filter(m => m.action === 'trackEvent').map(m => [m.name, m.params]));
     expect(events).toEqual([
       ['menu_open', { menu: 'navigation' }],
+      ['menu_open', { menu: 'actions' }],
       ['menu_click', { menu: 'navigation', item: 'SysSettings' }],
+      ['menu_open', { menu: 'navigation' }],
       ['menu_open', { menu: 'actions' }],
       ['menu_click', { menu: 'actions', item: 'RestartApp' }],
     ]);
@@ -77,7 +87,6 @@ test.describe('Shell page', () => {
     await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(9);
     await expect(page.locator('.scripts-menu-button svg')).toHaveCount(1);
-    await expect(page.locator('.actions-button svg')).toHaveCount(1);
 
     const icon = page.locator('[data-item-marker="Users"] mat-icon');
     const normal = await icon.evaluate(el => getComputedStyle(el).color);
@@ -122,45 +131,23 @@ test.describe('Shell page', () => {
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(1);
   });
 
-  test('clicking scripts button again closes the menu (toggle)', async ({ page }) => {
+  test('clicking the button again closes both menus (toggle)', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
 
     await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
-  });
-
-  test('clicking actions button again closes the menu (toggle)', async ({ page }) => {
-    await load(page, '/shell/');
-    await waitForMenu(page);
-
-    await page.locator('.actions-button').click();
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
-
-    await page.locator('.actions-button').click();
     await expect(page.locator('.actions-menu-container')).toHaveClass(/hidden/);
-  });
-
-  test('opening actions menu closes the scripts menu', async ({ page }) => {
-    await load(page, '/shell/');
-    await waitForMenu(page);
-
-    await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
-
-    await page.locator('.actions-button').click();
-    await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
   test('actions menu contains RestartApp and FlushRedisDB items', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
-    await page.locator('.actions-button').click();
+    await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
 
     await expect(page.locator('[data-item-marker="RestartApp"]')).toBeVisible();
