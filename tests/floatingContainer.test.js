@@ -9,7 +9,7 @@ vi.mock('../src/positionManager.js', () => ({
   applyAutoPosition: vi.fn(),
 }));
 
-import { setupFloatingContainer } from '../src/floatingContainer.js';
+import { setupFloatingContainer, unpinTooltipPosition, UNPIN_LABEL } from '../src/floatingContainer.js';
 import { loadBlobState, PEEK_IDLE_MS } from '../src/edgeBlob.js';
 import {
   loadMenuPosition,
@@ -330,6 +330,85 @@ describe('setupFloatingContainer — edge blob', () => {
     document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
   }
 
+  const unpinOf = ec => ec.querySelector('.csl-unpin-button');
+
+  it('the unpin button is hidden while the buttons are free or docked', () => {
+    const ec = makeExtension();
+    setupFloatingContainer('shell', makeWrapper(), ec);
+    expect(unpinOf(ec).style.display).toBe('none');
+    const { ec: docked } = dockAtLeftEdge();
+    expect(unpinOf(docked).style.display).toBe('none');
+  });
+
+  it('the unpin button shows up with a tooltip once the buttons come out of the blob', () => {
+    const { ec } = dockAtLeftEdge();
+    clickBlob(ec);
+    const btn = unpinOf(ec);
+    expect(btn.style.display).toBe('');
+    expect(btn.getAttribute('aria-label')).toBe(UNPIN_LABEL);
+    expect(btn.querySelector('svg')).not.toBeNull();
+    const tip = ec.querySelector('.csl-unpin-tooltip');
+    expect(tip.hidden).toBe(true);
+    btn.dispatchEvent(new MouseEvent('mouseenter'));
+    vi.advanceTimersByTime(300);
+    expect(tip.hidden).toBe(false);
+    expect(tip.textContent).toBe(UNPIN_LABEL);
+    expect(btn.getAttribute('aria-describedby')).toBe(tip.id);
+    btn.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(tip.hidden).toBe(true);
+  });
+
+  it('the tooltip goes away with the peek', () => {
+    const { ec } = dockAtLeftEdge();
+    clickBlob(ec);
+    unpinOf(ec).dispatchEvent(new MouseEvent('mouseenter'));
+    vi.advanceTimersByTime(300);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // ends the peek
+    expect(ec.querySelector('.csl-unpin-tooltip').hidden).toBe(true);
+  });
+
+  it('a click on the unpin button frees the buttons where they stand and forgets the blob', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    vi.advanceTimersByTime(400);
+    saveMenuPosition.mockClear();
+    const left = fc.style.left, top = fc.style.top;
+    unpinOf(ec).click();
+    expect(fc.hasAttribute('data-edge-peek')).toBe(false);
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(unpinOf(ec).style.display).toBe('none');
+    expect(fc.style.left).toBe(left);
+    expect(fc.style.top).toBe(top);
+    expect(saveMenuPosition).toHaveBeenCalledWith(parseFloat(left), parseFloat(top), 'shell');
+    // the idle countdown no longer sends them back
+    vi.advanceTimersByTime(PEEK_IDLE_MS + 1000);
+    expect(fc.hasAttribute('data-edge-docked')).toBe(false);
+    expect(ec.querySelector('.csl-edge-blob').hidden).toBe(true);
+  });
+
+  it('the unpin button does nothing while the buttons go back into the blob', () => {
+    const { ec, fc } = dockAtLeftEdge();
+    clickBlob(ec);
+    vi.advanceTimersByTime(400);
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));   // ends the peek
+    saveMenuPosition.mockClear();
+    unpinOf(ec).click();
+    expect(saveMenuPosition).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(400);
+    expect(fc.getAttribute('data-edge-docked')).toBe('left');
+  });
+
+  it('tearing the blob off hides the unpin button', () => {
+    const { ec } = dockAtLeftEdge();
+    clickBlob(ec);
+    vi.advanceTimersByTime(PEEK_IDLE_MS + 400);   // back into the blob
+    const hit = ec.querySelector('.csl-edge-hit');
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 320, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    expect(unpinOf(ec).style.display).toBe('none');
+  });
+
   it('releasing the mouse on a button right after it became a blob does not open its menu', () => {
     const ec = makeExtension();
     const wrapper = makeWrapper();
@@ -522,5 +601,20 @@ describe('setupFloatingContainer — edge blob', () => {
     const blob = ec.querySelector('.csl-edge-blob');
     expect(blob.hidden).toBe(false);
     expect(blob.style.left).toBe(`${1280 - 36}px`);
+  });
+});
+
+describe('unpinTooltipPosition', () => {
+  const tip = { width: 200, height: 40 };
+  it('stands right of the buttons, centred on them, when it fits', () => {
+    expect(unpinTooltipPosition({ left: 8, top: 300, width: 180, height: 34 }, tip, 1280, 800))
+      .toEqual({ left: 196, top: 297 });
+  });
+  it('goes left of the buttons on the right edge', () => {
+    expect(unpinTooltipPosition({ left: 1092, top: 300, width: 180, height: 34 }, tip, 1280, 800))
+      .toEqual({ left: 884, top: 297 });
+  });
+  it('stays on the screen at the top', () => {
+    expect(unpinTooltipPosition({ left: 400, top: 8, width: 180, height: 20 }, tip, 1280, 800).top).toBe(8);
   });
 });

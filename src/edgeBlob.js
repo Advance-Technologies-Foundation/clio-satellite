@@ -917,6 +917,12 @@ export function createEdgeBlob({
     dragButtons,
     releaseButtons,
     uncoverButtons,
+    // The unpin button next to the buttons out of the blob: they stay where they are, free for good
+    unpin() {
+      if (!peeking || closing) return false;
+      undock();
+      return true;
+    },
 
     // Called on every drag move. `raw` is the box of the visible buttons ({ left, top, width, height })
     // where the drag would put it without clamping it to the viewport.

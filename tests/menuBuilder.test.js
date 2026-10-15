@@ -48,7 +48,7 @@ describe('createScriptsMenu', () => {
 
   it('creates one button and no separate actions button', () => {
     createScriptsMenu();
-    expect(document.querySelectorAll('.creatio-satelite button').length).toBe(1);
+    expect(document.querySelectorAll('.creatio-satelite button.mat-flat-button').length).toBe(1);
     expect(document.querySelector('.scripts-menu-button')).not.toBeNull();
     expect(document.querySelector('.actions-button')).toBeNull();
   });
