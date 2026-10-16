@@ -24,7 +24,8 @@ const GOO_TOP = (BLOB_H - 160 * BLOB_SCALE) / 2;   // the goo frame sits in the 
 const ROT = { left: 0, top: 90, right: 180, bottom: -90 };
 const ORIGIN = { left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' };
 const STYLE_ID = 'csl-edge-blob-style';
-const BLOB_COLOR = '#151515';
+// The grey of Chrome's dark toolbar: a blob on the top edge touches it and must not read as a second colour
+export const BLOB_COLOR = '#393b43';
 const FILTER_ID = 'csl-edge-blob-goo';
 
 // The viewport without its scrollbars: a blob on the right edge of a page with a scrollbar must not hide under it
@@ -48,8 +49,17 @@ export function pressedEdge(rawX, rawY, width, height, vw, vh) {
   return edge ? { edge, over: over[edge] } : null;
 }
 
-export function isCursorAtEdge(edge, x, y, vw, vh) {
-  return { left: x <= 1, right: x >= vw - 2, top: y <= 1, bottom: y >= vh - 2 }[edge];
+// How close (px) to an edge the cursor still counts as held against it: a hand pressing the mouse
+// into the screen edge wobbles a few pixels away from it, and every wobble used to restart the hold
+export const EDGE_CURSOR_SLACK = 4;
+
+export function isCursorAtEdge(edge, x, y, vw, vh, slack = EDGE_CURSOR_SLACK) {
+  return { left: x < slack, right: x >= vw - slack, top: y < slack, bottom: y >= vh - slack }[edge];
+}
+
+// The edge the cursor is held against, if any
+export function cursorEdge(x, y, vw, vh) {
+  return EDGES.find(e => isCursorAtEdge(e, x, y, vw, vh)) || null;
 }
 
 // Position of the blob centre along the edge, kept fully on screen
@@ -928,7 +938,13 @@ export function createEdgeBlob({
     // where the drag would put it without clamping it to the viewport.
     press(container, raw, clientX, clientY) {
       if (edge) return false;
-      const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+      let hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+      // The cursor stopped at the window edge while the buttons only touch it (grabbed near their edge):
+      // when the window ends at the screen edge the cursor can go no further, so the hold must count here too
+      if (!hitEdge) {
+        const held = cursorEdge(clientX, clientY, vw(), vh());
+        if (held) hitEdge = { edge: held, over: 0 };
+      }
       if (!hitEdge) {
         clearEdgeHold();
         dryWet();
@@ -939,10 +955,12 @@ export function createEdgeBlob({
         becomeBlob(container, hitEdge.edge, raw, clientX, clientY);
         return true;
       }
-      showWet(hitEdge.edge, press, raw);
+      const atEdge = isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh());
+      // held at the edge, the wet spot shows at least half grown, so the hold has visible feedback
+      showWet(hitEdge.edge, atEdge ? Math.max(press, 0.5) : press, raw);
       lastPress = { container, edge: hitEdge.edge, raw, clientX, clientY };
       // a cursor pinned to the screen edge sends no more moves, so the hold is timed
-      if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
+      if (atEdge) {
         if (!edgeHoldTimer) {
           edgeHoldTimer = setTimeout(() => {
             edgeHoldTimer = null;

@@ -112,26 +112,12 @@ function onWindowResize() {
   if (ui.flyoutOpen) fitFlyoutHeight();
 }
 
-// Both menus are fixed at the same z-index and the actions menu comes later in the DOM.
-// While the flyout is open the navigation menu, and the flyout in it, go above the actions menu
-// (!important: the menu stylesheet forces `z-index: 9999 !important`), and the actions menu is
-// hidden: the glass of the flyout blurs only the navigation menu, so it would show through.
-export const FLYOUT_MENU_Z = 10000;
-function raiseMenu(on) {
-  if (on) ui.menuContainer?.style.setProperty('z-index', String(FLYOUT_MENU_Z), 'important');
-  else ui.menuContainer?.style.setProperty('z-index', '9999');
-  const actions = document.querySelector('.creatio-satelite-extension-container .actions-menu-container');
-  if (actions) actions.style.visibility = on ? 'hidden' : '';
-}
-
 async function setFlyout(open) {
   if (!ui.flyout) return;
   const wasOpen = ui.flyoutOpen;
   ui.flyoutOpen = open;
   ui.flyout.hidden = !open;
   ui.row?.setAttribute('aria-expanded', String(open));
-  // The flyout lives in the navigation menu; the actions menu beside it would cover it
-  raiseMenu(open);
   if (open) {
     if (!wasOpen) track('news_open', { surface: 'shell' });
     placeFlyout();

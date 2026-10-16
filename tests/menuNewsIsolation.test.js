@@ -23,7 +23,7 @@ describe('menu and developer news', () => {
   it('builds the menu even when the news indicator throws', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(createScriptsMenu()).toBe(true);
-    expect(state.actionsMenuCreated).toBe(true);
+    expect(state.menuCreated).toBe(true);
     expect(document.querySelector('.scripts-menu-button')).not.toBeNull();
     expect(errors).toHaveBeenCalledWith('[Clio Satellite] Developer news failed:', expect.any(Error));
     errors.mockRestore();
