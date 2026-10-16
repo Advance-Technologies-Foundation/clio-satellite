@@ -15,8 +15,7 @@
 /* Enable pointer events for interactive elements */
 .creatio-satelite-extension-container .creatio-satelite,
 .creatio-satelite-extension-container .creatio-satelite-floating,
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   pointer-events: auto !important;
 }
 
@@ -115,8 +114,7 @@
 }
 
 /* Menu Items Container */
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   background: rgba(28, 32, 38, 0.85) !important;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
   border-radius: 12px !important;
@@ -130,13 +128,11 @@
   display: none !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.visible,
-.creatio-satelite-extension-container .actions-menu-container.visible {
+.creatio-satelite-extension-container .scripts-menu-container.visible {
   display: block !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.hidden,
-.creatio-satelite-extension-container .actions-menu-container.hidden {
+.creatio-satelite-extension-container .scripts-menu-container.hidden {
   display: none !important;
 }
 
@@ -353,8 +349,7 @@
 }
 
 /* Menus */
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   /* Same glass as Creatio's own menus (.crt-menu-glassmorphism): its theme tokens with fallbacks.
      80% opacity keeps the text readable on white pages, not only on the wallpaper. */
   background: var(--crt-glass-color-dark-800, rgba(24, 24, 24, 0.8)) !important;
@@ -367,8 +362,7 @@
   -webkit-backdrop-filter: blur(20px) !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.visible,
-.creatio-satelite-extension-container .actions-menu-container.visible {
+.creatio-satelite-extension-container .scripts-menu-container.visible {
   animation: creatioSateliteMenuIn 0.14s ease-out !important;
 }
 
@@ -442,8 +436,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .creatio-satelite-extension-container .scripts-menu-container.visible,
-  .creatio-satelite-extension-container .actions-menu-container.visible {
+  .creatio-satelite-extension-container .scripts-menu-container.visible {
     animation: none !important;
   }
 }

@@ -6,8 +6,11 @@ import {
   PEEK_HOVER_MS,
   PEEK_IDLE_MS,
   DOT_FLIGHT_MS,
+  BLOB_COLOR,
   pressedEdge,
   isCursorAtEdge,
+  cursorEdge,
+  EDGE_CURSOR_SLACK,
   clampAlong,
   alongForRect,
   buttonsPositionFor,
@@ -68,6 +71,19 @@ describe('isCursorAtEdge', () => {
     expect(isCursorAtEdge('top', 300, 1, VW, VH)).toBe(true);
     expect(isCursorAtEdge('bottom', 300, VH - 1, VW, VH)).toBe(true);
     expect(isCursorAtEdge('left', 40, 300, VW, VH)).toBe(false);
+  });
+
+  it('allows a few pixels of wobble away from the edge', () => {
+    expect(isCursorAtEdge('bottom', 300, VH - EDGE_CURSOR_SLACK, VW, VH)).toBe(true);
+    expect(isCursorAtEdge('bottom', 300, VH - EDGE_CURSOR_SLACK - 1, VW, VH)).toBe(false);
+    expect(isCursorAtEdge('left', EDGE_CURSOR_SLACK - 1, 300, VW, VH)).toBe(true);
+    expect(isCursorAtEdge('left', EDGE_CURSOR_SLACK, 300, VW, VH)).toBe(false);
+  });
+
+  it('cursorEdge names the edge the cursor is held against', () => {
+    expect(cursorEdge(300, VH - 2, VW, VH)).toBe('bottom');
+    expect(cursorEdge(VW - 1, 300, VW, VH)).toBe('right');
+    expect(cursorEdge(300, 300, VW, VH)).toBeNull();
   });
 });
 
@@ -173,6 +189,14 @@ describe('createEdgeBlob — pushing the buttons into an edge', () => {
     expect(document.querySelectorAll('#csl-edge-blob-style')).toHaveLength(1);
   });
 
+  it('paints the blob and the pool in the grey of the browser toolbar', () => {
+    setup();
+    const css = document.getElementById('csl-edge-blob-style').textContent;
+    expect(BLOB_COLOR).toBe('#393b43');
+    expect(css).toContain(`.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }`);
+    expect(css).toContain(`.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }`);
+  });
+
   it('shows a growing wet spot instead of making a blob before the press distance', () => {
     const t = setup();
     const became = t.blob.press(t.container, raw(-PRESS_DISTANCE / 2), 100, 320);
@@ -223,6 +247,25 @@ describe('createEdgeBlob — pushing the buttons into an edge', () => {
     expect(t.onBlob).not.toHaveBeenCalled();
     vi.advanceTimersByTime(EDGE_HOLD_MS + 1);
     expect(t.onBlob).toHaveBeenCalledTimes(1);
+  });
+
+  it('a wobble of a few pixels away from the edge does not restart the hold', () => {
+    const t = setup();
+    t.blob.press(t.container, raw(-3), 0, 320);
+    vi.advanceTimersByTime(EDGE_HOLD_MS / 2);
+    t.blob.press(t.container, raw(-1), 2, 322);
+    vi.advanceTimersByTime(EDGE_HOLD_MS / 2 + 1);
+    expect(t.onBlob).toHaveBeenCalledTimes(1);
+  });
+
+  it('holding the cursor at the edge counts even when the buttons only touch it', () => {
+    // grabbed at the very edge of the buttons: the box reaches the screen edge but does not cross it
+    const t = setup();
+    t.blob.press(t.container, raw(0), 1, 320);
+    expect(t.wet.hidden).toBe(false);
+    vi.advanceTimersByTime(EDGE_HOLD_MS + 1);
+    expect(t.onBlob).toHaveBeenCalledTimes(1);
+    expect(t.blob.edge).toBe('left');
   });
 
   it('the hold is cancelled when the cursor leaves the screen edge', () => {

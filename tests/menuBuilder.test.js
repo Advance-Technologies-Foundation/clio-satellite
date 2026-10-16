@@ -72,72 +72,82 @@ describe('createScriptsMenu', () => {
     expect(result).toBe(false);
   });
 
-  function menus() {
+  function menu() {
     return {
       btn: document.querySelector('.scripts-menu-button'),
       navMenu: document.querySelector('.scripts-menu-container'),
-      actMenu: document.querySelector('.actions-menu-container'),
     };
   }
+  const markers = el => [...el.querySelectorAll('[data-item-marker]')].map(b => b.getAttribute('data-item-marker'));
 
-  it('a click on the button opens both menus at once', () => {
+  it('builds one menu and no separate actions menu', () => {
     createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
+    expect(document.querySelectorAll('.scripts-menu-container')).toHaveLength(1);
+    expect(document.querySelector('.actions-menu-container')).toBeNull();
+  });
+
+  it('a click on the button opens the menu with the actions between Configuration and Settings', () => {
+    createScriptsMenu();
+    const { btn, navMenu } = menu();
     btn.click();
     expect(navMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.querySelectorAll('[data-item-marker]').length).toBeGreaterThan(0);
+    const all = markers(navMenu);
+    expect(all.indexOf('RestartApp')).toBe(all.indexOf('Configuration') + 1);
+    expect(all.indexOf('FlushRedisDB')).toBe(all.indexOf('RestartApp') + 1);
+    expect(all[all.length - 1]).toBe('Settings');
+    const section = navMenu.querySelector('.csl-actions-section');
+    expect(section.getAttribute('role')).toBe('group');
+    expect(markers(section)).toEqual(['RestartApp', 'FlushRedisDB']);
   });
 
-  it('a second click on the button closes both menus', () => {
+  it('adds the autologin item to the actions when a profile logged in to this site', async () => {
+    await new Promise(r => chrome.storage.sync.set({
+      lastLoginProfiles: { 'https://myapp.example.com': 'Supervisor' },
+      userProfiles: [{ username: 'Supervisor', autologin: true }],
+    }, r));
     createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
+    const { btn, navMenu } = menu();
+    btn.click();
+    expect(markers(navMenu.querySelector('.csl-actions-section'))).toEqual(['RestartApp', 'FlushRedisDB', 'DisableAutologin']);
+    btn.click();
+    btn.click();   // opened again: the actions are rebuilt, not added twice
+    expect(markers(navMenu.querySelector('.csl-actions-section'))).toEqual(['RestartApp', 'FlushRedisDB', 'DisableAutologin']);
+  });
+
+  it('a second click on the button closes the menu', () => {
+    createScriptsMenu();
+    const { btn, navMenu } = menu();
     btn.click();
     btn.click();
     expect(navMenu.classList.contains('hidden')).toBe(true);
-    expect(actMenu.classList.contains('hidden')).toBe(true);
   });
 
-  it('a click on the button while only one menu is left open closes it', () => {
+  it('picking a navigation item or an action closes the menu', () => {
     createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
-    btn.click();
-    navMenu.classList.replace('visible', 'hidden');
-    btn.click();
-    expect(actMenu.classList.contains('hidden')).toBe(true);
-    expect(navMenu.classList.contains('hidden')).toBe(true);
-  });
-
-  it('picking an item in one menu closes the other menu too', () => {
-    createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
+    const { btn, navMenu } = menu();
     btn.click();
     navMenu.querySelector('[data-item-marker="Users"]').click();
     expect(navMenu.classList.contains('hidden')).toBe(true);
-    expect(actMenu.classList.contains('hidden')).toBe(true);
 
     btn.click();
-    actMenu.querySelector('[data-item-marker="RestartApp"]').click();
+    navMenu.querySelector('[data-item-marker="RestartApp"]').click();
     expect(navMenu.classList.contains('hidden')).toBe(true);
-    expect(actMenu.classList.contains('hidden')).toBe(true);
   });
 
-  it('a click inside a menu, not on an item, keeps both menus open', () => {
+  it('a click inside the menu, not on an item, keeps it open', () => {
     createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
+    const { btn, navMenu } = menu();
     btn.click();
-    actMenu.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    navMenu.querySelector('.csl-actions-section').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(navMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.classList.contains('visible')).toBe(true);
   });
 
-  it('a click on the page closes both menus opened by the button', () => {
+  it('a click on the page closes the menu opened by the button', () => {
     createScriptsMenu();
-    const { btn, navMenu, actMenu } = menus();
+    const { btn, navMenu } = menu();
     btn.click();
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(navMenu.classList.contains('hidden')).toBe(true);
-    expect(actMenu.classList.contains('hidden')).toBe(true);
   });
 
   function dockedMenu() {
@@ -148,43 +158,39 @@ describe('createScriptsMenu', () => {
     return {
       hit: document.querySelector('.csl-edge-hit'),
       navMenu: document.querySelector('.scripts-menu-container'),
-      actMenu: document.querySelector('.actions-menu-container'),
     };
   }
 
-  it('a click on the docked blob opens both menus at once', () => {
-    const { hit, navMenu, actMenu } = dockedMenu();
+  it('a click on the docked blob opens the menu with the actions in it', () => {
+    const { hit, navMenu } = dockedMenu();
     expect(document.querySelector('.creatio-satelite-floating').getAttribute('data-edge-docked')).toBe('left');
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('click', { clientX: 5, clientY: 400, bubbles: true }));
-    vi.advanceTimersByTime(400);   // the menus open once the buttons are out of the blob
+    vi.advanceTimersByTime(400);   // the menu opens once the buttons are out of the blob
     expect(navMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.querySelectorAll('[data-item-marker]').length).toBeGreaterThan(0);
+    expect(markers(navMenu)).toContain('FlushRedisDB');
   });
 
-  it('resting the mouse on the docked blob also opens both menus', () => {
-    const { hit, navMenu, actMenu } = dockedMenu();
+  it('resting the mouse on the docked blob also opens the menu', () => {
+    const { hit, navMenu } = dockedMenu();
     hit.dispatchEvent(new MouseEvent('mouseenter'));
     vi.advanceTimersByTime(2000 + 400);
     expect(navMenu.classList.contains('visible')).toBe(true);
-    expect(actMenu.classList.contains('visible')).toBe(true);
   });
 
-  it('a click on the page closes both menus', () => {
-    const { hit, navMenu, actMenu } = dockedMenu();
+  it('a click on the page closes the menu opened from the blob', () => {
+    const { hit, navMenu } = dockedMenu();
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(navMenu.classList.contains('visible')).toBe(false);
-    expect(actMenu.classList.contains('visible')).toBe(false);
   });
 
-  it('shows the corrected caption for Application management while keeping the script file name', () => {
+  it('shows App Hub as the caption of Application_Managment while keeping the script file name', () => {
     createScriptsMenu();
     const item = document.querySelector('[data-item-marker="Application_Managment"] .caption');
-    expect(item.textContent.trim()).toBe('Application management');
+    expect(item.textContent.trim()).toBe('App Hub');
   });
 
   it('renders duotone SVG icons inline for menu items and the button', () => {

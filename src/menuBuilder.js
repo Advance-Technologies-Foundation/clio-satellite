@@ -2,7 +2,7 @@ import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
-import { hideMenuContainer, showMenuContainer, placeMenusSideBySide } from './menuVisibility.js';
+import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
 import { track } from './analytics.js';
@@ -91,33 +91,46 @@ function createMenuItem(scriptName) {
   return menuItem;
 }
 
+function createDivider(marker) {
+  const dividerContainer = document.createElement('div');
+  dividerContainer.className = 'ng-star-inserted';
+  dividerContainer.setAttribute('crt-menu-view-element-item', marker);
+  dividerContainer.style.cssText = 'display: block; margin: 4px 0; opacity: 1; visibility: visible;';
+
+  const crtDivider = document.createElement('crt-menu-divider');
+  crtDivider.className = 'ng-star-inserted';
+  crtDivider.style.cssText = 'display: block; margin: 0;';
+
+  const matDivider = document.createElement('mat-divider');
+  matDivider.setAttribute('role', 'separator');
+  matDivider.className = 'mat-divider mat-divider-horizontal';
+  matDivider.setAttribute('aria-orientation', 'horizontal');
+  matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;';
+
+  crtDivider.appendChild(matDivider);
+  dividerContainer.appendChild(crtDivider);
+  return dividerContainer;
+}
+
+// One menu: the navigation items, then the actions (RestartApp, FlushRedisDB, autologin), then Settings.
+// The actions sit in their own group, filled by buildActionsSection every time the menu opens.
 function buildNavMenu() {
   const menuContainer = document.createElement('div');
   menuContainer.classList.add('scripts-menu-container');
   hideMenuContainer(menuContainer);
 
+  const actionsSection = document.createElement('div');
+  actionsSection.className = 'csl-actions-section';
+  actionsSection.setAttribute('role', 'group');
+  actionsSection.setAttribute('aria-label', 'Actions');
+
   SCRIPT_FILES.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
 
     if (scriptName === 'Settings') {
-      const dividerContainer = document.createElement('div');
-      dividerContainer.className = 'ng-star-inserted';
-      dividerContainer.setAttribute('crt-menu-view-element-item', 'settings-divider');
-      dividerContainer.style.cssText = 'display: block; margin: 4px 0; opacity: 1; visibility: visible;';
-
-      const crtDivider = document.createElement('crt-menu-divider');
-      crtDivider.className = 'ng-star-inserted';
-      crtDivider.style.cssText = 'display: block; margin: 0;';
-
-      const matDivider = document.createElement('mat-divider');
-      matDivider.setAttribute('role', 'separator');
-      matDivider.className = 'mat-divider mat-divider-horizontal';
-      matDivider.setAttribute('aria-orientation', 'horizontal');
-      matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;';
-
-      crtDivider.appendChild(matDivider);
-      dividerContainer.appendChild(crtDivider);
-      menuContainer.appendChild(dividerContainer);
+      menuContainer.appendChild(createDivider('actions-divider'));
+      menuContainer.appendChild(actionsSection);
+      menuContainer.appendChild(createDivider('settings-divider'));
     }
 
     const menuItem = createMenuItem(scriptName);
@@ -134,11 +147,15 @@ function buildNavMenu() {
     menuContainer.appendChild(menuItem);
   });
 
-  return menuContainer;
+  return { menuContainer, actionsSection };
 }
 
-function buildActionsMenu(actionsMenuContainer) {
-  actionsMenuContainer.innerHTML = '';
+// RestartApp and FlushRedisDB are added at once, so the menu has its full height when it is placed.
+// The autologin item depends on the saved profiles and comes later; `onChange` lets the caller place
+// the menu again once it is there.
+function buildActionsSection(actionsSection, onChange) {
+  actionsSection.innerHTML = '';
+  ['RestartApp', 'FlushRedisDB'].forEach(name => actionsSection.appendChild(createActionItem(name, null)));
 
   chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, data => {
     const err = getLastError();
@@ -146,82 +163,84 @@ function buildActionsMenu(actionsMenuContainer) {
       console.error('[Clio Satellite] Failed to load profiles:', err.message);
       return;
     }
-    if (!actionsMenuContainer.isConnected) return;
+    if (!actionsSection.isConnected) return;
     const origin = window.location.origin;
     const rawEntry = data.lastLoginProfiles[origin];
     const lastUser = typeof rawEntry === 'string' ? rawEntry : rawEntry?.username;
+    if (!lastUser) return;
     const profile = data.userProfiles.find(p => p.username === lastUser);
     const autologinEnabled = profile ? profile.autologin : false;
-
-    const actionsList = ['RestartApp', 'FlushRedisDB'];
-    if (lastUser) actionsList.push(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin');
-
-    actionsList.forEach(name => {
-      const detail = ACTION_DETAILS[name];
-
-      const menuItem = document.createElement('div');
-      menuItem.className = 'crt-menu-item-container mat-menu-item';
-      menuItem.setAttribute('mat-menu-item', '');
-      menuItem.setAttribute('aria-disabled', 'false');
-      menuItem.setAttribute('role', 'menuitem');
-      menuItem.setAttribute('tabindex', '0');
-
-      const menuButtonEl = document.createElement('button');
-      menuButtonEl.className = 'crt-menu-item mat-flat-button';
-      menuButtonEl.setAttribute('mat-flat-button', '');
-      menuButtonEl.setAttribute('data-item-marker', name);
-
-      const iconWrap = document.createElement('mat-icon');
-      iconWrap.setAttribute('role', 'img');
-      iconWrap.className = 'mat-icon notranslate mat-icon-no-color';
-      iconWrap.setAttribute('aria-hidden', 'true');
-      iconWrap.setAttribute('data-mat-icon-type', 'svg');
-      iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
-      iconWrap.innerHTML = detail.icon || '';
-
-      const caption = document.createElement('span');
-      caption.className = 'caption';
-      caption.setAttribute('crttextoverflowtitle', '');
-      caption.textContent = name
-        .replace('Autologin', ' autologin')
-        .replace(/([a-z])([A-Z])/g, '$1 $2')
-        .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
-        .trim();
-
-      menuButtonEl.appendChild(iconWrap);
-      menuButtonEl.appendChild(caption);
-      menuItem.appendChild(menuButtonEl);
-
-      menuItem.addEventListener('click', () => {
-        track('menu_click', { menu: 'actions', item: name });
-        if (name === 'EnableAutologin') {
-          chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, ds => {
-            const err = getLastError();
-            if (err) {
-              console.error('[Clio Satellite] Failed to load profiles for autologin:', err.message);
-              return;
-            }
-            const profiles = ds.userProfiles.map(p =>
-              p.username === lastUser ? { ...p, autologin: true } : p
-            );
-            chrome.storage.sync.set({ userProfiles: profiles }, () => {
-              const err = getLastError();
-              if (err) {
-                console.error('[Clio Satellite] Failed to save autologin setting:', err.message);
-              }
-            });
-          });
-        } else if (name === 'DisableAutologin') {
-          safeSendMessage({ action: 'disableAutologin' });
-        } else {
-          safeSendMessage({ action: 'executeScript', scriptPath: 'actions/' + detail.file });
-        }
-        hideMenuContainer(actionsMenuContainer);
-      });
-
-      actionsMenuContainer.appendChild(menuItem);
-    });
+    actionsSection.querySelector('[data-csl-autologin]')?.remove();
+    const item = createActionItem(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin', lastUser);
+    item.setAttribute('data-csl-autologin', '');
+    actionsSection.appendChild(item);
+    onChange?.();
   });
+}
+
+function createActionItem(name, lastUser) {
+  const detail = ACTION_DETAILS[name];
+
+  const menuItem = document.createElement('div');
+  menuItem.className = 'crt-menu-item-container mat-menu-item';
+  menuItem.setAttribute('mat-menu-item', '');
+  menuItem.setAttribute('aria-disabled', 'false');
+  menuItem.setAttribute('role', 'menuitem');
+  menuItem.setAttribute('tabindex', '0');
+
+  const menuButtonEl = document.createElement('button');
+  menuButtonEl.className = 'crt-menu-item mat-flat-button';
+  menuButtonEl.setAttribute('mat-flat-button', '');
+  menuButtonEl.setAttribute('data-item-marker', name);
+
+  const iconWrap = document.createElement('mat-icon');
+  iconWrap.setAttribute('role', 'img');
+  iconWrap.className = 'mat-icon notranslate mat-icon-no-color';
+  iconWrap.setAttribute('aria-hidden', 'true');
+  iconWrap.setAttribute('data-mat-icon-type', 'svg');
+  iconWrap.setAttribute('data-mat-icon-name', detail.name || 'help');
+  iconWrap.innerHTML = detail.icon || '';
+
+  const caption = document.createElement('span');
+  caption.className = 'caption';
+  caption.setAttribute('crttextoverflowtitle', '');
+  caption.textContent = name
+    .replace('Autologin', ' autologin')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+    .trim();
+
+  menuButtonEl.appendChild(iconWrap);
+  menuButtonEl.appendChild(caption);
+  menuItem.appendChild(menuButtonEl);
+
+  menuItem.addEventListener('click', () => {
+    track('menu_click', { menu: 'actions', item: name });
+    if (name === 'EnableAutologin') {
+      chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, ds => {
+        const err = getLastError();
+        if (err) {
+          console.error('[Clio Satellite] Failed to load profiles for autologin:', err.message);
+          return;
+        }
+        const profiles = ds.userProfiles.map(p =>
+          p.username === lastUser ? { ...p, autologin: true } : p
+        );
+        chrome.storage.sync.set({ userProfiles: profiles }, () => {
+          const err = getLastError();
+          if (err) {
+            console.error('[Clio Satellite] Failed to save autologin setting:', err.message);
+          }
+        });
+      });
+    } else if (name === 'DisableAutologin') {
+      safeSendMessage({ action: 'disableAutologin' });
+    } else {
+      safeSendMessage({ action: 'executeScript', scriptPath: 'actions/' + detail.file });
+    }
+  });
+
+  return menuItem;
 }
 
 export function createScriptsMenu() {
@@ -276,41 +295,30 @@ export function createScriptsMenu() {
 
   buttonWrapper.appendChild(menuButton);
 
-  const menuContainer = buildNavMenu();
+  const { menuContainer, actionsSection } = buildNavMenu();
 
-  const actionsMenuContainer = document.createElement('div');
-  actionsMenuContainer.classList.add('actions-menu-container');
-  hideMenuContainer(actionsMenuContainer);
-
-  // The one button opens and closes both menus together, the same as the docked blob,
-  // so every action is two clicks away in every mode
-  const openBothMenus = () => {
-    buildActionsMenu(actionsMenuContainer);
+  // The button and the docked blob open the same one menu with every item in it
+  const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+  const openMenu = () => {
+    buildActionsSection(actionsSection, () => {
+      if (menuContainer.classList.contains('visible')) placeMenu();
+    });
     showMenuContainer(menuContainer);
-    showMenuContainer(actionsMenuContainer);
     track('menu_open', { menu: 'navigation' });
-    track('menu_open', { menu: 'actions' });
-    placeMenusSideBySide(menuButton, menuContainer, actionsMenuContainer);
+    placeMenu();
   };
-  const hideBothMenus = () => {
-    hideMenuContainer(menuContainer);
-    hideMenuContainer(actionsMenuContainer);
-  };
-  // the menu items close their own menu; the other one goes with it
+  const hideMenu = () => hideMenuContainer(menuContainer);
   menuContainer.addEventListener('click', event => {
-    if (event.target.closest('[role="menuitem"]')) hideBothMenus();
-  });
-  actionsMenuContainer.addEventListener('click', event => {
-    if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+    if (event.target.closest('[role="menuitem"]')) hideMenu();
   });
 
   menuButton.addEventListener('click', (event) => {
     event.stopPropagation();
-    if (menuContainer.classList.contains('visible') || actionsMenuContainer.classList.contains('visible')) {
-      hideBothMenus();
+    if (menuContainer.classList.contains('visible')) {
+      hideMenu();
       return;
     }
-    openBothMenus();
+    openMenu();
   });
 
   state.clickAbortController?.abort();
@@ -321,26 +329,24 @@ export function createScriptsMenu() {
     // the click on the docked blob is what opens the menus; the pool around the buttons belongs to them
     if (event.target.closest?.('.csl-edge-blob, .csl-edge-pool')) return;
     const mb = ec.querySelector('.scripts-menu-button');
-    const menus = ec.querySelectorAll('.scripts-menu-container, .actions-menu-container');
+    const menu = ec.querySelector('.scripts-menu-container');
     if (!mb || mb.contains(event.target)) return;
-    if ([...menus].some(menu => menu.contains(event.target))) return;
-    menus.forEach(hideMenuContainer);
+    if (!menu || menu.contains(event.target)) return;
+    hideMenuContainer(menu);
   }, { capture: true, signal: state.clickAbortController.signal });
 
   try {
-    setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
+    setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openMenu });
 
     const rootMenuContainer = document.createElement('div');
     rootMenuContainer.classList.add('creatio-satelite-menu-container');
     rootMenuContainer.appendChild(menuContainer);
-    rootMenuContainer.appendChild(actionsMenuContainer);
     extensionContainer.appendChild(rootMenuContainer);
 
     // Mount on <html>, not <body>: while Shell loads, Creatio sets `inert` on <body>,
     // which would make the already visible buttons ignore clicks and focus.
     document.documentElement.appendChild(extensionContainer);
 
-    state.actionsMenuCreated = true;
     state.menuCreating = false;
     // News are optional: a failure there must never take the menu down
     try {
@@ -354,7 +360,6 @@ export function createScriptsMenu() {
   } catch (error) {
     console.error('[Clio Satellite] Error creating menu:', error);
     state.menuCreated = false;
-    state.actionsMenuCreated = false;
     state.menuCreating = false;
     return false;
   }

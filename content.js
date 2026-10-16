@@ -25,7 +25,7 @@
     "Settings"
   ];
   var SCRIPT_LABELS = {
-    "Application_Managment": "Application management"
+    "Application_Managment": "App Hub"
   };
   var MENU_ICONS = {
     "Features": {
@@ -193,14 +193,12 @@
   // src/state.js
   var state = {
     menuCreated: false,
-    actionsMenuCreated: false,
     menuCreating: false,
     // true while DOM is being built — guards monitorButtons from interfering
     clickAbortController: null
   };
   function resetState() {
     state.menuCreated = false;
-    state.actionsMenuCreated = false;
     state.menuCreating = false;
     state.clickAbortController?.abort();
     state.clickAbortController = null;
@@ -242,13 +240,19 @@
       container.style.minWidth = btnRect.width + "px";
       container.offsetHeight;
       const menuRect = container.getBoundingClientRect();
+      const buttons = relatedContainer.closest(".creatio-satelite")?.getBoundingClientRect() || btnRect;
       let newLeft = btnRect.left;
       let newTop = btnRect.bottom + 8;
       if (menuRect.right > window.innerWidth) {
-        newLeft = Math.max(0, btnRect.right - menuRect.width);
+        newLeft = Math.max(0, buttons.right - menuRect.width);
       }
       if (menuRect.bottom > window.innerHeight) {
         newTop = btnRect.top - menuRect.height - 8;
+      }
+      if (newTop < 0) {
+        newTop = Math.max(8, Math.min(btnRect.top, window.innerHeight - menuRect.height - 8));
+        newLeft = buttons.right + 8;
+        if (newLeft + menuRect.width > window.innerWidth) newLeft = Math.max(0, buttons.left - menuRect.width - 8);
       }
       container.style.top = newTop + "px";
       container.style.left = newLeft + "px";
@@ -258,31 +262,6 @@
     const rect = relatedContainer.getBoundingClientRect();
     container.style.top = `${rect.bottom + 8}px`;
     container.style.left = `${rect.left}px`;
-  }
-  function sideBySideLefts(first, second, vw, gap = 8) {
-    let a = first.left;
-    let b = Math.max(second.left, first.left + first.width + gap);
-    const over = b + second.width - (vw - gap);
-    if (over > 0) {
-      a -= over;
-      b -= over;
-    }
-    if (a < gap) {
-      b += gap - a;
-      a = gap;
-    }
-    return { first: a, second: b };
-  }
-  function placeMenusSideBySide(button, firstMenu, secondMenu) {
-    adjustMenuPosition(button, firstMenu);
-    adjustMenuPosition(button, secondMenu);
-    const { first, second } = sideBySideLefts(
-      firstMenu.getBoundingClientRect(),
-      secondMenu.getBoundingClientRect(),
-      window.innerWidth
-    );
-    firstMenu.style.left = first + "px";
-    secondMenu.style.left = second + "px";
   }
 
   // src/positionManager.js
@@ -474,7 +453,7 @@
   var ROT = { left: 0, top: 90, right: 180, bottom: -90 };
   var ORIGIN = { left: "left center", right: "right center", top: "center top", bottom: "center bottom" };
   var STYLE_ID = "csl-edge-blob-style";
-  var BLOB_COLOR = "#151515";
+  var BLOB_COLOR = "#393b43";
   var FILTER_ID = "csl-edge-blob-goo";
   var viewportWidth = () => document.documentElement?.clientWidth || window.innerWidth;
   var viewportHeight = () => document.documentElement?.clientHeight || window.innerHeight;
@@ -490,8 +469,12 @@
     for (const e of EDGES) if (over[e] > 0 && (!edge || over[e] > over[edge])) edge = e;
     return edge ? { edge, over: over[edge] } : null;
   }
-  function isCursorAtEdge(edge, x, y, vw, vh) {
-    return { left: x <= 1, right: x >= vw - 2, top: y <= 1, bottom: y >= vh - 2 }[edge];
+  var EDGE_CURSOR_SLACK = 4;
+  function isCursorAtEdge(edge, x, y, vw, vh, slack = EDGE_CURSOR_SLACK) {
+    return { left: x < slack, right: x >= vw - slack, top: y < slack, bottom: y >= vh - slack }[edge];
+  }
+  function cursorEdge(x, y, vw, vh) {
+    return EDGES.find((e) => isCursorAtEdge(e, x, y, vw, vh)) || null;
   }
   function clampAlong(edge, along, vw, vh) {
     const span = isVertical(edge) ? vh : vw;
@@ -1233,7 +1216,11 @@
       // where the drag would put it without clamping it to the viewport.
       press(container2, raw, clientX, clientY) {
         if (edge) return false;
-        const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+        let hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+        if (!hitEdge) {
+          const held = cursorEdge(clientX, clientY, vw(), vh());
+          if (held) hitEdge = { edge: held, over: 0 };
+        }
         if (!hitEdge) {
           clearEdgeHold();
           dryWet();
@@ -1244,9 +1231,10 @@
           becomeBlob(container2, hitEdge.edge, raw, clientX, clientY);
           return true;
         }
-        showWet(hitEdge.edge, press, raw);
+        const atEdge = isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh());
+        showWet(hitEdge.edge, atEdge ? Math.max(press, 0.5) : press, raw);
         lastPress = { container: container2, edge: hitEdge.edge, raw, clientX, clientY };
-        if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
+        if (atEdge) {
           if (!edgeHoldTimer) {
             edgeHoldTimer = setTimeout(() => {
               edgeHoldTimer = null;
@@ -1411,7 +1399,7 @@
       debugLog("Buttons unpinned from the blob");
     });
     const closeMenus = () => {
-      document.querySelectorAll(".scripts-menu-container, .actions-menu-container").forEach(hideMenuContainer);
+      document.querySelectorAll(".scripts-menu-container").forEach(hideMenuContainer);
     };
     let peekDrag = false;
     const beginDrag = (clientX, clientY, { moved = false } = {}) => {
@@ -2383,20 +2371,12 @@
   function onWindowResize() {
     if (ui.flyoutOpen) fitFlyoutHeight();
   }
-  var FLYOUT_MENU_Z = 1e4;
-  function raiseMenu(on) {
-    if (on) ui.menuContainer?.style.setProperty("z-index", String(FLYOUT_MENU_Z), "important");
-    else ui.menuContainer?.style.setProperty("z-index", "9999");
-    const actions = document.querySelector(".creatio-satelite-extension-container .actions-menu-container");
-    if (actions) actions.style.visibility = on ? "hidden" : "";
-  }
   async function setFlyout(open2) {
     if (!ui.flyout) return;
     const wasOpen = ui.flyoutOpen;
     ui.flyoutOpen = open2;
     ui.flyout.hidden = !open2;
     ui.row?.setAttribute("aria-expanded", String(open2));
-    raiseMenu(open2);
     if (open2) {
       if (!wasOpen) track("news_open", { surface: "shell" });
       placeFlyout();
@@ -2616,28 +2596,37 @@
     menuItem.appendChild(button);
     return menuItem;
   }
+  function createDivider(marker) {
+    const dividerContainer = document.createElement("div");
+    dividerContainer.className = "ng-star-inserted";
+    dividerContainer.setAttribute("crt-menu-view-element-item", marker);
+    dividerContainer.style.cssText = "display: block; margin: 4px 0; opacity: 1; visibility: visible;";
+    const crtDivider = document.createElement("crt-menu-divider");
+    crtDivider.className = "ng-star-inserted";
+    crtDivider.style.cssText = "display: block; margin: 0;";
+    const matDivider = document.createElement("mat-divider");
+    matDivider.setAttribute("role", "separator");
+    matDivider.className = "mat-divider mat-divider-horizontal";
+    matDivider.setAttribute("aria-orientation", "horizontal");
+    matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;";
+    crtDivider.appendChild(matDivider);
+    dividerContainer.appendChild(crtDivider);
+    return dividerContainer;
+  }
   function buildNavMenu() {
     const menuContainer = document.createElement("div");
     menuContainer.classList.add("scripts-menu-container");
     hideMenuContainer(menuContainer);
+    const actionsSection = document.createElement("div");
+    actionsSection.className = "csl-actions-section";
+    actionsSection.setAttribute("role", "group");
+    actionsSection.setAttribute("aria-label", "Actions");
     SCRIPT_FILES.forEach((scriptFile) => {
       const scriptName = scriptFile.replace(".js", "");
       if (scriptName === "Settings") {
-        const dividerContainer = document.createElement("div");
-        dividerContainer.className = "ng-star-inserted";
-        dividerContainer.setAttribute("crt-menu-view-element-item", "settings-divider");
-        dividerContainer.style.cssText = "display: block; margin: 4px 0; opacity: 1; visibility: visible;";
-        const crtDivider = document.createElement("crt-menu-divider");
-        crtDivider.className = "ng-star-inserted";
-        crtDivider.style.cssText = "display: block; margin: 0;";
-        const matDivider = document.createElement("mat-divider");
-        matDivider.setAttribute("role", "separator");
-        matDivider.className = "mat-divider mat-divider-horizontal";
-        matDivider.setAttribute("aria-orientation", "horizontal");
-        matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;";
-        crtDivider.appendChild(matDivider);
-        dividerContainer.appendChild(crtDivider);
-        menuContainer.appendChild(dividerContainer);
+        menuContainer.appendChild(createDivider("actions-divider"));
+        menuContainer.appendChild(actionsSection);
+        menuContainer.appendChild(createDivider("settings-divider"));
       }
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
@@ -2651,79 +2640,83 @@
       });
       menuContainer.appendChild(menuItem);
     });
-    return menuContainer;
+    return { menuContainer, actionsSection };
   }
-  function buildActionsMenu(actionsMenuContainer) {
-    actionsMenuContainer.innerHTML = "";
+  function buildActionsSection(actionsSection, onChange) {
+    actionsSection.innerHTML = "";
+    ["RestartApp", "FlushRedisDB"].forEach((name) => actionsSection.appendChild(createActionItem(name, null)));
     chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, (data) => {
       const err = getLastError();
       if (err) {
         console.error("[Clio Satellite] Failed to load profiles:", err.message);
         return;
       }
-      if (!actionsMenuContainer.isConnected) return;
+      if (!actionsSection.isConnected) return;
       const origin = window.location.origin;
       const rawEntry = data.lastLoginProfiles[origin];
       const lastUser = typeof rawEntry === "string" ? rawEntry : rawEntry?.username;
+      if (!lastUser) return;
       const profile = data.userProfiles.find((p) => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
-      const actionsList = ["RestartApp", "FlushRedisDB"];
-      if (lastUser) actionsList.push(autologinEnabled ? "DisableAutologin" : "EnableAutologin");
-      actionsList.forEach((name) => {
-        const detail = ACTION_DETAILS[name];
-        const menuItem = document.createElement("div");
-        menuItem.className = "crt-menu-item-container mat-menu-item";
-        menuItem.setAttribute("mat-menu-item", "");
-        menuItem.setAttribute("aria-disabled", "false");
-        menuItem.setAttribute("role", "menuitem");
-        menuItem.setAttribute("tabindex", "0");
-        const menuButtonEl = document.createElement("button");
-        menuButtonEl.className = "crt-menu-item mat-flat-button";
-        menuButtonEl.setAttribute("mat-flat-button", "");
-        menuButtonEl.setAttribute("data-item-marker", name);
-        const iconWrap = document.createElement("mat-icon");
-        iconWrap.setAttribute("role", "img");
-        iconWrap.className = "mat-icon notranslate mat-icon-no-color";
-        iconWrap.setAttribute("aria-hidden", "true");
-        iconWrap.setAttribute("data-mat-icon-type", "svg");
-        iconWrap.setAttribute("data-mat-icon-name", detail.name || "help");
-        iconWrap.innerHTML = detail.icon || "";
-        const caption = document.createElement("span");
-        caption.className = "caption";
-        caption.setAttribute("crttextoverflowtitle", "");
-        caption.textContent = name.replace("Autologin", " autologin").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim();
-        menuButtonEl.appendChild(iconWrap);
-        menuButtonEl.appendChild(caption);
-        menuItem.appendChild(menuButtonEl);
-        menuItem.addEventListener("click", () => {
-          track("menu_click", { menu: "actions", item: name });
-          if (name === "EnableAutologin") {
-            chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
-              const err2 = getLastError();
-              if (err2) {
-                console.error("[Clio Satellite] Failed to load profiles for autologin:", err2.message);
-                return;
-              }
-              const profiles = ds.userProfiles.map(
-                (p) => p.username === lastUser ? { ...p, autologin: true } : p
-              );
-              chrome.storage.sync.set({ userProfiles: profiles }, () => {
-                const err3 = getLastError();
-                if (err3) {
-                  console.error("[Clio Satellite] Failed to save autologin setting:", err3.message);
-                }
-              });
-            });
-          } else if (name === "DisableAutologin") {
-            safeSendMessage({ action: "disableAutologin" });
-          } else {
-            safeSendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
-          }
-          hideMenuContainer(actionsMenuContainer);
-        });
-        actionsMenuContainer.appendChild(menuItem);
-      });
+      actionsSection.querySelector("[data-csl-autologin]")?.remove();
+      const item = createActionItem(autologinEnabled ? "DisableAutologin" : "EnableAutologin", lastUser);
+      item.setAttribute("data-csl-autologin", "");
+      actionsSection.appendChild(item);
+      onChange?.();
     });
+  }
+  function createActionItem(name, lastUser) {
+    const detail = ACTION_DETAILS[name];
+    const menuItem = document.createElement("div");
+    menuItem.className = "crt-menu-item-container mat-menu-item";
+    menuItem.setAttribute("mat-menu-item", "");
+    menuItem.setAttribute("aria-disabled", "false");
+    menuItem.setAttribute("role", "menuitem");
+    menuItem.setAttribute("tabindex", "0");
+    const menuButtonEl = document.createElement("button");
+    menuButtonEl.className = "crt-menu-item mat-flat-button";
+    menuButtonEl.setAttribute("mat-flat-button", "");
+    menuButtonEl.setAttribute("data-item-marker", name);
+    const iconWrap = document.createElement("mat-icon");
+    iconWrap.setAttribute("role", "img");
+    iconWrap.className = "mat-icon notranslate mat-icon-no-color";
+    iconWrap.setAttribute("aria-hidden", "true");
+    iconWrap.setAttribute("data-mat-icon-type", "svg");
+    iconWrap.setAttribute("data-mat-icon-name", detail.name || "help");
+    iconWrap.innerHTML = detail.icon || "";
+    const caption = document.createElement("span");
+    caption.className = "caption";
+    caption.setAttribute("crttextoverflowtitle", "");
+    caption.textContent = name.replace("Autologin", " autologin").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim();
+    menuButtonEl.appendChild(iconWrap);
+    menuButtonEl.appendChild(caption);
+    menuItem.appendChild(menuButtonEl);
+    menuItem.addEventListener("click", () => {
+      track("menu_click", { menu: "actions", item: name });
+      if (name === "EnableAutologin") {
+        chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
+          const err = getLastError();
+          if (err) {
+            console.error("[Clio Satellite] Failed to load profiles for autologin:", err.message);
+            return;
+          }
+          const profiles = ds.userProfiles.map(
+            (p) => p.username === lastUser ? { ...p, autologin: true } : p
+          );
+          chrome.storage.sync.set({ userProfiles: profiles }, () => {
+            const err2 = getLastError();
+            if (err2) {
+              console.error("[Clio Satellite] Failed to save autologin setting:", err2.message);
+            }
+          });
+        });
+      } else if (name === "DisableAutologin") {
+        safeSendMessage({ action: "disableAutologin" });
+      } else {
+        safeSendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
+      }
+    });
+    return menuItem;
   }
   function createScriptsMenu() {
     debugLog("Creating scripts menu");
@@ -2764,35 +2757,27 @@
     menuButtonWrapper.appendChild(navCaption);
     menuButtonWrapper.appendChild(createArrowWrapper());
     buttonWrapper.appendChild(menuButton);
-    const menuContainer = buildNavMenu();
-    const actionsMenuContainer = document.createElement("div");
-    actionsMenuContainer.classList.add("actions-menu-container");
-    hideMenuContainer(actionsMenuContainer);
-    const openBothMenus = () => {
-      buildActionsMenu(actionsMenuContainer);
+    const { menuContainer, actionsSection } = buildNavMenu();
+    const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+    const openMenu = () => {
+      buildActionsSection(actionsSection, () => {
+        if (menuContainer.classList.contains("visible")) placeMenu();
+      });
       showMenuContainer(menuContainer);
-      showMenuContainer(actionsMenuContainer);
       track("menu_open", { menu: "navigation" });
-      track("menu_open", { menu: "actions" });
-      placeMenusSideBySide(menuButton, menuContainer, actionsMenuContainer);
+      placeMenu();
     };
-    const hideBothMenus = () => {
-      hideMenuContainer(menuContainer);
-      hideMenuContainer(actionsMenuContainer);
-    };
+    const hideMenu = () => hideMenuContainer(menuContainer);
     menuContainer.addEventListener("click", (event) => {
-      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
-    });
-    actionsMenuContainer.addEventListener("click", (event) => {
-      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+      if (event.target.closest('[role="menuitem"]')) hideMenu();
     });
     menuButton.addEventListener("click", (event) => {
       event.stopPropagation();
-      if (menuContainer.classList.contains("visible") || actionsMenuContainer.classList.contains("visible")) {
-        hideBothMenus();
+      if (menuContainer.classList.contains("visible")) {
+        hideMenu();
         return;
       }
-      openBothMenus();
+      openMenu();
     });
     state.clickAbortController?.abort();
     state.clickAbortController = new AbortController();
@@ -2801,20 +2786,18 @@
       if (!ec) return;
       if (event.target.closest?.(".csl-edge-blob, .csl-edge-pool")) return;
       const mb = ec.querySelector(".scripts-menu-button");
-      const menus = ec.querySelectorAll(".scripts-menu-container, .actions-menu-container");
+      const menu = ec.querySelector(".scripts-menu-container");
       if (!mb || mb.contains(event.target)) return;
-      if ([...menus].some((menu) => menu.contains(event.target))) return;
-      menus.forEach(hideMenuContainer);
+      if (!menu || menu.contains(event.target)) return;
+      hideMenuContainer(menu);
     }, { capture: true, signal: state.clickAbortController.signal });
     try {
-      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
+      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openMenu });
       const rootMenuContainer = document.createElement("div");
       rootMenuContainer.classList.add("creatio-satelite-menu-container");
       rootMenuContainer.appendChild(menuContainer);
-      rootMenuContainer.appendChild(actionsMenuContainer);
       extensionContainer.appendChild(rootMenuContainer);
       document.documentElement.appendChild(extensionContainer);
-      state.actionsMenuCreated = true;
       state.menuCreating = false;
       try {
         Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
@@ -2826,7 +2809,6 @@
     } catch (error) {
       console.error("[Clio Satellite] Error creating menu:", error);
       state.menuCreated = false;
-      state.actionsMenuCreated = false;
       state.menuCreating = false;
       return false;
     }
