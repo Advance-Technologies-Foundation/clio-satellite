@@ -24,8 +24,7 @@ const GOO_TOP = (BLOB_H - 160 * BLOB_SCALE) / 2;   // the goo frame sits in the 
 const ROT = { left: 0, top: 90, right: 180, bottom: -90 };
 const ORIGIN = { left: 'left center', right: 'right center', top: 'center top', bottom: 'center bottom' };
 const STYLE_ID = 'csl-edge-blob-style';
-// The grey of Chrome's dark toolbar: a blob on the top edge touches it and must not read as a second colour
-export const BLOB_COLOR = '#393b43';
+const BLOB_COLOR = '#151515';
 const FILTER_ID = 'csl-edge-blob-goo';
 
 // The viewport without its scrollbars: a blob on the right edge of a page with a scrollbar must not hide under it

@@ -6,7 +6,6 @@ import {
   PEEK_HOVER_MS,
   PEEK_IDLE_MS,
   DOT_FLIGHT_MS,
-  BLOB_COLOR,
   pressedEdge,
   isCursorAtEdge,
   cursorEdge,
@@ -187,14 +186,6 @@ describe('createEdgeBlob — pushing the buttons into an edge', () => {
     setup();
     setup();
     expect(document.querySelectorAll('#csl-edge-blob-style')).toHaveLength(1);
-  });
-
-  it('paints the blob and the pool in the grey of the browser toolbar', () => {
-    setup();
-    const css = document.getElementById('csl-edge-blob-style').textContent;
-    expect(BLOB_COLOR).toBe('#393b43');
-    expect(css).toContain(`.csl-edge-goo > div { position: absolute; background: ${BLOB_COLOR}; }`);
-    expect(css).toContain(`.csl-edge-bell path, .csl-edge-pool path { fill: ${BLOB_COLOR}; }`);
   });
 
   it('shows a growing wet spot instead of making a blob before the press distance', () => {

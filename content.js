@@ -453,7 +453,7 @@
   var ROT = { left: 0, top: 90, right: 180, bottom: -90 };
   var ORIGIN = { left: "left center", right: "right center", top: "center top", bottom: "center bottom" };
   var STYLE_ID = "csl-edge-blob-style";
-  var BLOB_COLOR = "#393b43";
+  var BLOB_COLOR = "#151515";
   var FILTER_ID = "csl-edge-blob-goo";
   var viewportWidth = () => document.documentElement?.clientWidth || window.innerWidth;
   var viewportHeight = () => document.documentElement?.clientHeight || window.innerHeight;
