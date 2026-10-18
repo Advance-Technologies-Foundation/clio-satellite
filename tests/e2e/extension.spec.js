@@ -604,7 +604,7 @@ test.describe('Edge blob', () => {
     await injectContentScript(page);
     await page.addStyleTag({ content: readFileSync('menu-item.css', 'utf8') });
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
-    await page.waitForTimeout(600);   // the slide is over
+    await page.waitForTimeout(600);   // the dome has risen
     const hit = await page.locator('.csl-edge-hit').boundingBox();
     await page.mouse.click(hit.x + hit.width / 2, hit.y + 5);
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
@@ -615,7 +615,7 @@ test.describe('Edge blob', () => {
     expect(Math.abs((menu.x + menu.width) - (buttons.x + buttons.width))).toBeLessThanOrEqual(1);
   });
 
-  test('the blob from the previous visit slides out of the edge', async ({ page }) => {
+  test('the blob from the previous visit keeps its skirt in place and only raises the dome', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
       chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
@@ -623,18 +623,26 @@ test.describe('Edge blob', () => {
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);
 
-    // the blob slides out of the edge instead of popping up still, without the drops of a splat
-    // (checked on the first frame it is shown)
-    const animated = await page.waitForFunction(() => {
+    // on the first frame it is shown: the blob box does not slide, and the dome is still low
+    const first = await page.waitForFunction(() => {
       const blob = document.querySelector('.csl-edge-blob');
-      if (!blob || blob.hidden) return 0;
-      const drops = [...blob.querySelectorAll('.csl-edge-drop')].some(d => d.getAnimations().length);
-      return drops ? -1 : blob.getAnimations().length;
+      if (!blob || blob.hidden) return null;
+      const xs = d => Math.max(...d.match(/-?[\d.]+,[\d.]+/g).map(p => parseFloat(p)));
+      return {
+        slides: blob.getAnimations().length,
+        drops: [...blob.querySelectorAll('.csl-edge-drop')].some(d => d.getAnimations().length),
+        dome: xs(blob.querySelector('.csl-edge-bell path').getAttribute('d')),
+      };
     }, null, { polling: 'raf', timeout: 5000 });
-    expect(await animated.jsonValue()).toBeGreaterThan(0);
+    const start = await first.jsonValue();
+    expect(start.slides).toBe(0);
+    expect(start.drops).toBe(false);
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
-    await page.waitForTimeout(600);   // the slide is over
+    await page.waitForTimeout(600);   // the rise is over
+    const dome = await page.locator('.csl-edge-bell path').evaluate(p =>
+      Math.max(...p.getAttribute('d').match(/-?[\d.]+,[\d.]+/g).map(v => parseFloat(v))));
+    expect(dome).toBeGreaterThan(start.dome + 8);
     const blob = await page.locator('.csl-edge-blob').boundingBox();
     expect(Math.round(blob.x + blob.width)).toBe(1280);
   });

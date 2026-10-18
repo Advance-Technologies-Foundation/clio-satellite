@@ -8,6 +8,8 @@ import {
   DOT_FLIGHT_MS,
   pressedEdge,
   isCursorAtEdge,
+  DOME_SINK,
+  DOME_RISE_MS,
   cursorEdge,
   EDGE_CURSOR_SLACK,
   clampAlong,
@@ -290,24 +292,41 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.blobEl.style.top).toBe(`${326 - 50}px`);
   });
 
-  it('dock() slides the blob out of the edge and fades the orange dot in, without the drops of a splat', () => {
+  it('dock() keeps the skirt in place and raises only the dome, then fades the orange dot in', () => {
     const animated = [];
     Element.prototype.animate = function (keyframes) {
       animated.push({ el: this, keyframes });
       return { cancel() {}, onfinish: null };
     };
+    const frames = [];
+    const raf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = cb => frames.push(cb);
+    // the dome of the bell is the right-most x in the path (left-edge frame)
+    const domeTop = el => Math.max(...el.querySelector('.csl-edge-bell path').getAttribute('d')
+      .match(/-?[\d.]+,[\d.]+/g).map(p => parseFloat(p)));
     try {
       const t = docked();
       const dotEl = t.blobEl.querySelector('.csl-edge-dot');
       expect(t.blobEl.hidden).toBe(false);
-      expect(animated.find(x => x.el === t.blobEl)?.keyframes[0].translate).toBe('-28px 0');
+      // the blob itself does not move: no slide of the whole blob, skirt included
+      expect(animated.some(x => x.el === t.blobEl)).toBe(false);
+      expect(domeTop(t.blobEl)).toBeLessThan(bellHeight(0) / 2);   // at first only the low skirt
+      frames.shift()(0);
+      frames.shift()(DOME_RISE_MS);
+      expect(domeTop(t.blobEl)).toBeCloseTo(bellHeight(0), 1);      // risen to the full dome
       expect(animated.find(x => x.el === dotEl)?.keyframes[0].opacity).toBe(0);
       expect(animated.some(x => x.el.classList?.contains('csl-edge-drop'))).toBe(false);
     } finally {
       delete Element.prototype.animate;
+      globalThis.requestAnimationFrame = raf;
     }
   });
 
+  it('bellHeight with the dome sunk into the edge leaves only the thin skirt', () => {
+    expect(bellHeight(0)).toBeGreaterThan(15);
+    expect(bellHeight(0, DOME_SINK)).toBeLessThan(6);
+    expect(bellHeight(30, DOME_SINK)).toBeCloseTo(bellHeight(30), 0);   // the ends of the skirt do not change
+  });
 
   it('dock() on the right edge mirrors the blob', () => {
     const t = setup();
