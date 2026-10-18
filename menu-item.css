@@ -371,15 +371,14 @@
   max-width: none !important;
 }
 .creatio-satelite-extension-container .csl-menu-columns {
-  display: flex !important;
+  /* two columns of the same width: the wider of their longest captions plus 20 px */
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
   align-items: stretch !important;
   gap: 6px !important;
 }
-/* Each column is as wide as its longest caption plus the same space after it, so neither column
-   carries an empty strip on the right */
 .creatio-satelite-extension-container .csl-nav-column,
 .creatio-satelite-extension-container .csl-actions-section {
-  flex: 0 0 auto !important;
   min-width: 0 !important;
 }
 .creatio-satelite-extension-container .csl-menu-column .crt-menu-item.mat-flat-button {
