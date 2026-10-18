@@ -2617,16 +2617,22 @@
     const menuContainer = document.createElement("div");
     menuContainer.classList.add("scripts-menu-container");
     hideMenuContainer(menuContainer);
+    const columns = document.createElement("div");
+    columns.className = "csl-menu-columns";
+    const navColumn = document.createElement("div");
+    navColumn.className = "csl-menu-column csl-nav-column";
+    navColumn.setAttribute("role", "group");
+    navColumn.setAttribute("aria-label", "Navigation");
     const actionsSection = document.createElement("div");
-    actionsSection.className = "csl-actions-section";
+    actionsSection.className = "csl-menu-column csl-actions-section";
     actionsSection.setAttribute("role", "group");
     actionsSection.setAttribute("aria-label", "Actions");
+    columns.append(navColumn, actionsSection);
+    menuContainer.appendChild(columns);
     SCRIPT_FILES.forEach((scriptFile) => {
       const scriptName = scriptFile.replace(".js", "");
       if (scriptName === "Settings") {
-        menuContainer.appendChild(createDivider("actions-divider"));
-        menuContainer.appendChild(actionsSection);
-        menuContainer.appendChild(createDivider("settings-divider"));
+        navColumn.appendChild(createDivider("settings-divider"));
       }
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
@@ -2638,7 +2644,7 @@
         }
         hideMenuContainer(menuContainer);
       });
-      menuContainer.appendChild(menuItem);
+      navColumn.appendChild(menuItem);
     });
     return { menuContainer, actionsSection };
   }

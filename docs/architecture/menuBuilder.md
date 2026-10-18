@@ -1,12 +1,12 @@
 ## menuBuilder.js
 
-**Purpose:** Builds the one menu injected into Creatio pages: the navigation items, then the actions (RestartApp, FlushRedis, autologin toggle) as a group between Configuration and Settings, then Settings.
+**Purpose:** Builds the one menu panel injected into Creatio pages: two columns that always open together — the navigation items and Settings on the left, the actions that change the site (RestartApp, FlushRedis, autologin toggle) on the right.
 
 **Public API:**
 - `buildMenuContent(buttonWrapper, pageType): void` — entry point; builds both menus and attaches them to `buttonWrapper`
 
 **Key decisions:**
-- The actions sit in `.csl-actions-section` (`role="group"`) inside the menu, between two dividers. They used to be a second menu beside the first; the pair was hard to place (it ran off the screen and covered the news flyout), so they were merged into one menu. Items come from `ACTION_DETAILS`; RestartApp and FlushRedisDB are added synchronously on every open so the menu has its full height when it is placed; the autologin item needs `chrome.storage.sync`, is added when a last-login profile exists for the current origin, and the menu is placed again once it is there.
+- The columns are `.csl-nav-column` and `.csl-actions-section` (both `role="group"`) inside `.csl-menu-columns`; the news row, when shown, sits above both. The actions used to be a second menu beside the first; the pair was placed as two boxes and drifted apart near the screen edges (one under the other, off the screen, over the news flyout). A single list with the actions in the middle was tried and rejected: it mixed safe and unsafe items and made the list twice as long to scan. One panel with two columns keeps them apart and moves them as one box. Items come from `ACTION_DETAILS`; RestartApp and FlushRedisDB are added synchronously on every open so the menu has its full height when it is placed; the autologin item needs `chrome.storage.sync`, is added when a last-login profile exists for the current origin, and the menu is placed again once it is there.
 - Autologin enable/disable reads and writes `chrome.storage.sync` directly (not via background) because it modifies only the profile array, not runtime state.
 - `safeSendMessage` is used for script execution and disable-autologin to route through the background worker.
 - Menu captions come from `SCRIPT_LABELS` when present, otherwise from the script name with underscores replaced. This lets a caption be corrected without renaming the script file that `executeScript` loads (`Application_Managment` is shown as "App Hub").

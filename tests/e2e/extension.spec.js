@@ -46,7 +46,7 @@ test.describe('Shell page', () => {
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
   });
 
-  test('the actions stand in the menu under the button between Configuration and Settings', async ({ page }) => {
+  test('the actions open in a right-hand column of the same panel, top-aligned with the navigation', async ({ page }) => {
     await load(page, '/shell/');
     await page.addStyleTag({ url: '/styles/shell.css' });
     await page.addStyleTag({ url: '/menu-item.css' });
@@ -54,13 +54,15 @@ test.describe('Shell page', () => {
     await page.locator('.scripts-menu-button').click();
     const btn = await page.locator('.scripts-menu-button').boundingBox();
     const menu = page.locator('.scripts-menu-container');
-    const nav = await menu.boundingBox();
-    expect(nav.y).toBeGreaterThan(btn.y + btn.height - 1);
-    const y = async marker => (await menu.locator(`[data-item-marker="${marker}"]`).boundingBox()).y;
-    const [config, restart, flush, settings] = [await y('Configuration'), await y('RestartApp'), await y('FlushRedisDB'), await y('Settings')];
-    expect(config).toBeLessThan(restart);
-    expect(restart).toBeLessThan(flush);
-    expect(flush).toBeLessThan(settings);
+    const panel = await menu.boundingBox();
+    expect(panel.y).toBeGreaterThan(btn.y + btn.height - 1);
+    const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
+    const [features, settings, restart, flush] = [await box('Features'), await box('Settings'), await box('RestartApp'), await box('FlushRedisDB')];
+    expect(restart.x).toBeGreaterThanOrEqual(features.x + features.width);   // a column of its own
+    expect(Math.abs(restart.y - features.y)).toBeLessThanOrEqual(1);          // starting at the same row
+    expect(flush.y).toBeGreaterThan(restart.y);
+    expect(settings.x).toBe(features.x);                                       // Settings stays on the left
+    expect(restart.x + restart.width).toBeLessThanOrEqual(panel.x + panel.width);
     await expect(menu.locator('[data-item-marker="Application_Managment"] .caption')).toHaveText('App Hub');
   });
 

@@ -86,18 +86,20 @@ describe('createScriptsMenu', () => {
     expect(document.querySelector('.actions-menu-container')).toBeNull();
   });
 
-  it('a click on the button opens the menu with the actions between Configuration and Settings', () => {
+  it('a click on the button opens one panel: navigation and Settings on the left, the actions on the right', () => {
     createScriptsMenu();
     const { btn, navMenu } = menu();
     btn.click();
     expect(navMenu.classList.contains('visible')).toBe(true);
-    const all = markers(navMenu);
-    expect(all.indexOf('RestartApp')).toBe(all.indexOf('Configuration') + 1);
-    expect(all.indexOf('FlushRedisDB')).toBe(all.indexOf('RestartApp') + 1);
-    expect(all[all.length - 1]).toBe('Settings');
-    const section = navMenu.querySelector('.csl-actions-section');
-    expect(section.getAttribute('role')).toBe('group');
-    expect(markers(section)).toEqual(['RestartApp', 'FlushRedisDB']);
+    const [navColumn, actionsColumn] = navMenu.querySelectorAll('.csl-menu-columns > .csl-menu-column');
+    expect(navColumn.classList.contains('csl-nav-column')).toBe(true);
+    const nav = markers(navColumn);
+    expect(nav[0]).toBe('Features');
+    expect(nav[nav.length - 1]).toBe('Settings');
+    expect(nav).not.toContain('RestartApp');
+    expect(actionsColumn.classList.contains('csl-actions-section')).toBe(true);
+    expect(actionsColumn.getAttribute('role')).toBe('group');
+    expect(markers(actionsColumn)).toEqual(['RestartApp', 'FlushRedisDB']);
   });
 
   it('adds the autologin item to the actions when a profile logged in to this site', async () => {

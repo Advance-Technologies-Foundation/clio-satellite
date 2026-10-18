@@ -31,10 +31,9 @@ One compact row under the login form:
 - Last used profile is remembered per site origin; autologin will log in automatically if enabled.
 
 ### Shell Page Tools
-- One **Clio satellite** button opens one menu:
-  - navigation scripts (Features, App Hub, Lookups, Process log, etc.);
-  - actions (Restart App, Flush Redis, enable/disable autologin), grouped between Configuration and Settings;
-  - Settings.
+- One **Clio satellite** button opens one panel with two columns:
+  - left: navigation scripts (Features, App Hub, Lookups, Process log, etc.) and Settings;
+  - right: actions that change the site (Restart App, Flush Redis, enable/disable autologin).
 
 ## Advanced / Development
 - Manifest V3 extension, vanilla JavaScript (ES6+), plain CSS.

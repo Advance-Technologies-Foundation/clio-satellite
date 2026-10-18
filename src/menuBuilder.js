@@ -112,25 +112,33 @@ function createDivider(marker) {
   return dividerContainer;
 }
 
-// One menu: the navigation items, then the actions (RestartApp, FlushRedisDB, autologin), then Settings.
-// The actions sit in their own group, filled by buildActionsSection every time the menu opens.
+// One panel with two columns that always open together: the navigation items and Settings on the left,
+// the actions that change the site (RestartApp, FlushRedisDB, autologin) on the right. Safe and unsafe
+// items stay apart, and as one panel they can not drift apart the way two separate menus did.
+// The actions column is filled by buildActionsSection every time the menu opens.
 function buildNavMenu() {
   const menuContainer = document.createElement('div');
   menuContainer.classList.add('scripts-menu-container');
   hideMenuContainer(menuContainer);
 
+  const columns = document.createElement('div');
+  columns.className = 'csl-menu-columns';
+  const navColumn = document.createElement('div');
+  navColumn.className = 'csl-menu-column csl-nav-column';
+  navColumn.setAttribute('role', 'group');
+  navColumn.setAttribute('aria-label', 'Navigation');
   const actionsSection = document.createElement('div');
-  actionsSection.className = 'csl-actions-section';
+  actionsSection.className = 'csl-menu-column csl-actions-section';
   actionsSection.setAttribute('role', 'group');
   actionsSection.setAttribute('aria-label', 'Actions');
+  columns.append(navColumn, actionsSection);
+  menuContainer.appendChild(columns);
 
   SCRIPT_FILES.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
 
     if (scriptName === 'Settings') {
-      menuContainer.appendChild(createDivider('actions-divider'));
-      menuContainer.appendChild(actionsSection);
-      menuContainer.appendChild(createDivider('settings-divider'));
+      navColumn.appendChild(createDivider('settings-divider'));
     }
 
     const menuItem = createMenuItem(scriptName);
@@ -144,7 +152,7 @@ function buildNavMenu() {
       hideMenuContainer(menuContainer);
     });
 
-    menuContainer.appendChild(menuItem);
+    navColumn.appendChild(menuItem);
   });
 
   return { menuContainer, actionsSection };

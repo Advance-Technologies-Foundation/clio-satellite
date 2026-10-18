@@ -366,6 +366,26 @@
   animation: creatioSateliteMenuIn 0.14s ease-out !important;
 }
 
+/* One panel, two columns: navigation on the left, the actions that change the site on the right */
+.creatio-satelite-extension-container .scripts-menu-container {
+  max-width: none !important;
+}
+.creatio-satelite-extension-container .csl-menu-columns {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+}
+.creatio-satelite-extension-container .csl-nav-column {
+  flex: 0 0 auto !important;
+  min-width: 208px !important;
+}
+.creatio-satelite-extension-container .csl-actions-section {
+  flex: 0 0 auto !important;
+  min-width: 176px !important;
+  padding-left: 6px !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
 @keyframes creatioSateliteMenuIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
