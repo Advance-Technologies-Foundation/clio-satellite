@@ -63,6 +63,18 @@ test.describe('Shell page', () => {
     expect(flush.y).toBeGreaterThan(restart.y);
     expect(settings.x).toBe(features.x);                                       // Settings stays on the left
     expect(restart.x + restart.width).toBeLessThanOrEqual(panel.x + panel.width);
+    // each column is as wide as its longest caption plus the same space after it: no empty strip on the right
+    const gapAfterCaptions = sel => menu.locator(sel).evaluate(c => {
+      const right = Math.max(...[...c.querySelectorAll('.caption')].map(x => {
+        const r = document.createRange();
+        r.selectNodeContents(x);
+        return r.getBoundingClientRect().right;
+      }));
+      return c.getBoundingClientRect().right - right;
+    });
+    const [navGap, actGap] = [await gapAfterCaptions('.csl-nav-column'), await gapAfterCaptions('.csl-actions-section')];
+    expect(navGap).toBeLessThanOrEqual(24);
+    expect(Math.abs(navGap - actGap)).toBeLessThanOrEqual(2);
     await expect(menu.locator('[data-item-marker="Application_Managment"] .caption')).toHaveText('App Hub');
   });
 

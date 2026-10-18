@@ -375,13 +375,17 @@
   align-items: stretch !important;
   gap: 6px !important;
 }
-.creatio-satelite-extension-container .csl-nav-column {
-  flex: 0 0 auto !important;
-  min-width: 208px !important;
-}
+/* Each column is as wide as its longest caption plus the same space after it, so neither column
+   carries an empty strip on the right */
+.creatio-satelite-extension-container .csl-nav-column,
 .creatio-satelite-extension-container .csl-actions-section {
   flex: 0 0 auto !important;
-  min-width: 176px !important;
+  min-width: 0 !important;
+}
+.creatio-satelite-extension-container .csl-menu-column .crt-menu-item.mat-flat-button {
+  padding-right: 20px !important;
+}
+.creatio-satelite-extension-container .csl-actions-section {
   padding-left: 6px !important;
   border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
 }

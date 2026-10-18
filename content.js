@@ -235,18 +235,18 @@
       container.style.position = "fixed";
       container.style.zIndex = "9999";
       container.style.visibility = "hidden";
-      container.style.top = btnRect.bottom + 8 + "px";
-      container.style.left = btnRect.left + "px";
+      container.style.top = "0px";
+      container.style.left = "0px";
       container.style.minWidth = btnRect.width + "px";
       container.offsetHeight;
       const menuRect = container.getBoundingClientRect();
       const buttons = relatedContainer.closest(".creatio-satelite")?.getBoundingClientRect() || btnRect;
       let newLeft = btnRect.left;
       let newTop = btnRect.bottom + 8;
-      if (menuRect.right > window.innerWidth) {
+      if (btnRect.left + menuRect.width > window.innerWidth) {
         newLeft = Math.max(0, buttons.right - menuRect.width);
       }
-      if (menuRect.bottom > window.innerHeight) {
+      if (btnRect.bottom + 8 + menuRect.height > window.innerHeight) {
         newTop = btnRect.top - menuRect.height - 8;
       }
       if (newTop < 0) {
