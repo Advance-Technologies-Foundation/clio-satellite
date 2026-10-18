@@ -75,8 +75,9 @@ test.describe('Shell page', () => {
     const [navGap, actGap] = [await gapAfterCaptions('.csl-nav-column'), await gapAfterCaptions('.csl-actions-section')];
     expect(Math.min(navGap, actGap)).toBeGreaterThanOrEqual(18);
     expect(Math.min(navGap, actGap)).toBeLessThanOrEqual(24);
-    const [navBox, actBox] = [await menu.locator('.csl-nav-column').boundingBox(), await menu.locator('.csl-actions-section').boundingBox()];
-    expect(Math.abs(navBox.width - actBox.width)).toBeLessThanOrEqual(1);
+    // and the divider stands in the middle of the panel: the halves look the same width
+    const actBox = await menu.locator('.csl-actions-section').boundingBox();
+    expect(Math.abs((actBox.x - panel.x) - (panel.x + panel.width - actBox.x))).toBeLessThanOrEqual(1);
     await expect(menu.locator('[data-item-marker="Application_Managment"] .caption')).toHaveText('App Hub');
   });
 

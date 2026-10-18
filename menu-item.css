@@ -375,7 +375,12 @@
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   align-items: stretch !important;
-  gap: 6px !important;
+  gap: 0 !important;
+}
+/* The same 6 px on both sides of the divider: with a gap only the left half got it, and the left half
+   looked wider than the right one */
+.creatio-satelite-extension-container .csl-nav-column {
+  padding-right: 6px !important;
 }
 .creatio-satelite-extension-container .csl-nav-column,
 .creatio-satelite-extension-container .csl-actions-section {
@@ -386,7 +391,8 @@
 }
 .creatio-satelite-extension-container .csl-actions-section {
   padding-left: 6px !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+  /* the divider is drawn, not a border: it takes no width, so both halves stay equal */
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.1) !important;
 }
 
 @keyframes creatioSateliteMenuIn {
