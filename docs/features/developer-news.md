@@ -67,29 +67,30 @@ Inside Creatio the user is in the middle of a task. The rule here: **inform, nev
 |---|---|---|
 | 0 · nothing new | No unread items | Button looks exactly as today |
 | 1 · ambient | Unread items, menu not opened since they arrived | 8 px dot (10 px with a 2 px ring in the toolbar colour) on the top-right corner of the `Clio satellite` button. No number. Blue (`#3d8bff`); red when a critical item is unread |
-| 2 · in context | Menu opened | First menu row `What's new` with a count pill and the newest headline as a second line; separator under it. Click opens the flyout |
+| 2 · in context | Menu opened | News column on the left of the menu items (`Dev tools news` with a count pill, the cards, `Mark as read`). Shown at once, nothing to open |
 | 3 · critical only | Unread critical item, peek not shown yet | One-time peek card under the button group |
 
 ### Dot on the button (level 1)
 
 - Material "small badge": no count, because the exact number does not matter and a number reads as a to-do list.
 - `aria-label` of the button becomes `Clio satellite, N unread news`.
-- **Clears when the menu is opened** (items become *noticed*, not *read*). The count stays in the `What's new` row until the flyout is opened.
-- **Decays when ignored:** the dot stops showing for an item 7 days after its first display or after 10 Shell page loads, whichever comes first. The item stays in the `What's new` row. This prevents a permanent dot that people learn to ignore.
+- **Clears when the menu is opened** (items become *noticed*, not *read*). The count stays in the news column until `Mark as read`.
+- **Decays when ignored:** the dot stops showing for an item 7 days after its first display or after 10 Shell page loads, whichever comes first. The item stays in the news column. This prevents a permanent dot that people learn to ignore.
 - No pulse or animation inside Shell.
 
-### What's new row and flyout (level 2)
+### News column (level 2)
 
-- The row appears only when there are unread items. Closing the flyout marks them read; the row then stays for the rest of the page's life without a count (it survives Creatio rebuilding the menu) and is gone after a reload, when the menu looks as today. All news stay reachable from Options and the `All news →` page.
-- The flyout uses the same glass as the menu (`--crt-glass-color-dark-800`), 320 px wide, opens beside the menu when there is room and over it otherwise (same logic as `adjustMenuPosition`).
+- While there are unread items, the menu panel has a third column on the left of the navigation items: `Dev tools news` with a count pill and `Mark as read` in its head, the cards, and `Choose topics` at the foot. It is part of the panel (same glass, a divider like the one between the other columns, 300 px wide), so it opens and moves with the menu and nothing has to be clicked to see it.
+- Closing the menu does **not** mark anything read. Only `Mark as read` does (or starting a card's video, for that card); the column then disappears and the open menu is placed again. When nothing is unread the menu has no news column.
+- The list is as tall as its cards, at most 80% of the window and never past its bottom edge; then it scrolls.
 - Cards are the same as on the login page, in a dark variant: unread dot, tag, date, title, body, one CTA.
-- Closing the flyout (click outside, Esc, menu closes) marks the shown items read. `Mark all as read` does it immediately.
+- All news, read or not, are one click away: the open-book icon in the top-right corner of the menu panel (next to the Settings gear) opens the news page in a new tab.
 - CTA links open in a new tab and close the menu.
 
 ### Peek card (level 3)
 
 - Only for `priority: "critical"`, only once per item across both surfaces (if the login panel already auto-expanded it, no peek), and at most one peek per day.
-- 300 px glass card with a red border, anchored under the button group: tag, title, body, `Read` (opens menu + flyout) and `Dismiss`.
+- 300 px glass card with a red border, anchored under the button group: tag, title, body, `Read` (opens the menu with the news column) and `Dismiss`.
 - `role="status"`, `aria-live="polite"`; it never takes focus.
 - Auto-hides after 10 s; the timer pauses on hover and restarts with 3 s on mouse leave. `Dismiss` hides it; the red dot stays until the menu is opened.
 - Not shown on the Configuration page while a schema designer is open (`pageType === "configuration"`), only on Shell.
@@ -110,7 +111,8 @@ Everything ever published stays readable on the public feed site (archive page o
 | Where | Entry |
 |---|---|
 | Options | Developer news → **Open all developer news ↗** (always) |
-| News panel / flyout | Footer link **All news →** (while there are unread items) |
+| Login news panel | Footer link **All news →** (while there are unread items) |
+| Shell menu | Open-book icon in the top-right corner of the panel (always) |
 
 Both open `https://advance-technologies-foundation.github.io/clio-news-feed/` in a new tab (`openNewsArchive` message → `chrome.tabs.create`, or a `target="_blank"` link).
 

@@ -366,6 +366,43 @@
   animation: creatioSateliteMenuIn 0.14s ease-out !important;
 }
 
+/* Header of the panel: Settings (gear) and the news page (open book) as icons in its top-right corner */
+.creatio-satelite-extension-container .csl-menu-header {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 2px !important;
+  padding: 0 0 4px !important;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn {
+  display: grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: none !important;
+  color: #e5e7eb !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  --csl-icon-accent: #ff5722;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn:hover,
+.creatio-satelite-extension-container .csl-menu-icon-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.08) !important;
+  outline: none !important;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+/* The news column (when there are unread news) and the two columns of items, side by side */
+.creatio-satelite-extension-container .csl-menu-body {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
 /* One panel, two columns: navigation on the left, the actions that change the site on the right */
 .creatio-satelite-extension-container .scripts-menu-container {
   max-width: none !important;

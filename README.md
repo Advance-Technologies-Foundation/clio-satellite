@@ -31,8 +31,10 @@ One compact row under the login form:
 - Last used profile is remembered per site origin; autologin will log in automatically if enabled.
 
 ### Shell Page Tools
-- One **Clio satellite** button opens one panel with two columns:
-  - left: navigation scripts (Features, App Hub, Lookups, Process log, etc.) and Settings;
+- One **Clio satellite** button opens one panel:
+  - top-right corner: a gear icon for the extension settings and an open-book icon for the developer news page;
+  - left (only while there are unread developer news): the news, with **Mark as read** to hide them;
+  - middle: navigation scripts (Features, App Hub, Lookups, Process log, etc.);
   - right: actions that change the site (Restart App, Flush Redis, enable/disable autologin).
 
 ## Advanced / Development

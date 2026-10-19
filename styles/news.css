@@ -1,5 +1,5 @@
 /**
- * Developer news: login strip and panel (light), Shell dot, "What's new" row, flyout and peek (dark glass),
+ * Developer news: login strip and panel (light), Shell dot, news column of the menu and peek (dark glass),
  * and the video dialog. Blue means "new / info"; red only for critical items; orange stays for actions.
  * See docs/features/developer-news.md and docs/design/developer-news/.
  */
@@ -30,8 +30,6 @@
 .csl-news[hidden],
 .csl-news [hidden],
 .csl-news-dot[hidden],
-.csl-news-row[hidden],
-.csl-news-row-sep[hidden],
 .csl-news-pill[hidden] { display: none !important; }
 
 .csl-news--dark {
@@ -267,11 +265,10 @@
 .csl-news-media__label { position: absolute; top: 6px; left: 8px; color: rgba(255, 255, 255, 0.9); font-size: 10.5px; font-weight: 600; }
 .csl-news-media:focus-visible { outline: 2px solid var(--csl-news-blue); outline-offset: 2px; }
 
-/* ---------- Shell: dot, row, flyout, peek ---------- */
+/* ---------- Shell: dot, news column, peek ---------- */
 
 /* Same face as the Clio satellite menu items; the Shell page font does not reach our nodes */
-.creatio-satelite-extension-container .csl-news,
-.creatio-satelite-extension-container .csl-news-row {
+.creatio-satelite-extension-container .csl-news {
   font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
 }
 
@@ -288,38 +285,8 @@
 }
 .creatio-satelite .csl-news-dot--critical { background: #ff5b5b !important; }
 
-.creatio-satelite-extension-container .csl-news-row {
-  display: flex !important;
-  align-items: flex-start !important;
-  gap: 10px !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 10px !important;
-  border: 0 !important;
-  border-radius: 8px !important;
-  background: none !important;
-  color: #e5e7eb !important;
-  font-size: 13px !important;
-  line-height: 1.35 !important;
-  text-align: left !important;
-  cursor: pointer !important;
-}
-.creatio-satelite-extension-container .csl-news-row:hover,
-.creatio-satelite-extension-container .csl-news-row:focus-visible,
-.creatio-satelite-extension-container .csl-news-row[aria-expanded="true"] { background: rgba(255, 255, 255, 0.08) !important; outline: none !important; }
-.creatio-satelite-extension-container .csl-news-row__icon { display: grid; width: 18px; height: 18px; flex: none; color: #7cb2ff; }
-.creatio-satelite-extension-container .csl-news-row__icon svg { width: 16px; height: 16px; }
-.creatio-satelite-extension-container .csl-news-row__text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 1px; }
-.creatio-satelite-extension-container .csl-news-row__title { display: flex; align-items: center; gap: 6px; font-weight: 600; }
-.creatio-satelite-extension-container .csl-news-row__preview { overflow: hidden; color: #a3a9b4; font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
-.creatio-satelite-extension-container .csl-news-row__chevron { display: grid; margin-top: 2px; color: #a3a9b4; }
-.creatio-satelite-extension-container .csl-news-row__chevron svg { width: 12px; height: 12px; }
-.creatio-satelite-extension-container .csl-news-row-sep { height: 1px; margin: 4px 8px; background: rgba(255, 255, 255, 0.1); }
-
 /* After the display rules above, so `hidden` wins over display: flex !important */
-.creatio-satelite-extension-container .csl-news-row[hidden],
-.creatio-satelite-extension-container .csl-news-row-sep[hidden],
-.creatio-satelite-extension-container .csl-news-flyout[hidden] { display: none !important; }
+.creatio-satelite-extension-container .csl-news-column[hidden] { display: none !important; }
 
 .csl-news-pill {
   display: inline-flex;
@@ -336,22 +303,25 @@
 }
 .csl-news-pill--critical { background: #ff5b5b; }
 
-.creatio-satelite-extension-container .csl-news-flyout {
-  position: absolute !important;
-  top: 0 !important;
-  left: calc(100% + 8px) !important;
-  width: 320px !important;
-  border: 1px solid var(--csl-news-border) !important;
-  border-radius: 12px !important;
-  background: var(--csl-news-surface) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  box-shadow: 0 2px 4px rgba(34, 39, 47, 0.2), 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+/* The news column: the first column of the menu panel, on the left of the navigation items.
+   No own frame: it sits on the glass of the panel, with the same divider as between the other columns. */
+.creatio-satelite-extension-container .csl-news-column {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 300px !important;
+  flex: none !important;
+  margin-right: 6px !important;
+  padding-right: 6px !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1) !important;
+  background: none !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
 }
-.creatio-satelite-extension-container .csl-news-flyout--left { left: auto !important; right: calc(100% + 8px) !important; }
-.creatio-satelite-extension-container .csl-news-flyout .csl-news-list { max-height: calc(80vh - 96px); }
+.creatio-satelite-extension-container .csl-news-column .csl-news-panel__head,
+.creatio-satelite-extension-container .csl-news-column .csl-news-panel__foot { border-color: rgba(255, 255, 255, 0.1) !important; }
+.creatio-satelite-extension-container .csl-news-column .csl-news-panel__head strong { display: inline-flex; align-items: center; gap: 6px; }
+.creatio-satelite-extension-container .csl-news-column .csl-news-markread { color: var(--csl-news-blue) !important; font-weight: 600 !important; }
+.creatio-satelite-extension-container .csl-news-column .csl-news-list { max-height: calc(80vh - 96px); }
 /* shellIndicator.js refines it on open: up to 80% of the window, never past its bottom edge */
 
 .creatio-satelite-extension-container .csl-news-peek {

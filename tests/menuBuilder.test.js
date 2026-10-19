@@ -86,7 +86,7 @@ describe('createScriptsMenu', () => {
     expect(document.querySelector('.actions-menu-container')).toBeNull();
   });
 
-  it('a click on the button opens one panel: navigation and Settings on the left, the actions on the right', () => {
+  it('a click on the button opens one panel: navigation on the left, the actions on the right', () => {
     createScriptsMenu();
     const { btn, navMenu } = menu();
     btn.click();
@@ -95,11 +95,42 @@ describe('createScriptsMenu', () => {
     expect(navColumn.classList.contains('csl-nav-column')).toBe(true);
     const nav = markers(navColumn);
     expect(nav[0]).toBe('Features');
-    expect(nav[nav.length - 1]).toBe('Settings');
+    expect(nav[nav.length - 1]).toBe('Configuration');
+    expect(nav).not.toContain('Settings');
     expect(nav).not.toContain('RestartApp');
     expect(actionsColumn.classList.contains('csl-actions-section')).toBe(true);
     expect(actionsColumn.getAttribute('role')).toBe('group');
     expect(markers(actionsColumn)).toEqual(['RestartApp', 'FlushRedisDB']);
+  });
+
+  it('the panel header has the Settings and news icons in its top-right corner, Settings first', () => {
+    createScriptsMenu();
+    const { navMenu } = menu();
+    const header = navMenu.firstElementChild;
+    expect(header.classList.contains('csl-menu-header')).toBe(true);
+    const [settings, news] = header.querySelectorAll('.csl-menu-icon-btn');
+    expect(settings.getAttribute('data-item-marker')).toBe('Settings');
+    expect(settings.title).toBe('Settings');
+    expect(settings.getAttribute('aria-label')).toBe('Settings');
+    expect(news.getAttribute('data-item-marker')).toBe('NewsArchive');
+    expect(news.tagName).toBe('A');
+    expect(news.href).toBe('https://advance-technologies-foundation.github.io/clio-news-feed/');
+    expect(news.target).toBe('_blank');
+    expect(news.rel).toBe('noopener noreferrer');
+  });
+
+  it('the Settings icon opens the options page and closes the menu', () => {
+    createScriptsMenu();
+    const { btn, navMenu } = menu();
+    btn.click();
+    chrome.runtime.id = 'test-id';
+    try {
+      navMenu.querySelector('.csl-menu-icon-btn[data-item-marker="Settings"]').click();
+    } finally {
+      delete chrome.runtime.id;
+    }
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ action: 'openOptionsPage' });
+    expect(navMenu.classList.contains('hidden')).toBe(true);
   });
 
   it('adds the autologin item to the actions when a profile logged in to this site', async () => {

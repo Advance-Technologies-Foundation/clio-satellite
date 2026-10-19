@@ -5,6 +5,7 @@ import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuC
 import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
+import { ARCHIVE_URL } from './news/newsCards.js';
 import { track } from './analytics.js';
 
 // Guard against "Extension context invalidated" errors that occur when the
@@ -91,36 +92,57 @@ function createMenuItem(scriptName) {
   return menuItem;
 }
 
-function createDivider(marker) {
-  const dividerContainer = document.createElement('div');
-  dividerContainer.className = 'ng-star-inserted';
-  dividerContainer.setAttribute('crt-menu-view-element-item', marker);
-  dividerContainer.style.cssText = 'display: block; margin: 4px 0; opacity: 1; visibility: visible;';
+// Open book: the developer news page on GitHub Pages
+const NEWS_ARCHIVE_ICON = '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.2C6.6 3 4.6 2.6 1.75 2.75v9.5C4.6 12.1 6.6 12.5 8 13.7c1.4-1.2 3.4-1.6 6.25-1.45v-9.5C11.4 2.6 9.4 3 8 4.2z"/><path d="M8 4.2v9.5" stroke="var(--csl-icon-accent, #ff5722)"/></svg>';
 
-  const crtDivider = document.createElement('crt-menu-divider');
-  crtDivider.className = 'ng-star-inserted';
-  crtDivider.style.cssText = 'display: block; margin: 0;';
-
-  const matDivider = document.createElement('mat-divider');
-  matDivider.setAttribute('role', 'separator');
-  matDivider.className = 'mat-divider mat-divider-horizontal';
-  matDivider.setAttribute('aria-orientation', 'horizontal');
-  matDivider.style.cssText = 'display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;';
-
-  crtDivider.appendChild(matDivider);
-  dividerContainer.appendChild(crtDivider);
-  return dividerContainer;
+function createHeaderIcon(tag, marker, label, svg) {
+  const node = document.createElement(tag);
+  node.className = 'csl-menu-icon-btn';
+  node.setAttribute('data-item-marker', marker);
+  node.setAttribute('aria-label', label);
+  node.title = label;
+  if (tag === 'button') node.type = 'button';
+  node.innerHTML = svg;
+  return node;
 }
 
-// One panel with two columns that always open together: the navigation items and Settings on the left,
-// the actions that change the site (RestartApp, FlushRedisDB, autologin) on the right. Safe and unsafe
-// items stay apart, and as one panel they can not drift apart the way two separate menus did.
+// The header row of the panel: Settings (gear) and the news page (open book) as icons in its top-right corner
+function buildMenuHeader(menuContainer) {
+  const header = document.createElement('div');
+  header.className = 'csl-menu-header';
+
+  const settings = createHeaderIcon('button', 'Settings', 'Settings', MENU_ICONS.Settings.svg);
+  settings.addEventListener('click', () => {
+    track('menu_click', { menu: 'navigation', item: 'Settings' });
+    safeSendMessage({ action: 'openOptionsPage' });
+    hideMenuContainer(menuContainer);
+  });
+
+  const news = createHeaderIcon('a', 'NewsArchive', 'Developer news', NEWS_ARCHIVE_ICON);
+  news.href = ARCHIVE_URL;
+  news.target = '_blank';
+  news.rel = 'noopener noreferrer';
+  news.addEventListener('click', () => {
+    track('news_archive_open', { surface: 'shell' });
+    hideMenuContainer(menuContainer);
+  });
+
+  header.append(settings, news);
+  return header;
+}
+
+// One panel: a header with the Settings and news icons, then a row of columns. The news column
+// (added by shellIndicator, shown only while there are unread news) is on the left; the navigation
+// items and the actions that change the site (RestartApp, FlushRedisDB, autologin) follow. Safe and
+// unsafe items stay apart, and as one panel they can not drift apart the way two separate menus did.
 // The actions column is filled by buildActionsSection every time the menu opens.
 function buildNavMenu() {
   const menuContainer = document.createElement('div');
   menuContainer.classList.add('scripts-menu-container');
   hideMenuContainer(menuContainer);
 
+  const body = document.createElement('div');
+  body.className = 'csl-menu-body';
   const columns = document.createElement('div');
   columns.className = 'csl-menu-columns';
   const navColumn = document.createElement('div');
@@ -132,30 +154,22 @@ function buildNavMenu() {
   actionsSection.setAttribute('role', 'group');
   actionsSection.setAttribute('aria-label', 'Actions');
   columns.append(navColumn, actionsSection);
-  menuContainer.appendChild(columns);
+  body.appendChild(columns);
+  menuContainer.append(buildMenuHeader(menuContainer), body);
 
   SCRIPT_FILES.forEach(scriptFile => {
     const scriptName = scriptFile.replace('.js', '');
-
-    if (scriptName === 'Settings') {
-      navColumn.appendChild(createDivider('settings-divider'));
-    }
-
     const menuItem = createMenuItem(scriptName);
     menuItem.addEventListener('click', () => {
       track('menu_click', { menu: 'navigation', item: scriptName });
-      if (scriptName === 'Settings') {
-        safeSendMessage({ action: 'openOptionsPage' });
-      } else {
-        safeSendMessage({ action: 'executeScript', scriptPath: `navigation/${scriptFile}` });
-      }
+      safeSendMessage({ action: 'executeScript', scriptPath: `navigation/${scriptFile}` });
       hideMenuContainer(menuContainer);
     });
 
     navColumn.appendChild(menuItem);
   });
 
-  return { menuContainer, actionsSection };
+  return { menuContainer, menuBody: body, actionsSection };
 }
 
 // RestartApp and FlushRedisDB are added at once, so the menu has its full height when it is placed.
@@ -303,7 +317,7 @@ export function createScriptsMenu() {
 
   buttonWrapper.appendChild(menuButton);
 
-  const { menuContainer, actionsSection } = buildNavMenu();
+  const { menuContainer, menuBody, actionsSection } = buildNavMenu();
 
   // The button and the docked blob open the same one menu with every item in it
   const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
@@ -358,7 +372,11 @@ export function createScriptsMenu() {
     state.menuCreating = false;
     // News are optional: a failure there must never take the menu down
     try {
-      Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }))
+      Promise.resolve(attachShellNews({
+        menuButton, menuContainer, menuBody, buttonWrapper, pageType,
+        // the news column appears and disappears with unread news: place the open menu again
+        onLayoutChange: () => { if (menuContainer.classList.contains('visible')) placeMenu(); },
+      }))
         .catch(error => console.error('[Clio Satellite] Developer news failed:', error));
     } catch (error) {
       console.error('[Clio Satellite] Developer news failed:', error);

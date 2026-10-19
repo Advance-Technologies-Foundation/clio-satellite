@@ -57,11 +57,16 @@ test.describe('Shell page', () => {
     const panel = await menu.boundingBox();
     expect(panel.y).toBeGreaterThan(btn.y + btn.height - 1);
     const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
-    const [features, settings, restart, flush] = [await box('Features'), await box('Settings'), await box('RestartApp'), await box('FlushRedisDB')];
+    const [features, settings, news, restart, flush] = [await box('Features'), await box('Settings'), await box('NewsArchive'), await box('RestartApp'), await box('FlushRedisDB')];
     expect(restart.x).toBeGreaterThanOrEqual(features.x + features.width);   // a column of its own
     expect(Math.abs(restart.y - features.y)).toBeLessThanOrEqual(1);          // starting at the same row
     expect(flush.y).toBeGreaterThan(restart.y);
-    expect(settings.x).toBe(features.x);                                       // Settings stays on the left
+    // Settings and the news book are icons in the top-right corner of the panel, the book rightmost
+    expect(settings.y + settings.height).toBeLessThanOrEqual(features.y);
+    expect(Math.abs(news.y - settings.y)).toBeLessThanOrEqual(1);
+    expect(news.x).toBeGreaterThanOrEqual(settings.x + settings.width);
+    expect(panel.x + panel.width - (news.x + news.width)).toBeLessThanOrEqual(8);
+    await expect(menu.locator('[data-item-marker="Settings"]')).toHaveAttribute('title', 'Settings');
     expect(restart.x + restart.width).toBeLessThanOrEqual(panel.x + panel.width);
     // both columns are as wide as the wider of their longest captions plus 20 px
     const gapAfterCaptions = sel => menu.locator(sel).evaluate(c => {
@@ -104,7 +109,8 @@ test.describe('Shell page', () => {
     await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(11);
+    await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(10);
+    await expect(page.locator('.scripts-menu-container .csl-menu-icon-btn svg')).toHaveCount(2);
     await expect(page.locator('.scripts-menu-button svg')).toHaveCount(1);
 
     const icon = page.locator('[data-item-marker="Users"] mat-icon');

@@ -21,8 +21,7 @@
     "Process_log.js",
     "SysSettings.js",
     "Users.js",
-    "Configuration.js",
-    "Settings"
+    "Configuration.js"
   ];
   var SCRIPT_LABELS = {
     "Application_Managment": "App Hub"
@@ -2286,32 +2285,27 @@
   var RERENDER_MS = 10 * 60 * 1e3;
   var PEEK_MS = 1e4;
   var PEEK_AFTER_HOVER_MS = 3e3;
-  var FLYOUT_WIDTH = 320;
-  var FLYOUT_MAX_SHARE = 0.8;
-  var FLYOUT_MIN_LIST = 120;
-  var FLYOUT_EDGE = 16;
+  var NEWS_MAX_SHARE = 0.8;
+  var NEWS_MIN_LIST = 120;
+  var NEWS_EDGE = 16;
   var ui = {
     menuButton: null,
     menuContainer: null,
     buttonWrapper: null,
     pageType: "shell",
+    onLayoutChange: null,
     dot: null,
-    row: null,
-    rowSep: null,
+    column: null,
     pill: null,
-    preview: null,
-    flyout: null,
     list: null,
     peek: null,
     model: null,
-    flyoutOpen: false,
+    columnShown: false,
     loadCounted: false,
     peekChecked: false,
     subscribed: false,
     observer: null,
-    peekTimer: null,
-    rowSeen: false
-    // the row had unread items on this page; survives menu rebuilds, not reloads
+    peekTimer: null
   };
   function el3(tag, className, text) {
     const node = document.createElement(tag);
@@ -2319,95 +2313,49 @@
     if (text !== void 0) node.textContent = text;
     return node;
   }
-  function buildRow() {
-    const row = el3("button", "csl-news-row");
-    row.type = "button";
-    row.setAttribute("role", "menuitem");
-    row.setAttribute("aria-haspopup", "true");
-    row.setAttribute("aria-expanded", "false");
-    const icon = el3("span", "csl-news-row__icon");
-    icon.innerHTML = newsIcon();
-    const text = el3("span", "csl-news-row__text");
-    const title = el3("span", "csl-news-row__title", "What's new");
+  function buildColumn() {
+    const column = el3("div", "csl-news csl-news--dark csl-news-column");
+    column.setAttribute("role", "region");
+    column.setAttribute("aria-label", "Developer news");
+    column.hidden = true;
+    const head = el3("div", "csl-news-panel__head");
+    const title = el3("strong", "", "Dev tools news");
     const pill = el3("span", "csl-news-pill");
     title.appendChild(pill);
-    const preview = el3("span", "csl-news-row__preview");
-    text.append(title, preview);
-    const chevron = el3("span", "csl-news-row__chevron");
-    chevron.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    row.append(icon, text, chevron);
-    row.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setFlyout(!ui.flyoutOpen);
-    });
-    return { row, pill, preview };
-  }
-  function buildFlyout() {
-    const flyout = el3("div", "csl-news csl-news--dark csl-news-flyout");
-    flyout.setAttribute("role", "region");
-    flyout.setAttribute("aria-label", "Developer news");
-    flyout.hidden = true;
-    const head = el3("div", "csl-news-panel__head");
-    const markAll = el3("button", "csl-news-linkbtn", "Mark all as read");
+    const markAll = el3("button", "csl-news-linkbtn csl-news-markread", "Mark as read");
     markAll.type = "button";
     markAll.dataset.track = "news_mark_all_read";
-    head.append(el3("strong", "", "Dev tools news"), markAll);
+    head.append(title, markAll);
     const list = el3("ul", "csl-news-list");
     const foot = el3("div", "csl-news-panel__foot");
-    const all = el3("a", "", "All news \u2192");
-    all.href = ARCHIVE_URL;
-    all.target = "_blank";
-    all.rel = "noopener noreferrer";
-    all.dataset.track = "news_archive_open";
     const topics = el3("button", "csl-news-linkbtn", "Choose topics");
     topics.type = "button";
     topics.dataset.track = "news_topics_open";
-    foot.append(all, topics);
-    flyout.append(head, list, foot);
-    trackPanelClicks(flyout, "shell");
-    flyout.addEventListener("click", (event) => event.stopPropagation());
+    foot.append(topics);
+    column.append(head, list, foot);
+    trackPanelClicks(column, "shell");
+    column.addEventListener("click", (event) => event.stopPropagation());
     markAll.addEventListener("click", () => {
       if (ui.model) markRead(ui.model.visible.map((i) => i.id)).then(render);
     });
     topics.addEventListener("click", () => openOptions());
-    return { flyout, list };
+    return { column, pill, list };
   }
-  function placeFlyout() {
-    const rect = ui.menuContainer.getBoundingClientRect();
-    const roomRight = window.innerWidth - rect.right;
-    ui.flyout.classList.toggle("csl-news-flyout--left", roomRight < FLYOUT_WIDTH + 16);
-    fitFlyoutHeight();
+  function newsListMaxHeight({ viewportHeight: viewportHeight2, columnTop, chromeHeight }) {
+    const columnMax = Math.min(viewportHeight2 * NEWS_MAX_SHARE, viewportHeight2 - Math.max(0, columnTop) - NEWS_EDGE);
+    return Math.max(NEWS_MIN_LIST, Math.floor(columnMax - chromeHeight));
   }
-  function flyoutListMaxHeight({ viewportHeight: viewportHeight2, flyoutTop, chromeHeight }) {
-    const flyoutMax = Math.min(viewportHeight2 * FLYOUT_MAX_SHARE, viewportHeight2 - Math.max(0, flyoutTop) - FLYOUT_EDGE);
-    return Math.max(FLYOUT_MIN_LIST, Math.floor(flyoutMax - chromeHeight));
-  }
-  function fitFlyoutHeight() {
-    if (!ui.flyout || ui.flyout.hidden || !ui.list) return;
-    const chromeHeight = ui.flyout.offsetHeight - ui.list.offsetHeight;
-    ui.list.style.maxHeight = `${flyoutListMaxHeight({
+  function fitColumnHeight() {
+    if (!ui.column || ui.column.hidden || !ui.list) return;
+    const chromeHeight = ui.column.offsetHeight - ui.list.offsetHeight;
+    ui.list.style.maxHeight = `${newsListMaxHeight({
       viewportHeight: window.innerHeight,
-      flyoutTop: ui.flyout.getBoundingClientRect().top,
+      columnTop: ui.column.getBoundingClientRect().top,
       chromeHeight
     })}px`;
   }
   function onWindowResize() {
-    if (ui.flyoutOpen) fitFlyoutHeight();
-  }
-  async function setFlyout(open2) {
-    if (!ui.flyout) return;
-    const wasOpen = ui.flyoutOpen;
-    ui.flyoutOpen = open2;
-    ui.flyout.hidden = !open2;
-    ui.row?.setAttribute("aria-expanded", String(open2));
-    if (open2) {
-      if (!wasOpen) track("news_open", { surface: "shell" });
-      placeFlyout();
-      if (ui.model) recordFirstShown(ui.model.visible.map((i) => i.id));
-    } else if (wasOpen && ui.model) {
-      await markRead(ui.model.visible.map((i) => i.id));
-    }
-    return render();
+    if (ui.columnShown) fitColumnHeight();
   }
   function hidePeek() {
     clearTimeout(ui.peekTimer);
@@ -2452,17 +2400,18 @@
       event.stopPropagation();
       hidePeek();
       if (!ui.menuContainer.classList.contains("visible")) ui.menuButton.click();
-      setFlyout(true);
     });
   }
   function onMenuVisibility() {
-    const visible = ui.menuContainer.classList.contains("visible");
-    if (visible) {
-      hidePeek();
-      if (ui.model?.unread.length) markNoticed(ui.model.unread.map((i) => i.id)).then(render);
-    } else if (ui.flyoutOpen) {
-      setFlyout(false);
-    }
+    if (!ui.menuContainer.classList.contains("visible")) return;
+    hidePeek();
+    if (ui.model?.unread.length) markNoticed(ui.model.unread.map((i) => i.id)).then(render);
+    if (ui.columnShown) onColumnSeen();
+  }
+  function onColumnSeen() {
+    track("news_open", { surface: "shell" });
+    recordFirstShown(ui.model.visible.map((i) => i.id));
+    fitColumnHeight();
   }
   var rendering = null;
   var pending = false;
@@ -2489,21 +2438,19 @@
         ui.dot.style.left = `${btn.offsetLeft + btn.offsetWidth - 7}px`;
       }
       ui.menuButton.setAttribute("aria-label", showDot ? `Clio satellite, ${unread.length} unread news` : "Clio satellite");
-      if (unread.length) ui.rowSeen = true;
-      const showRow = Boolean(model) && (unread.length > 0 || ui.rowSeen);
-      ui.row.hidden = !showRow;
-      ui.rowSep.hidden = !showRow;
-      ui.pill.hidden = unread.length === 0;
+      const showColumn = Boolean(model) && unread.length > 0;
+      ui.pill.hidden = !showColumn;
       ui.pill.textContent = String(unread.length);
       ui.pill.classList.toggle("csl-news-pill--critical", hasCritical);
-      ui.preview.textContent = unread[0]?.title || model?.visible[0]?.title || "";
-      if (!model && ui.flyoutOpen) {
-        ui.flyoutOpen = false;
-        ui.flyout.hidden = true;
-        raiseMenu(false);
-      }
-      if (model && ui.flyoutOpen) {
+      if (showColumn) {
         renderCards(ui.list, model.visible, model.ctx, { onVideoStart: (item) => markRead([item.id]).then(render) });
+      }
+      if (showColumn !== ui.columnShown) {
+        ui.columnShown = showColumn;
+        ui.column.hidden = !showColumn;
+        const menuOpen = ui.menuContainer.classList.contains("visible");
+        if (showColumn && menuOpen) onColumnSeen();
+        ui.onLayoutChange?.();
       }
       if (model && !ui.peekChecked) {
         ui.peekChecked = true;
@@ -2524,22 +2471,17 @@
       }
     }
   }
-  function attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }) {
+  function attachShellNews({ menuButton, menuContainer, menuBody, buttonWrapper, pageType, onLayoutChange }) {
     ui.observer?.disconnect();
     hidePeek();
-    Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, flyoutOpen: false });
+    Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, onLayoutChange, columnShown: false });
     const dot = el3("span", "csl-news-dot");
     dot.setAttribute("aria-hidden", "true");
     dot.hidden = true;
     buttonWrapper.appendChild(dot);
-    const { row, pill, preview } = buildRow();
-    row.hidden = true;
-    const rowSep = el3("div", "csl-news-row-sep");
-    rowSep.hidden = true;
-    menuContainer.prepend(row, rowSep);
-    const { flyout, list } = buildFlyout();
-    menuContainer.appendChild(flyout);
-    Object.assign(ui, { dot, row, rowSep, pill, preview, flyout, list });
+    const { column, pill, list } = buildColumn();
+    (menuBody || menuContainer).prepend(column);
+    Object.assign(ui, { dot, column, pill, list });
     ui.observer = new MutationObserver(onMenuVisibility);
     ui.observer.observe(menuContainer, { attributes: true, attributeFilter: ["class"] });
     if (!ui.subscribed) {
@@ -2619,27 +2561,43 @@
     menuItem.appendChild(button);
     return menuItem;
   }
-  function createDivider(marker) {
-    const dividerContainer = document.createElement("div");
-    dividerContainer.className = "ng-star-inserted";
-    dividerContainer.setAttribute("crt-menu-view-element-item", marker);
-    dividerContainer.style.cssText = "display: block; margin: 4px 0; opacity: 1; visibility: visible;";
-    const crtDivider = document.createElement("crt-menu-divider");
-    crtDivider.className = "ng-star-inserted";
-    crtDivider.style.cssText = "display: block; margin: 0;";
-    const matDivider = document.createElement("mat-divider");
-    matDivider.setAttribute("role", "separator");
-    matDivider.className = "mat-divider mat-divider-horizontal";
-    matDivider.setAttribute("aria-orientation", "horizontal");
-    matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;";
-    crtDivider.appendChild(matDivider);
-    dividerContainer.appendChild(crtDivider);
-    return dividerContainer;
+  var NEWS_ARCHIVE_ICON = '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.2C6.6 3 4.6 2.6 1.75 2.75v9.5C4.6 12.1 6.6 12.5 8 13.7c1.4-1.2 3.4-1.6 6.25-1.45v-9.5C11.4 2.6 9.4 3 8 4.2z"/><path d="M8 4.2v9.5" stroke="var(--csl-icon-accent, #ff5722)"/></svg>';
+  function createHeaderIcon(tag, marker, label, svg) {
+    const node = document.createElement(tag);
+    node.className = "csl-menu-icon-btn";
+    node.setAttribute("data-item-marker", marker);
+    node.setAttribute("aria-label", label);
+    node.title = label;
+    if (tag === "button") node.type = "button";
+    node.innerHTML = svg;
+    return node;
+  }
+  function buildMenuHeader(menuContainer) {
+    const header = document.createElement("div");
+    header.className = "csl-menu-header";
+    const settings = createHeaderIcon("button", "Settings", "Settings", MENU_ICONS.Settings.svg);
+    settings.addEventListener("click", () => {
+      track("menu_click", { menu: "navigation", item: "Settings" });
+      safeSendMessage({ action: "openOptionsPage" });
+      hideMenuContainer(menuContainer);
+    });
+    const news = createHeaderIcon("a", "NewsArchive", "Developer news", NEWS_ARCHIVE_ICON);
+    news.href = ARCHIVE_URL;
+    news.target = "_blank";
+    news.rel = "noopener noreferrer";
+    news.addEventListener("click", () => {
+      track("news_archive_open", { surface: "shell" });
+      hideMenuContainer(menuContainer);
+    });
+    header.append(settings, news);
+    return header;
   }
   function buildNavMenu() {
     const menuContainer = document.createElement("div");
     menuContainer.classList.add("scripts-menu-container");
     hideMenuContainer(menuContainer);
+    const body = document.createElement("div");
+    body.className = "csl-menu-body";
     const columns = document.createElement("div");
     columns.className = "csl-menu-columns";
     const navColumn = document.createElement("div");
@@ -2651,25 +2609,19 @@
     actionsSection.setAttribute("role", "group");
     actionsSection.setAttribute("aria-label", "Actions");
     columns.append(navColumn, actionsSection);
-    menuContainer.appendChild(columns);
+    body.appendChild(columns);
+    menuContainer.append(buildMenuHeader(menuContainer), body);
     SCRIPT_FILES.forEach((scriptFile) => {
       const scriptName = scriptFile.replace(".js", "");
-      if (scriptName === "Settings") {
-        navColumn.appendChild(createDivider("settings-divider"));
-      }
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
         track("menu_click", { menu: "navigation", item: scriptName });
-        if (scriptName === "Settings") {
-          safeSendMessage({ action: "openOptionsPage" });
-        } else {
-          safeSendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
-        }
+        safeSendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
         hideMenuContainer(menuContainer);
       });
       navColumn.appendChild(menuItem);
     });
-    return { menuContainer, actionsSection };
+    return { menuContainer, menuBody: body, actionsSection };
   }
   function buildActionsSection(actionsSection, onChange) {
     actionsSection.innerHTML = "";
@@ -2786,7 +2738,7 @@
     menuButtonWrapper.appendChild(navCaption);
     menuButtonWrapper.appendChild(createArrowWrapper());
     buttonWrapper.appendChild(menuButton);
-    const { menuContainer, actionsSection } = buildNavMenu();
+    const { menuContainer, menuBody, actionsSection } = buildNavMenu();
     const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
     const openMenu = () => {
       buildActionsSection(actionsSection, () => {
@@ -2829,7 +2781,17 @@
       document.documentElement.appendChild(extensionContainer);
       state.menuCreating = false;
       try {
-        Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
+        Promise.resolve(attachShellNews({
+          menuButton,
+          menuContainer,
+          menuBody,
+          buttonWrapper,
+          pageType,
+          // the news column appears and disappears with unread news: place the open menu again
+          onLayoutChange: () => {
+            if (menuContainer.classList.contains("visible")) placeMenu();
+          }
+        })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
       } catch (error) {
         console.error("[Clio Satellite] Developer news failed:", error);
       }

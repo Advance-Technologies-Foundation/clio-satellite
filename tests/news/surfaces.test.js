@@ -190,41 +190,52 @@ function mountShell(pageType = 'shell') {
   buttonWrapper.appendChild(menuButton);
   const menuContainer = document.createElement('div');
   menuContainer.className = 'scripts-menu-container hidden';
-  menuContainer.appendChild(document.createElement('div'));
+  const menuBody = document.createElement('div');
+  menuBody.className = 'csl-menu-body';
+  menuBody.appendChild(document.createElement('div'));
+  menuContainer.appendChild(menuBody);
   host.append(buttonWrapper, menuContainer);
   document.documentElement.appendChild(host);
-  return { host, buttonWrapper, menuButton, menuContainer, done: attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }) };
+  const onLayoutChange = vi.fn();
+  return {
+    host, buttonWrapper, menuButton, menuContainer, menuBody, onLayoutChange,
+    done: attachShellNews({ menuButton, menuContainer, menuBody, buttonWrapper, pageType, onLayoutChange }),
+  };
 }
 
 describe('shell news indicator', () => {
-  it('shows a dot on the button and a What\'s new row at the top of the menu', async () => {
-    const { buttonWrapper, menuButton, menuContainer, done } = mountShell();
+  it('shows a dot on the button and the news column on the left of the menu items', async () => {
+    const { buttonWrapper, menuButton, menuBody, onLayoutChange, done } = mountShell();
     await done;
     expect(buttonWrapper.querySelector('.csl-news-dot').hidden).toBe(false);
     expect(menuButton.getAttribute('aria-label')).toBe('Clio satellite, 2 unread news');
-    const row = menuContainer.firstElementChild;
-    expect(row.className).toBe('csl-news-row');
-    expect(row.hidden).toBe(false);
-    expect(row.querySelector('.csl-news-pill').textContent).toBe('2');
+    const column = menuBody.firstElementChild;
+    expect(column.classList.contains('csl-news-column')).toBe(true);
+    expect(column.hidden).toBe(false);
+    expect(column.querySelector('.csl-news-pill').textContent).toBe('2');
+    expect(column.querySelectorAll('.csl-news-card')).toHaveLength(2);
+    expect(onLayoutChange).toHaveBeenCalled();
   });
 
-  it('opening the menu clears the dot; the count stays until the flyout is read', async () => {
-    const { buttonWrapper, menuContainer, done } = mountShell();
+  it('closing the menu does not mark the news read; the column stays until "Mark as read"', async () => {
+    const { buttonWrapper, menuContainer, onLayoutChange, done } = mountShell();
     await done;
     menuContainer.classList.replace('hidden', 'visible');
     await vi.waitFor(() => expect(buttonWrapper.querySelector('.csl-news-dot').hidden).toBe(true));
-    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(false);
-
-    menuContainer.querySelector('.csl-news-row').click();
-    await vi.waitFor(() => expect(menuContainer.querySelectorAll('.csl-news-flyout .csl-news-card')).toHaveLength(2));
     menuContainer.classList.replace('visible', 'hidden');
-    await vi.waitFor(async () => {
-      const { newsRead } = await readSync({ newsRead: {} });
-      expect(Object.keys(newsRead).sort()).toEqual(['a', 'b']);
-    });
-    // The row stays until reload, without a count
-    await vi.waitFor(() => expect(menuContainer.querySelector('.csl-news-pill').hidden).toBe(true));
-    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(false);
+    menuContainer.classList.replace('hidden', 'visible');
+    await new Promise(r => setTimeout(r, 0));
+    expect((await readSync({ newsRead: {} })).newsRead).toEqual({});
+    const column = menuContainer.querySelector('.csl-news-column');
+    expect(column.hidden).toBe(false);
+
+    onLayoutChange.mockClear();
+    column.querySelector('.csl-news-markread').click();
+    await vi.waitFor(() => expect(column.hidden).toBe(true));
+    const { newsRead } = await readSync({ newsRead: {} });
+    expect(Object.keys(newsRead).sort()).toEqual(['a', 'b']);
+    // the open menu is placed again without the column
+    expect(onLayoutChange).toHaveBeenCalledTimes(1);
   });
 
   it('counts the Shell load for the dot decay once per page', async () => {
@@ -257,9 +268,7 @@ describe('shell news indicator', () => {
     const { buttonWrapper, menuContainer, done } = mountShell();
     await done;
     expect(buttonWrapper.querySelector('.csl-news-dot').hidden).toBe(true);
-    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(true);
-    expect(menuContainer.querySelector('.csl-news-row-sep').hidden).toBe(true);
-    expect(menuContainer.querySelector('.csl-news-all')).toBeNull();
+    expect(menuContainer.querySelector('.csl-news-column').hidden).toBe(true);
   });
 
   it('shows nothing when the feed is unavailable', async () => {
@@ -267,6 +276,6 @@ describe('shell news indicator', () => {
     const { buttonWrapper, menuContainer, done } = mountShell();
     await done;
     expect(buttonWrapper.querySelector('.csl-news-dot').hidden).toBe(true);
-    expect(menuContainer.querySelector('.csl-news-row').hidden).toBe(true);
+    expect(menuContainer.querySelector('.csl-news-column').hidden).toBe(true);
   });
 });
