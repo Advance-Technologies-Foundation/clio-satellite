@@ -90,6 +90,12 @@
       name: "block",
       desc: "Disable autologin for this site"
     },
+    "TelemetryLog": {
+      file: "TelemetryLog.js",
+      icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L5 8l2.5 3L10 6l2 3 2-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>`,
+      name: "telemetry",
+      desc: "Open Telemetry log (installs from Marketplace if not present)"
+    },
     "Settings": {
       file: null,
       icon: `<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.38 3.54L6.76 1.62L9.24 1.62L9.62 3.54L10.01 3.70L11.63 2.61L13.39 4.37L12.30 5.99L12.46 6.38L14.38 6.76L14.38 9.24L12.46 9.62L12.30 10.01L13.39 11.63L11.63 13.39L10.01 12.30L9.62 12.46L9.24 14.38L6.76 14.38L6.38 12.46L5.99 12.30L4.37 13.39L2.61 11.63L3.70 10.01L3.54 9.62L1.62 9.24L1.62 6.76L3.54 6.38L3.70 5.99L2.61 4.37L4.37 2.61L5.99 3.70z"/><circle cx="8" cy="8" r="2" fill="var(--csl-icon-accent, #ff5722)" stroke="none"/></svg>`,
@@ -2667,7 +2673,7 @@
       const lastUser = typeof rawEntry === "string" ? rawEntry : rawEntry?.username;
       const profile = data.userProfiles.find((p) => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
-      const actionsList = ["RestartApp", "FlushRedisDB"];
+      const actionsList = ["RestartApp", "FlushRedisDB", "TelemetryLog"];
       if (lastUser) actionsList.push(autologinEnabled ? "DisableAutologin" : "EnableAutologin");
       actionsList.forEach((name) => {
         const detail = ACTION_DETAILS[name];
