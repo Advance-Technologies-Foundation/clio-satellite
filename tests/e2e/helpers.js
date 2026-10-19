@@ -73,3 +73,9 @@ export async function waitForMenu(page) {
     return fc && fc.style.opacity === '1';
   }, { timeout: 3000 });
 }
+
+// The menu slides 4 px in when it opens (creatioSateliteMenuIn, 0.14 s). Boxes measured one by one
+// while it moves come from different moments of the slide, so layout checks wait for it to end.
+export async function waitForMenuSettled(page) {
+  await page.locator('.scripts-menu-container').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+}
