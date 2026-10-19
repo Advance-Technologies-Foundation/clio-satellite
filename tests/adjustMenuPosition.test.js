@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { adjustMenuPosition, sideBySideLefts, placeMenusSideBySide } from '../src/menuVisibility.js';
+import { adjustMenuPosition } from '../src/menuVisibility.js';
 
 beforeEach(() => {
   Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true, configurable: true });
@@ -17,6 +17,15 @@ function createFloatingButton(btnRect) {
   button.getBoundingClientRect = () => btnRect;
 
   return button;
+}
+
+// Helper: put the button into the wrapper of the buttons (.creatio-satelite) with the given box
+function wrapButtons(button, rect) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'creatio-satelite';
+  button.parentElement.appendChild(wrapper);
+  wrapper.appendChild(button);
+  wrapper.getBoundingClientRect = () => rect;
 }
 
 function createMenu(menuRect) {
@@ -53,6 +62,17 @@ describe('adjustMenuPosition — inside floating container', () => {
     expect(parseInt(menu.style.left)).toBe(1100);
   });
 
+  it('lines its right edge up with the last button, not the menu button, at the right screen edge', () => {
+    // the unpin button ends at 1272, 8 px from the screen edge
+    const button = createFloatingButton({ top: 100, bottom: 130, left: 1090, right: 1238, width: 148, height: 30 });
+    wrapButtons(button, { top: 100, bottom: 130, left: 1090, right: 1272, width: 182, height: 30 });
+    const menu = createMenu({ right: 1530, bottom: 400, width: 440, height: 262 });
+
+    adjustMenuPosition(button, menu);
+
+    expect(parseInt(menu.style.left)).toBe(1272 - 440);
+  });
+
   it('shows menu above button when it would overflow bottom edge', () => {
     // Button near bottom: bottom=780, menu height=70 → bottom would be 858 > 800
     const button = createFloatingButton({ top: 750, bottom: 780, left: 200, right: 280, width: 80, height: 30 });
@@ -62,6 +82,38 @@ describe('adjustMenuPosition — inside floating container', () => {
 
     // Should go above: top - menuHeight - 8 = 750 - 70 - 8 = 672
     expect(parseInt(menu.style.top)).toBe(672);
+  });
+
+  it('opens beside the buttons when it fits neither below nor above them', () => {
+    // 400 px of room above, 300 below, the menu is 600 px tall
+    const button = createFloatingButton({ top: 400, bottom: 430, left: 20, right: 100, width: 80, height: 30 });
+    wrapButtons(button, { top: 394, bottom: 436, left: 14, right: 140, width: 126, height: 42 });
+    const menu = createMenu({ right: 170, bottom: 1038, width: 150, height: 600 });
+
+    adjustMenuPosition(button, menu);
+
+    expect(parseInt(menu.style.top)).toBe(800 - 600 - 8);
+    expect(parseInt(menu.style.left)).toBe(148);   // right of the buttons with their unpin button
+  });
+
+  it('opens beside the buttons on their left when there is no room on the right', () => {
+    const button = createFloatingButton({ top: 400, bottom: 430, left: 1180, right: 1260, width: 80, height: 30 });
+    wrapButtons(button, { top: 394, bottom: 436, left: 1150, right: 1266, width: 116, height: 42 });
+    const menu = createMenu({ right: 1330, bottom: 1038, width: 150, height: 600 });
+
+    adjustMenuPosition(button, menu);
+
+    expect(parseInt(menu.style.left)).toBe(1150 - 150 - 8);
+    expect(parseInt(menu.style.top)).toBe(192);
+  });
+
+  it('puts a menu taller than the window 8 px below the top edge', () => {
+    const button = createFloatingButton({ top: 400, bottom: 430, left: 20, right: 100, width: 80, height: 30 });
+    const menu = createMenu({ right: 170, bottom: 1338, width: 150, height: 900 });
+
+    adjustMenuPosition(button, menu);
+
+    expect(parseInt(menu.style.top)).toBe(8);
   });
 
   it('clamps overflow-left correction to 0 when menu is wider than viewport', () => {
@@ -96,41 +148,5 @@ describe('adjustMenuPosition — inside floating container', () => {
     adjustMenuPosition(button, menu);
 
     expect(menu.style.visibility).toBe('visible');
-  });
-});
-
-describe('sideBySideLefts — both menus open at once', () => {
-  it('moves the second menu right of the first when they would overlap', () => {
-    // the navigation menu is wider than its button and would cover the actions menu
-    expect(sideBySideLefts({ left: 8, width: 220 }, { left: 158, width: 200 }, 1280))
-      .toEqual({ first: 8, second: 236 });
-  });
-
-  it('keeps menus that do not overlap where they are', () => {
-    expect(sideBySideLefts({ left: 8, width: 100 }, { left: 158, width: 200 }, 1280))
-      .toEqual({ first: 8, second: 158 });
-  });
-
-  it('shifts the pair left at the right screen edge', () => {
-    expect(sideBySideLefts({ left: 1000, width: 220 }, { left: 1150, width: 200 }, 1280))
-      .toEqual({ first: 844, second: 1072 });
-  });
-
-  it('keeps the first menu on screen when the pair is wider than the screen', () => {
-    expect(sideBySideLefts({ left: 100, width: 300 }, { left: 150, width: 300 }, 500))
-      .toEqual({ first: 8, second: 316 });
-  });
-});
-
-describe('placeMenusSideBySide', () => {
-  it('places two menus under one button without overlap', () => {
-    const btn = createFloatingButton({ left: 8, top: 300, right: 158, bottom: 334, width: 150, height: 34 });
-    const nav = createMenu({ left: 8, top: 342, right: 228, bottom: 600, width: 220, height: 258 });
-    const act = createMenu({ left: 8, top: 342, right: 208, bottom: 500, width: 200, height: 158 });
-    placeMenusSideBySide(btn, nav, act);
-    expect(nav.style.left).toBe('8px');
-    expect(act.style.left).toBe('236px');
-    expect(nav.style.top).toBe('342px');
-    expect(act.style.top).toBe('342px');
   });
 });

@@ -31,9 +31,11 @@ One compact row under the login form:
 - Last used profile is remembered per site origin; autologin will log in automatically if enabled.
 
 ### Shell Page Tools
-- **Scripts Menu**: run navigation scripts (Features, Lookups, Process log, etc.).
-- **Actions Menu**: run actions (Restart App, Flush Redis, enable/disable autologin, Settings).
-- Menus are accessed via buttons in the shell header.
+- One **Clio satellite** button opens one panel:
+  - bottom-right corner: a gear icon for the extension settings and an open-book icon for the developer news page (Options → Menu can move them to the top);
+  - left (only while there are unread developer news): the news, with **Mark as read** to hide them;
+  - middle: navigation scripts (Features, App Hub, Lookups, Process log, etc.);
+  - right: actions that change the site (Restart App, Flush Redis, enable/disable autologin).
 
 ## Advanced / Development
 - Manifest V3 extension, vanilla JavaScript (ES6+), plain CSS.

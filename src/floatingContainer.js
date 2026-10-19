@@ -168,7 +168,7 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
   });
 
   const closeMenus = () => {
-    document.querySelectorAll('.scripts-menu-container, .actions-menu-container').forEach(hideMenuContainer);
+    document.querySelectorAll('.scripts-menu-container').forEach(hideMenuContainer);
   };
 
   // `moved: true` starts a drag that is already under way (the buttons torn off a blob).

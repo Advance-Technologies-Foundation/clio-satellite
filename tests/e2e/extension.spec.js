@@ -26,16 +26,16 @@ test.describe('Shell page', () => {
     await expect(page.locator('.actions-button')).toHaveCount(0);
   });
 
-  test('both menus open when the button is clicked', async ({ page }) => {
+  test('the menu opens when the button is clicked, with no separate actions menu', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.actions-menu-container')).toHaveCount(0);
   });
 
-  test('both menus close when clicking outside', async ({ page }) => {
+  test('the menu closes when clicking outside', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
@@ -44,21 +44,67 @@ test.describe('Shell page', () => {
 
     await page.mouse.click(10, 400); // click far from menu
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/hidden/);
   });
 
-  test('the two menus open side by side under the button without overlapping', async ({ page }) => {
+  test('the actions open in a right-hand column of the same panel, top-aligned with the navigation', async ({ page }) => {
     await load(page, '/shell/');
     await page.addStyleTag({ url: '/styles/shell.css' });
     await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
     await page.locator('.scripts-menu-button').click();
     const btn = await page.locator('.scripts-menu-button').boundingBox();
-    const nav = await page.locator('.scripts-menu-container').boundingBox();
-    const act = await page.locator('.actions-menu-container').boundingBox();
-    expect(act.x).toBeGreaterThanOrEqual(nav.x + nav.width);
-    expect(Math.abs(nav.y - act.y)).toBeLessThanOrEqual(1);   // same row; sub-pixel tops differ on CI
-    expect(nav.y).toBeGreaterThan(btn.y + btn.height - 1);
+    const menu = page.locator('.scripts-menu-container');
+    const panel = await menu.boundingBox();
+    expect(panel.y).toBeGreaterThan(btn.y + btn.height - 1);
+    const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
+    const [features, settings, news, restart, flush] = [await box('Features'), await box('Settings'), await box('NewsArchive'), await box('RestartApp'), await box('FlushRedisDB')];
+    expect(restart.x).toBeGreaterThanOrEqual(features.x + features.width);   // a column of its own
+    expect(Math.abs(restart.y - features.y)).toBeLessThanOrEqual(1);          // starting at the same row
+    expect(flush.y).toBeGreaterThan(restart.y);
+    // Settings and the news book are icons in the bottom-right corner of the panel, the book rightmost,
+    // below the short actions column: they add no row of their own
+    expect(Math.abs(features.y - (panel.y + 7))).toBeLessThanOrEqual(2);
+    expect(settings.y).toBeGreaterThanOrEqual(flush.y + flush.height);
+    expect(Math.abs(news.y - settings.y)).toBeLessThanOrEqual(1);
+    expect(news.x).toBeGreaterThanOrEqual(settings.x + settings.width);
+    expect(panel.x + panel.width - (news.x + news.width)).toBeLessThanOrEqual(8);
+    expect(panel.y + panel.height - (news.y + news.height)).toBeLessThanOrEqual(8);
+    await expect(menu.locator('[data-item-marker="Settings"]')).toHaveAttribute('title', 'Settings');
+    expect(restart.x + restart.width).toBeLessThanOrEqual(panel.x + panel.width);
+    // both columns are as wide as the wider of their longest captions plus 20 px
+    const gapAfterCaptions = sel => menu.locator(sel).evaluate(c => {
+      const right = Math.max(...[...c.querySelectorAll('.caption')].map(x => {
+        const r = document.createRange();
+        r.selectNodeContents(x);
+        return r.getBoundingClientRect().right;
+      }));
+      return c.getBoundingClientRect().right - right;
+    });
+    const [navGap, actGap] = [await gapAfterCaptions('.csl-nav-column'), await gapAfterCaptions('.csl-actions-section')];
+    expect(Math.min(navGap, actGap)).toBeGreaterThanOrEqual(18);
+    expect(Math.min(navGap, actGap)).toBeLessThanOrEqual(24);
+    // and the divider stands in the middle of the panel: the halves look the same width
+    const actBox = await menu.locator('.csl-actions-section').boundingBox();
+    expect(Math.abs((actBox.x - panel.x) - (panel.x + panel.width - actBox.x))).toBeLessThanOrEqual(1);
+    await expect(menu.locator('[data-item-marker="Application_Managment"] .caption')).toHaveText('App Hub');
+  });
+
+  test('with "icons at the top" in Options the icons are a header row in the top-right corner', async ({ page }) => {
+    await setupChromeMock(page, { syncData: { menuIconsAtTop: true } });
+    await page.goto(`${BASE}/shell/`);
+    await injectContentScript(page);
+    await page.addStyleTag({ url: '/styles/shell.css' });
+    await page.addStyleTag({ url: '/menu-item.css' });
+    await waitForMenu(page);
+    await page.locator('.scripts-menu-button').click();
+    const menu = page.locator('.scripts-menu-container');
+    await expect(menu).toHaveClass(/csl-menu--icons-top/);
+    const panel = await menu.boundingBox();
+    const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
+    const [features, settings, news] = [await box('Features'), await box('Settings'), await box('NewsArchive')];
+    expect(settings.y + settings.height).toBeLessThanOrEqual(features.y);
+    expect(news.y - panel.y).toBeLessThanOrEqual(8);
+    expect(panel.x + panel.width - (news.x + news.width)).toBeLessThanOrEqual(8);
   });
 
   test('menu opens and item clicks are reported as anonymous usage events', async ({ page }) => {
@@ -68,14 +114,12 @@ test.describe('Shell page', () => {
     // Unstyled test page: the items exist but are not laid out, so dispatch the clicks
     await page.locator('[data-item-marker="SysSettings"]').dispatchEvent('click');
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.actions-menu-container [data-item-marker="RestartApp"]').dispatchEvent('click');
+    await page.locator('.scripts-menu-container [data-item-marker="RestartApp"]').dispatchEvent('click');
     const events = await page.evaluate(() => window.__sentMessages.filter(m => m.action === 'trackEvent').map(m => [m.name, m.params]));
     expect(events).toEqual([
       ['menu_open', { menu: 'navigation' }],
-      ['menu_open', { menu: 'actions' }],
       ['menu_click', { menu: 'navigation', item: 'SysSettings' }],
       ['menu_open', { menu: 'navigation' }],
-      ['menu_open', { menu: 'actions' }],
       ['menu_click', { menu: 'actions', item: 'RestartApp' }],
     ]);
   });
@@ -86,7 +130,8 @@ test.describe('Shell page', () => {
     await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(9);
+    await expect(page.locator('.scripts-menu-container mat-icon svg')).toHaveCount(10);
+    await expect(page.locator('.scripts-menu-container .csl-menu-icon-btn svg')).toHaveCount(2);
     await expect(page.locator('.scripts-menu-button svg')).toHaveCount(1);
 
     const icon = page.locator('[data-item-marker="Users"] mat-icon');
@@ -132,24 +177,23 @@ test.describe('Shell page', () => {
     await expect(page.locator('.creatio-satelite-extension-container')).toHaveCount(1);
   });
 
-  test('clicking the button again closes both menus (toggle)', async ({ page }) => {
+  test('clicking the button again closes the menu (toggle)', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
 
     await page.locator('.scripts-menu-button').click();
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/hidden/);
   });
 
-  test('actions menu contains RestartApp and FlushRedisDB items', async ({ page }) => {
+  test('the menu contains the RestartApp and FlushRedisDB actions', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
 
     await expect(page.locator('[data-item-marker="RestartApp"]')).toBeVisible();
     await expect(page.locator('[data-item-marker="FlushRedisDB"]')).toBeVisible();
@@ -304,7 +348,21 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
     await page.waitForTimeout(300);
     await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).not.toHaveClass(/visible/);
+  });
+
+  test('holding the cursor a few pixels from the bottom edge docks the buttons grabbed at their lower edge', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    const vh = await page.evaluate(() => document.documentElement.clientHeight);
+    const box = await page.locator('.creatio-satelite').boundingBox();
+    // grabbed at the lowest pixel of the buttons: the cursor stops before they cross the edge
+    const x = box.x + 20, y = box.y + box.height - 1;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 200, vh - 3, { steps: 12 });
+    await page.waitForTimeout(900);
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'bottom');
+    await page.mouse.up();
   });
 
   test('releasing before the press distance leaves the buttons as they are', async ({ page }) => {
@@ -410,7 +468,7 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.csl-edge-blob')).toBeHidden();
   });
 
-  test('a click on the blob brings the buttons out next to the edge with both menus open, still docked', async ({ page }) => {
+  test('a click on the blob brings the buttons out next to the edge with the menu open, still docked', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
@@ -423,7 +481,6 @@ test.describe('Edge blob', () => {
     expect((await page.locator('.creatio-satelite').boundingBox()).x).toBe(8);
     // two clicks to any action: the blob, then the menu item
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
   test('the unpin button next to the buttons out of the blob frees them for good', async ({ page }) => {
@@ -490,7 +547,6 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.scripts-menu-button')).toBeVisible();
     await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-peek', 'left');
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
   });
 
   test('the buttons go back into the blob 10 seconds after the mouse left them', async ({ page }) => {
@@ -502,7 +558,7 @@ test.describe('Edge blob', () => {
     await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
     await expect(page.locator('.scripts-menu-button')).toBeVisible();
 
-    // working with the buttons: both menus are open and the mouse is on the buttons
+    // working with the buttons: the menu is open and the mouse is on the buttons
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
     await page.locator('.scripts-menu-button').hover();
     await page.waitForTimeout(11000);
@@ -515,7 +571,6 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
     await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
     await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).not.toHaveClass(/visible/);
   });
 
   test('a click on the page sends the buttons out of the blob back into it with their menus', async ({ page }) => {
@@ -524,7 +579,7 @@ test.describe('Edge blob', () => {
 
     const hit = await dockAtLeftEdge(page);
     await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
     await page.waitForTimeout(500);   // let the pop-in finish
 
     await page.mouse.click(800, 600);
@@ -532,20 +587,18 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
     await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).not.toHaveClass(/visible/);
   });
 
-  test('a click on a menu item of the buttons out of the blob runs it and closes both menus', async ({ page }) => {
+  test('a click on a menu item of the buttons out of the blob runs it and closes the menu', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
     const hit = await dockAtLeftEdge(page);
     await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
-    await expect(page.locator('.actions-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
     // Unstyled test page: the items exist but are not laid out, so dispatch the click
     await page.locator('[data-item-marker="SysSettings"]').dispatchEvent('click');
     await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
-    await expect(page.locator('.actions-menu-container')).not.toHaveClass(/visible/);
   });
 
   test('a short pull of the blob keeps it docked', async ({ page }) => {
@@ -584,7 +637,27 @@ test.describe('Edge blob', () => {
     expect(box.x + box.width / 2).toBeLessThan(550);
   });
 
-  test('the blob from the previous visit slides out of the edge', async ({ page }) => {
+  test('at the right end of the top edge the menu ends in line with the unpin button', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.addInitScript(() => {
+      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'top', along: 0.99, timestamp: Date.now() } });
+    });
+    await page.goto(`${BASE}/shell/`);
+    await injectContentScript(page);
+    await page.addStyleTag({ content: readFileSync('menu-item.css', 'utf8') });
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await page.waitForTimeout(600);   // the dome has risen
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    await page.mouse.click(hit.x + hit.width / 2, hit.y + 5);
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await page.waitForTimeout(600);   // the buttons are out of the blob
+    const buttons = await page.locator('.creatio-satelite').boundingBox();
+    const menu = await page.locator('.scripts-menu-container').boundingBox();
+    expect(buttons.x + buttons.width).toBeGreaterThan(1280 - 20);   // the buttons stand at the right end
+    expect(Math.abs((menu.x + menu.width) - (buttons.x + buttons.width))).toBeLessThanOrEqual(1);
+  });
+
+  test('the blob from the previous visit keeps its skirt in place and only raises the dome', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
       chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
@@ -592,18 +665,26 @@ test.describe('Edge blob', () => {
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);
 
-    // the blob slides out of the edge instead of popping up still, without the drops of a splat
-    // (checked on the first frame it is shown)
-    const animated = await page.waitForFunction(() => {
+    // on the first frame it is shown: the blob box does not slide, and the dome is still low
+    const first = await page.waitForFunction(() => {
       const blob = document.querySelector('.csl-edge-blob');
-      if (!blob || blob.hidden) return 0;
-      const drops = [...blob.querySelectorAll('.csl-edge-drop')].some(d => d.getAnimations().length);
-      return drops ? -1 : blob.getAnimations().length;
+      if (!blob || blob.hidden) return null;
+      const xs = d => Math.max(...d.match(/-?[\d.]+,[\d.]+/g).map(p => parseFloat(p)));
+      return {
+        slides: blob.getAnimations().length,
+        drops: [...blob.querySelectorAll('.csl-edge-drop')].some(d => d.getAnimations().length),
+        dome: xs(blob.querySelector('.csl-edge-bell path').getAttribute('d')),
+      };
     }, null, { polling: 'raf', timeout: 5000 });
-    expect(await animated.jsonValue()).toBeGreaterThan(0);
+    const start = await first.jsonValue();
+    expect(start.slides).toBe(0);
+    expect(start.drops).toBe(false);
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await expect(page.locator('.scripts-menu-button')).toBeHidden();
-    await page.waitForTimeout(600);   // the slide is over
+    await page.waitForTimeout(600);   // the rise is over
+    const dome = await page.locator('.csl-edge-bell path').evaluate(p =>
+      Math.max(...p.getAttribute('d').match(/-?[\d.]+,[\d.]+/g).map(v => parseFloat(v))));
+    expect(dome).toBeGreaterThan(start.dome + 8);
     const blob = await page.locator('.csl-edge-blob').boundingBox();
     expect(Math.round(blob.x + blob.width)).toBe(1280);
   });

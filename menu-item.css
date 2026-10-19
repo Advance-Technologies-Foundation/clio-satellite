@@ -15,8 +15,7 @@
 /* Enable pointer events for interactive elements */
 .creatio-satelite-extension-container .creatio-satelite,
 .creatio-satelite-extension-container .creatio-satelite-floating,
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   pointer-events: auto !important;
 }
 
@@ -115,8 +114,7 @@
 }
 
 /* Menu Items Container */
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   background: rgba(28, 32, 38, 0.85) !important;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
   border-radius: 12px !important;
@@ -130,13 +128,11 @@
   display: none !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.visible,
-.creatio-satelite-extension-container .actions-menu-container.visible {
+.creatio-satelite-extension-container .scripts-menu-container.visible {
   display: block !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.hidden,
-.creatio-satelite-extension-container .actions-menu-container.hidden {
+.creatio-satelite-extension-container .scripts-menu-container.hidden {
   display: none !important;
 }
 
@@ -353,8 +349,7 @@
 }
 
 /* Menus */
-.creatio-satelite-extension-container .scripts-menu-container,
-.creatio-satelite-extension-container .actions-menu-container {
+.creatio-satelite-extension-container .scripts-menu-container {
   /* Same glass as Creatio's own menus (.crt-menu-glassmorphism): its theme tokens with fallbacks.
      80% opacity keeps the text readable on white pages, not only on the wallpaper. */
   background: var(--crt-glass-color-dark-800, rgba(24, 24, 24, 0.8)) !important;
@@ -367,9 +362,84 @@
   -webkit-backdrop-filter: blur(20px) !important;
 }
 
-.creatio-satelite-extension-container .scripts-menu-container.visible,
-.creatio-satelite-extension-container .actions-menu-container.visible {
+.creatio-satelite-extension-container .scripts-menu-container.visible {
   animation: creatioSateliteMenuIn 0.14s ease-out !important;
+}
+
+/* Settings (gear) and the news page (open book) as icons. By default in the bottom-right corner of the panel,
+   over the empty end of the actions column (it has 2–3 items, the navigation column 8), so they add no height. */
+.creatio-satelite-extension-container .csl-menu-header {
+  position: absolute !important;
+  right: 6px !important;
+  bottom: 6px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 2px !important;
+  padding: 0 !important;
+  z-index: 1 !important;
+}
+/* "Show the Settings and news icons at the top of the menu" in Options: a header row in the top-right corner */
+.creatio-satelite-extension-container .csl-menu--icons-top .csl-menu-header {
+  position: static !important;
+  padding: 0 0 4px !important;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn {
+  display: grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  padding: 6px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: none !important;
+  color: #e5e7eb !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  --csl-icon-accent: #ff5722;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn:hover,
+.creatio-satelite-extension-container .csl-menu-icon-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.08) !important;
+  outline: none !important;
+}
+.creatio-satelite-extension-container .csl-menu-icon-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+/* The news column (when there are unread news) and the two columns of items, side by side */
+.creatio-satelite-extension-container .csl-menu-body {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+/* One panel, two columns: navigation on the left, the actions that change the site on the right */
+.creatio-satelite-extension-container .scripts-menu-container {
+  max-width: none !important;
+}
+.creatio-satelite-extension-container .csl-menu-columns {
+  /* two columns of the same width: the wider of their longest captions plus 20 px */
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+}
+/* The same 6 px on both sides of the divider: with a gap only the left half got it, and the left half
+   looked wider than the right one */
+.creatio-satelite-extension-container .csl-nav-column {
+  padding-right: 6px !important;
+}
+.creatio-satelite-extension-container .csl-nav-column,
+.creatio-satelite-extension-container .csl-actions-section {
+  min-width: 0 !important;
+}
+.creatio-satelite-extension-container .csl-menu-column .crt-menu-item.mat-flat-button {
+  padding-right: 20px !important;
+}
+.creatio-satelite-extension-container .csl-actions-section {
+  padding-left: 6px !important;
+  /* the divider is drawn, not a border: it takes no width, so both halves stay equal */
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.1) !important;
 }
 
 @keyframes creatioSateliteMenuIn {
@@ -442,8 +512,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .creatio-satelite-extension-container .scripts-menu-container.visible,
-  .creatio-satelite-extension-container .actions-menu-container.visible {
+  .creatio-satelite-extension-container .scripts-menu-container.visible {
     animation: none !important;
   }
 }

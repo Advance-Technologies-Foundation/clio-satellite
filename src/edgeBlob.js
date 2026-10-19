@@ -48,8 +48,17 @@ export function pressedEdge(rawX, rawY, width, height, vw, vh) {
   return edge ? { edge, over: over[edge] } : null;
 }
 
-export function isCursorAtEdge(edge, x, y, vw, vh) {
-  return { left: x <= 1, right: x >= vw - 2, top: y <= 1, bottom: y >= vh - 2 }[edge];
+// How close (px) to an edge the cursor still counts as held against it: a hand pressing the mouse
+// into the screen edge wobbles a few pixels away from it, and every wobble used to restart the hold
+export const EDGE_CURSOR_SLACK = 4;
+
+export function isCursorAtEdge(edge, x, y, vw, vh, slack = EDGE_CURSOR_SLACK) {
+  return { left: x < slack, right: x >= vw - slack, top: y < slack, bottom: y >= vh - slack }[edge];
+}
+
+// The edge the cursor is held against, if any
+export function cursorEdge(x, y, vw, vh) {
+  return EDGES.find(e => isCursorAtEdge(e, x, y, vw, vh)) || null;
 }
 
 // Position of the blob centre along the edge, kept fully on screen
@@ -176,18 +185,23 @@ function div(className, parent) {
 // the skirt through concave fillets, and the skirt runs out along the edge without a corner.
 const DOME_R = 13, DOME_C = 7, DOME_FILLET = 12;
 const skirt = d => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
-function bellField(x, d) {
-  const a = Math.hypot(x - DOME_C, d) - DOME_R;
+// `sink` (px) moves the dome into the edge: at DOME_SINK only the skirt is left, so the dome can rise
+// out of the edge while the skirt stays where it is
+export const DOME_SINK = DOME_R + DOME_C;
+// How long the dome of a restored blob takes to rise out of the edge
+export const DOME_RISE_MS = 480;
+function bellField(x, d, sink = 0) {
+  const a = Math.hypot(x - DOME_C + sink, d) - DOME_R;
   const b = x - skirt(d);
   const h = Math.max(DOME_FILLET - Math.abs(a - b), 0) / DOME_FILLET;
   return Math.min(a, b) - h * h * DOME_FILLET / 4;
 }
-export function bellHeight(d) {
-  if (bellField(0, d) > 0) return 0;
+export function bellHeight(d, sink = 0) {
+  if (bellField(0, d, sink) > 0) return 0;
   let lo = 0, hi = 40;   // the field grows away from the edge: find where it crosses zero
   for (let i = 0; i < 30; i++) {
     const m = (lo + hi) / 2;
-    if (bellField(m, d) <= 0) lo = m; else hi = m;
+    if (bellField(m, d, sink) <= 0) lo = m; else hi = m;
   }
   return lo;
 }
@@ -246,9 +260,9 @@ export function poolPath(edge, shape, vw, vh) {
   return `M${pts.join(' L')} L${ends[0].join(',')} L${ends[1].join(',')} Z`;
 }
 
-function bellPath() {
+function bellPath(sink = 0) {
   const pts = [];
-  for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
+  for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2, sink).toFixed(2)},${y}`);
   return `M-4,0 L${pts.join(' L')} L-4,${BLOB_H} Z`;
 }
 
@@ -397,6 +411,24 @@ export function createEdgeBlob({
   function placeBlob() {
     placeOnEdge(blob, edge, along);
     dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+  }
+
+  // The dome rises out of the edge: the bell path is rebuilt every frame with the dome sunk less and less
+  // (easeOutBack overshoots, so it stands a little higher for a moment). The skirt does not move.
+  function riseDome(gen) {
+    const path = parts.bell.firstElementChild;
+    const draw = k => path.setAttribute('d', bellPath(DOME_SINK * (1 - k)));
+    if (typeof requestAnimationFrame !== 'function') { draw(1); return; }
+    draw(0);
+    let start = null;
+    const step = (now) => {
+      if (gen !== blobGen) { draw(1); return; }
+      start ??= now;
+      const t = Math.min(1, (now - start) / DOME_RISE_MS);
+      draw(t < 1 ? easeOutBack(t) : 1);
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   function resetParts() {
@@ -928,7 +960,13 @@ export function createEdgeBlob({
     // where the drag would put it without clamping it to the viewport.
     press(container, raw, clientX, clientY) {
       if (edge) return false;
-      const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+      let hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+      // The cursor stopped at the window edge while the buttons only touch it (grabbed near their edge):
+      // when the window ends at the screen edge the cursor can go no further, so the hold must count here too
+      if (!hitEdge) {
+        const held = cursorEdge(clientX, clientY, vw(), vh());
+        if (held) hitEdge = { edge: held, over: 0 };
+      }
       if (!hitEdge) {
         clearEdgeHold();
         dryWet();
@@ -939,10 +977,12 @@ export function createEdgeBlob({
         becomeBlob(container, hitEdge.edge, raw, clientX, clientY);
         return true;
       }
-      showWet(hitEdge.edge, press, raw);
+      const atEdge = isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh());
+      // held at the edge, the wet spot shows at least half grown, so the hold has visible feedback
+      showWet(hitEdge.edge, atEdge ? Math.max(press, 0.5) : press, raw);
       lastPress = { container, edge: hitEdge.edge, raw, clientX, clientY };
       // a cursor pinned to the screen edge sends no more moves, so the hold is timed
-      if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
+      if (atEdge) {
         if (!edgeHoldTimer) {
           edgeHoldTimer = setTimeout(() => {
             edgeHoldTimer = null;
@@ -962,8 +1002,9 @@ export function createEdgeBlob({
       dryWet();
     },
 
-    // Restores the blob saved on a previous visit: it slides out of the edge with a small overshoot and the
-    // orange dot fades in. Simpler than the splat of a new blob (no drops): the page is still loading.
+    // Restores the blob saved on a previous visit: the skirt is there at once and only the dome rises out of
+    // the edge with a small overshoot, then the orange dot fades in. Simpler than the splat of a new blob
+    // (no drops): the page is still loading.
     dock(ed, a) {
       blobGen++;
       clearTimeout(splatTimer);
@@ -973,8 +1014,7 @@ export function createEdgeBlob({
       placeBlob();
       resetParts();
       blob.hidden = false;
-      const out = { left: '-28px 0', right: '28px 0', top: '0 -28px', bottom: '0 28px' }[ed];
-      animate(blob, [{ translate: out }, { translate: '0 0' }], { duration: 480, easing: 'cubic-bezier(.34,1.45,.64,1)' });
+      riseDome(blobGen);
       animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: 'backwards' });
     },
   };

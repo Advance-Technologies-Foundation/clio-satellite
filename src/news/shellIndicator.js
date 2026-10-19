@@ -1,26 +1,25 @@
-// Shell surface: a dot on the Clio satellite button, a "What's new" row at the top of its menu,
-// a flyout with the cards next to the menu, and a one-time peek card for critical items.
-// Inside Creatio people are working, so normal news never go beyond the dot and the row.
+// Shell surface: a dot on the Clio satellite button, a news column on the left of the menu panel
+// while there are unread news, and a one-time peek card for critical items.
+// Inside Creatio people are working, so normal news never go beyond the dot and the column; the column
+// stays until the user presses "Mark as read" (all news stay on the news page, the book icon in the menu).
 import { shouldShowDot, pickPeek } from './newsCore.js';
 import { loadSurface } from './newsModel.js';
 import { markRead, markNoticed, recordDotShown, recordFirstShown, markAutoOpened, onNewsStorageChange, openOptions } from './newsStore.js';
-import { renderCards, newsIcon, trackPanelClicks, ARCHIVE_URL } from './newsCards.js';
+import { renderCards, trackPanelClicks } from './newsCards.js';
 import { track } from '../analytics.js';
 
 const RERENDER_MS = 10 * 60 * 1000;
 const PEEK_MS = 10000;
 const PEEK_AFTER_HOVER_MS = 3000;
-const FLYOUT_WIDTH = 320;
-// The flyout grows with its cards up to this share of the window height, then the list scrolls
-export const FLYOUT_MAX_SHARE = 0.8;
-const FLYOUT_MIN_LIST = 120;
-const FLYOUT_EDGE = 16;
+// The column grows with its cards up to this share of the window height, then the list scrolls
+export const NEWS_MAX_SHARE = 0.8;
+const NEWS_MIN_LIST = 120;
+const NEWS_EDGE = 16;
 
 const ui = {
-  menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell',
-  dot: null, row: null, rowSep: null, pill: null, preview: null, flyout: null, list: null, peek: null,
-  model: null, flyoutOpen: false, loadCounted: false, peekChecked: false, subscribed: false, observer: null, peekTimer: null,
-  rowSeen: false,   // the row had unread items on this page; survives menu rebuilds, not reloads
+  menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell', onLayoutChange: null,
+  dot: null, column: null, pill: null, list: null, peek: null,
+  model: null, columnShown: false, loadCounted: false, peekChecked: false, subscribed: false, observer: null, peekTimer: null,
 };
 
 function el(tag, className, text) {
@@ -30,117 +29,52 @@ function el(tag, className, text) {
   return node;
 }
 
-function buildRow() {
-  const row = el('button', 'csl-news-row');
-  row.type = 'button';
-  row.setAttribute('role', 'menuitem');
-  row.setAttribute('aria-haspopup', 'true');
-  row.setAttribute('aria-expanded', 'false');
-  const icon = el('span', 'csl-news-row__icon');
-  icon.innerHTML = newsIcon();
-  const text = el('span', 'csl-news-row__text');
-  const title = el('span', 'csl-news-row__title', "What's new");
+function buildColumn() {
+  const column = el('div', 'csl-news csl-news--dark csl-news-column');
+  column.setAttribute('role', 'region');
+  column.setAttribute('aria-label', 'Developer news');
+  column.hidden = true;
+  const head = el('div', 'csl-news-panel__head');
+  const title = el('strong', '', 'Dev tools news');
   const pill = el('span', 'csl-news-pill');
   title.appendChild(pill);
-  const preview = el('span', 'csl-news-row__preview');
-  text.append(title, preview);
-  const chevron = el('span', 'csl-news-row__chevron');
-  chevron.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  row.append(icon, text, chevron);
-  row.addEventListener('click', (event) => {
-    event.stopPropagation();
-    setFlyout(!ui.flyoutOpen);
-  });
-  return { row, pill, preview };
-}
-
-function buildFlyout() {
-  const flyout = el('div', 'csl-news csl-news--dark csl-news-flyout');
-  flyout.setAttribute('role', 'region');
-  flyout.setAttribute('aria-label', 'Developer news');
-  flyout.hidden = true;
-  const head = el('div', 'csl-news-panel__head');
-  const markAll = el('button', 'csl-news-linkbtn', 'Mark all as read');
+  const markAll = el('button', 'csl-news-linkbtn csl-news-markread', 'Mark as read');
   markAll.type = 'button';
   markAll.dataset.track = 'news_mark_all_read';
-  head.append(el('strong', '', 'Dev tools news'), markAll);
+  head.append(title, markAll);
   const list = el('ul', 'csl-news-list');
   const foot = el('div', 'csl-news-panel__foot');
-  const all = el('a', '', 'All news →');
-  all.href = ARCHIVE_URL;
-  all.target = '_blank';
-  all.rel = 'noopener noreferrer';
-  all.dataset.track = 'news_archive_open';
   const topics = el('button', 'csl-news-linkbtn', 'Choose topics');
   topics.type = 'button';
   topics.dataset.track = 'news_topics_open';
-  foot.append(all, topics);
-  flyout.append(head, list, foot);
-  trackPanelClicks(flyout, 'shell');
-  flyout.addEventListener('click', event => event.stopPropagation());
+  foot.append(topics);
+  column.append(head, list, foot);
+  trackPanelClicks(column, 'shell');
+  column.addEventListener('click', event => event.stopPropagation());
   markAll.addEventListener('click', () => { if (ui.model) markRead(ui.model.visible.map(i => i.id)).then(render); });
   topics.addEventListener('click', () => openOptions());
-  return { flyout, list };
+  return { column, pill, list };
 }
 
-function placeFlyout() {
-  // Beside the menu when there is room on the right, otherwise on its left
-  const rect = ui.menuContainer.getBoundingClientRect();
-  const roomRight = window.innerWidth - rect.right;
-  ui.flyout.classList.toggle('csl-news-flyout--left', roomRight < FLYOUT_WIDTH + 16);
-  fitFlyoutHeight();
-}
-
-// Few news → the flyout is as tall as its cards; many → up to 80% of the window, and never
+// Few news → the column is as tall as its cards; many → up to 80% of the window, and never
 // below its bottom edge. Only the list scrolls, the head and foot stay in place.
-export function flyoutListMaxHeight({ viewportHeight, flyoutTop, chromeHeight }) {
-  const flyoutMax = Math.min(viewportHeight * FLYOUT_MAX_SHARE, viewportHeight - Math.max(0, flyoutTop) - FLYOUT_EDGE);
-  return Math.max(FLYOUT_MIN_LIST, Math.floor(flyoutMax - chromeHeight));
+export function newsListMaxHeight({ viewportHeight, columnTop, chromeHeight }) {
+  const columnMax = Math.min(viewportHeight * NEWS_MAX_SHARE, viewportHeight - Math.max(0, columnTop) - NEWS_EDGE);
+  return Math.max(NEWS_MIN_LIST, Math.floor(columnMax - chromeHeight));
 }
 
-function fitFlyoutHeight() {
-  if (!ui.flyout || ui.flyout.hidden || !ui.list) return;
-  const chromeHeight = ui.flyout.offsetHeight - ui.list.offsetHeight;
-  ui.list.style.maxHeight = `${flyoutListMaxHeight({
+function fitColumnHeight() {
+  if (!ui.column || ui.column.hidden || !ui.list) return;
+  const chromeHeight = ui.column.offsetHeight - ui.list.offsetHeight;
+  ui.list.style.maxHeight = `${newsListMaxHeight({
     viewportHeight: window.innerHeight,
-    flyoutTop: ui.flyout.getBoundingClientRect().top,
+    columnTop: ui.column.getBoundingClientRect().top,
     chromeHeight,
   })}px`;
 }
 
 function onWindowResize() {
-  if (ui.flyoutOpen) fitFlyoutHeight();
-}
-
-// Both menus are fixed at the same z-index and the actions menu comes later in the DOM.
-// While the flyout is open the navigation menu, and the flyout in it, go above the actions menu
-// (!important: the menu stylesheet forces `z-index: 9999 !important`), and the actions menu is
-// hidden: the glass of the flyout blurs only the navigation menu, so it would show through.
-export const FLYOUT_MENU_Z = 10000;
-function raiseMenu(on) {
-  if (on) ui.menuContainer?.style.setProperty('z-index', String(FLYOUT_MENU_Z), 'important');
-  else ui.menuContainer?.style.setProperty('z-index', '9999');
-  const actions = document.querySelector('.creatio-satelite-extension-container .actions-menu-container');
-  if (actions) actions.style.visibility = on ? 'hidden' : '';
-}
-
-async function setFlyout(open) {
-  if (!ui.flyout) return;
-  const wasOpen = ui.flyoutOpen;
-  ui.flyoutOpen = open;
-  ui.flyout.hidden = !open;
-  ui.row?.setAttribute('aria-expanded', String(open));
-  // The flyout lives in the navigation menu; the actions menu beside it would cover it
-  raiseMenu(open);
-  if (open) {
-    if (!wasOpen) track('news_open', { surface: 'shell' });
-    placeFlyout();
-    if (ui.model) recordFirstShown(ui.model.visible.map(i => i.id));
-  } else if (wasOpen && ui.model) {
-    // Closing the flyout marks what it showed as read
-    await markRead(ui.model.visible.map(i => i.id));
-  }
-  return render();
+  if (ui.columnShown) fitColumnHeight();
 }
 
 function hidePeek() {
@@ -182,19 +116,23 @@ function showPeek(item) {
   read.addEventListener('click', (event) => {
     event.stopPropagation();
     hidePeek();
+    // the news column is there while the item is unread
     if (!ui.menuContainer.classList.contains('visible')) ui.menuButton.click();
-    setFlyout(true);
   });
 }
 
 function onMenuVisibility() {
-  const visible = ui.menuContainer.classList.contains('visible');
-  if (visible) {
-    hidePeek();
-    if (ui.model?.unread.length) markNoticed(ui.model.unread.map(i => i.id)).then(render);
-  } else if (ui.flyoutOpen) {
-    setFlyout(false);
-  }
+  if (!ui.menuContainer.classList.contains('visible')) return;
+  hidePeek();
+  if (ui.model?.unread.length) markNoticed(ui.model.unread.map(i => i.id)).then(render);
+  if (ui.columnShown) onColumnSeen();
+}
+
+// The open menu shows the column: count it as opened and start the trending windows of its items
+function onColumnSeen() {
+  track('news_open', { surface: 'shell' });
+  recordFirstShown(ui.model.visible.map(i => i.id));
+  fitColumnHeight();
 }
 
 let rendering = null;
@@ -223,20 +161,20 @@ export async function render() {
     }
     ui.menuButton.setAttribute('aria-label', showDot ? `Clio satellite, ${unread.length} unread news` : 'Clio satellite');
 
-    // Nothing new → no row. Once shown, it stays until the page reloads, so closing the flyout
-    // (which marks it read) does not remove the row under the cursor.
-    if (unread.length) ui.rowSeen = true;
-    const showRow = Boolean(model) && (unread.length > 0 || ui.rowSeen);
-    ui.row.hidden = !showRow;
-    ui.rowSep.hidden = !showRow;
-    ui.pill.hidden = unread.length === 0;
+    // Unread news → the column is there, beside the menu items; "Mark as read" removes it
+    const showColumn = Boolean(model) && unread.length > 0;
+    ui.pill.hidden = !showColumn;
     ui.pill.textContent = String(unread.length);
     ui.pill.classList.toggle('csl-news-pill--critical', hasCritical);
-    ui.preview.textContent = unread[0]?.title || model?.visible[0]?.title || '';
-    if (!model && ui.flyoutOpen) { ui.flyoutOpen = false; ui.flyout.hidden = true; raiseMenu(false); }
-
-    if (model && ui.flyoutOpen) {
+    if (showColumn) {
       renderCards(ui.list, model.visible, model.ctx, { onVideoStart: item => markRead([item.id]).then(render) });
+    }
+    if (showColumn !== ui.columnShown) {
+      ui.columnShown = showColumn;
+      ui.column.hidden = !showColumn;
+      const menuOpen = ui.menuContainer.classList.contains('visible');
+      if (showColumn && menuOpen) onColumnSeen();
+      ui.onLayoutChange?.();
     }
 
     if (model && !ui.peekChecked) {
@@ -257,25 +195,19 @@ export async function render() {
 }
 
 // Called by menuBuilder every time it builds the button group (it is rebuilt when Creatio removes it)
-export function attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }) {
+export function attachShellNews({ menuButton, menuContainer, menuBody, buttonWrapper, pageType, onLayoutChange }) {
   ui.observer?.disconnect();
   hidePeek();
-  Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, flyoutOpen: false });
+  Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, onLayoutChange, columnShown: false });
 
   const dot = el('span', 'csl-news-dot');
   dot.setAttribute('aria-hidden', 'true');
   dot.hidden = true;
   buttonWrapper.appendChild(dot);
 
-  const { row, pill, preview } = buildRow();
-  row.hidden = true;
-  const rowSep = el('div', 'csl-news-row-sep');
-  rowSep.hidden = true;
-  menuContainer.prepend(row, rowSep);
-
-  const { flyout, list } = buildFlyout();
-  menuContainer.appendChild(flyout);
-  Object.assign(ui, { dot, row, rowSep, pill, preview, flyout, list });
+  const { column, pill, list } = buildColumn();
+  (menuBody || menuContainer).prepend(column);
+  Object.assign(ui, { dot, column, pill, list });
 
   ui.observer = new MutationObserver(onMenuVisibility);
   ui.observer.observe(menuContainer, { attributes: true, attributeFilter: ['class'] });
@@ -294,9 +226,9 @@ export function _resetShellNews() {
   ui.observer?.disconnect();
   hidePeek();
   Object.assign(ui, {
-    menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell',
-    dot: null, row: null, rowSep: null, pill: null, preview: null, flyout: null, list: null, peek: null,
-    model: null, flyoutOpen: false, loadCounted: false, peekChecked: false, observer: null, rowSeen: false,
+    menuButton: null, menuContainer: null, buttonWrapper: null, pageType: 'shell', onLayoutChange: null,
+    dot: null, column: null, pill: null, list: null, peek: null,
+    model: null, columnShown: false, loadCounted: false, peekChecked: false, observer: null,
   });
   rendering = null;
   pending = false;

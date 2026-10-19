@@ -566,6 +566,18 @@ function initAnalyticsSettings() {
   });
 }
 
+// Settings and news icons of the Clio satellite menu: bottom-right by default, top on request (menuBuilder.js)
+function initMenuSettings() {
+  const atTop = document.getElementById('menu-icons-top');
+  if (!atTop) return;
+  chrome.storage.sync.get({ menuIconsAtTop: false }, (data) => {
+    atTop.checked = data.menuIconsAtTop === true;
+  });
+  atTop.addEventListener('change', () => {
+    chrome.storage.sync.set({ menuIconsAtTop: atTop.checked });
+  });
+}
+
 function initNewsDebug() {
   const details = document.getElementById('news-debug');
   const status = document.getElementById('news-debug-status');
@@ -604,6 +616,7 @@ function initNewsDebug() {
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get({ theme: 'system' }, (data) => applyTheme(data.theme));
   initNewsSettings();
+  initMenuSettings();
   initAnalyticsSettings();
 
   loadProfiles();

@@ -7,17 +7,18 @@ export const SCRIPT_FILES = [
   'SysSettings.js',
   'Users.js',
   'Configuration.js',
-  'Settings',
 ];
+
+// Settings is not a row any more: it is the gear icon in the top-right corner of the menu panel
 
 // Display captions that differ from the script file name (file names are kept for compatibility)
 export const SCRIPT_LABELS = {
-  'Application_Managment': 'Application management',
+  'Application_Managment': 'App Hub',
 };
 
 export const SCRIPT_DESCRIPTIONS = {
   'Features': 'Open system features management page',
-  'Application_Managment': 'Application management - App Hub',
+  'Application_Managment': 'Open App Hub',
   'Lookups': 'Open system lookups',
   'Process_library': 'Open process library',
   'Process_log': 'View process log',

@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: ['**/extension.spec.js', '**/options.spec.js', '**/environments.spec.js', '**/loginPanel.spec.js', '**/news.spec.js'],
+  testMatch: ['**/extension.spec.js', '**/options.spec.js', '**/environments.spec.js', '**/loginPanel.spec.js', '**/news.spec.js', '**/menuPlacement.spec.js'],
   timeout: 15000,
   // CI runners are slower and shared; one retry separates flaky timing from real failures
   retries: process.env.CI ? 1 : 0,

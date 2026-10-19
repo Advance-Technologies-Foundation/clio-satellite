@@ -107,7 +107,7 @@
     }
 
     /* Menu Container */
-    .scripts-menu-container, .actions-menu-container {
+    .scripts-menu-container {
         position: fixed;
         top: 60px;
         left: 50%;
@@ -123,7 +123,7 @@
     }
 
     /* Menu Items */
-    .scripts-menu-item, .actions-menu-item {
+    .scripts-menu-item {
         padding: 12px 15px;
         border-bottom: 1px solid #eee;
         cursor: pointer;
@@ -132,11 +132,11 @@
         align-items: center;
     }
 
-    .scripts-menu-item:hover, .actions-menu-item:hover {
+    .scripts-menu-item:hover {
         background-color: #f5f5f5;
     }
 
-    .scripts-menu-item:last-child, .actions-menu-item:last-child {
+    .scripts-menu-item:last-child {
         border-bottom: none;
     }
 
@@ -180,8 +180,7 @@
     }
 
     /* Alternative divider styles for better visibility */
-    .scripts-menu-container crt-menu-divider mat-divider,
-    .actions-menu-container crt-menu-divider mat-divider {
+    .scripts-menu-container crt-menu-divider mat-divider {
         display: block !important;
         height: 1px !important;
         background-color: #e0e0e0 !important;
@@ -192,8 +191,7 @@
     }
 
     /* Ensure divider container is visible */
-    .scripts-menu-container div[crt-menu-view-element-item],
-    .actions-menu-container div[crt-menu-view-element-item] {
+    .scripts-menu-container div[crt-menu-view-element-item] {
         display: block !important;
         margin: 8px 0 !important;
         opacity: 1 !important;

@@ -34,21 +34,34 @@ export function adjustMenuPosition(relatedContainer, container) {
     container.style.position = 'fixed';
     container.style.zIndex = '9999';
     container.style.visibility = 'hidden';
-    container.style.top = (btnRect.bottom + 8) + 'px';
-    container.style.left = btnRect.left + 'px';
+    // Measured at the left edge of the screen: placed under a button near the right edge, a fixed menu
+    // would be squeezed to the room left of the screen edge and report a narrower box than it really has
+    container.style.top = '0px';
+    container.style.left = '0px';
     container.style.minWidth = btnRect.width + 'px';
 
     container.offsetHeight; // force reflow
 
     const menuRect = container.getBoundingClientRect();
+    // The box of all the buttons (the menu button and the unpin button next to it) is their wrapper;
+    // the floating container itself has no size
+    const buttons = relatedContainer.closest('.creatio-satelite')?.getBoundingClientRect() || btnRect;
     let newLeft = btnRect.left;
     let newTop = btnRect.bottom + 8;
 
-    if (menuRect.right > window.innerWidth) {
-      newLeft = Math.max(0, btnRect.right - menuRect.width);
+    if (btnRect.left + menuRect.width > window.innerWidth) {
+      // right edges in line with the last button, so no gap is left between the menu and the screen edge
+      newLeft = Math.max(0, buttons.right - menuRect.width);
     }
-    if (menuRect.bottom > window.innerHeight) {
+    if (btnRect.bottom + 8 + menuRect.height > window.innerHeight) {
       newTop = btnRect.top - menuRect.height - 8;
+    }
+    // Room neither below nor above the button (a short window, or buttons halfway down a side edge):
+    // open beside the buttons, so the menu stays on screen and covers none of them
+    if (newTop < 0) {
+      newTop = Math.max(8, Math.min(btnRect.top, window.innerHeight - menuRect.height - 8));
+      newLeft = buttons.right + 8;
+      if (newLeft + menuRect.width > window.innerWidth) newLeft = Math.max(0, buttons.left - menuRect.width - 8);
     }
 
     container.style.top = newTop + 'px';
@@ -60,33 +73,4 @@ export function adjustMenuPosition(relatedContainer, container) {
   const rect = relatedContainer.getBoundingClientRect();
   container.style.top = `${rect.bottom + 8}px`;
   container.style.left = `${rect.left}px`;
-}
-
-// Left offsets for two menus open at once: the second starts right of the first, and both move
-// left together when the pair would leave the screen on the right. `first` and `second` are the
-// boxes ({ left, width }) the menus got from adjustMenuPosition.
-export function sideBySideLefts(first, second, vw, gap = 8) {
-  let a = first.left;
-  let b = Math.max(second.left, first.left + first.width + gap);
-  const over = b + second.width - (vw - gap);
-  if (over > 0) {
-    a -= over;
-    b -= over;
-  }
-  if (a < gap) {   // a pair wider than the screen keeps the first menu fully visible
-    b += gap - a;
-    a = gap;
-  }
-  return { first: a, second: b };
-}
-
-// Opens two menus next to each other under (or above) one button without overlapping
-export function placeMenusSideBySide(button, firstMenu, secondMenu) {
-  adjustMenuPosition(button, firstMenu);
-  adjustMenuPosition(button, secondMenu);
-  const { first, second } = sideBySideLefts(
-    firstMenu.getBoundingClientRect(), secondMenu.getBoundingClientRect(), window.innerWidth
-  );
-  firstMenu.style.left = first + 'px';
-  secondMenu.style.left = second + 'px';
 }

@@ -30,9 +30,9 @@ describe('SCRIPT_FILES', () => {
     });
   });
 
-  it('Settings is the last item (has divider before it)', () => {
-    const last = SCRIPT_FILES[SCRIPT_FILES.length - 1];
-    expect(last).toBe('Settings');
+  it('Settings is not a menu row (it is the gear icon in the panel header)', () => {
+    expect(SCRIPT_FILES).not.toContain('Settings');
+    expect(MENU_ICONS.Settings.svg).toBeTruthy();
   });
 });
 

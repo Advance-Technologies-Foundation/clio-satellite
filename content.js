@@ -21,11 +21,10 @@
     "Process_log.js",
     "SysSettings.js",
     "Users.js",
-    "Configuration.js",
-    "Settings"
+    "Configuration.js"
   ];
   var SCRIPT_LABELS = {
-    "Application_Managment": "Application management"
+    "Application_Managment": "App Hub"
   };
   var MENU_ICONS = {
     "Features": {
@@ -193,14 +192,12 @@
   // src/state.js
   var state = {
     menuCreated: false,
-    actionsMenuCreated: false,
     menuCreating: false,
     // true while DOM is being built — guards monitorButtons from interfering
     clickAbortController: null
   };
   function resetState() {
     state.menuCreated = false;
-    state.actionsMenuCreated = false;
     state.menuCreating = false;
     state.clickAbortController?.abort();
     state.clickAbortController = null;
@@ -237,18 +234,24 @@
       container.style.position = "fixed";
       container.style.zIndex = "9999";
       container.style.visibility = "hidden";
-      container.style.top = btnRect.bottom + 8 + "px";
-      container.style.left = btnRect.left + "px";
+      container.style.top = "0px";
+      container.style.left = "0px";
       container.style.minWidth = btnRect.width + "px";
       container.offsetHeight;
       const menuRect = container.getBoundingClientRect();
+      const buttons = relatedContainer.closest(".creatio-satelite")?.getBoundingClientRect() || btnRect;
       let newLeft = btnRect.left;
       let newTop = btnRect.bottom + 8;
-      if (menuRect.right > window.innerWidth) {
-        newLeft = Math.max(0, btnRect.right - menuRect.width);
+      if (btnRect.left + menuRect.width > window.innerWidth) {
+        newLeft = Math.max(0, buttons.right - menuRect.width);
       }
-      if (menuRect.bottom > window.innerHeight) {
+      if (btnRect.bottom + 8 + menuRect.height > window.innerHeight) {
         newTop = btnRect.top - menuRect.height - 8;
+      }
+      if (newTop < 0) {
+        newTop = Math.max(8, Math.min(btnRect.top, window.innerHeight - menuRect.height - 8));
+        newLeft = buttons.right + 8;
+        if (newLeft + menuRect.width > window.innerWidth) newLeft = Math.max(0, buttons.left - menuRect.width - 8);
       }
       container.style.top = newTop + "px";
       container.style.left = newLeft + "px";
@@ -258,31 +261,6 @@
     const rect = relatedContainer.getBoundingClientRect();
     container.style.top = `${rect.bottom + 8}px`;
     container.style.left = `${rect.left}px`;
-  }
-  function sideBySideLefts(first, second, vw, gap = 8) {
-    let a = first.left;
-    let b = Math.max(second.left, first.left + first.width + gap);
-    const over = b + second.width - (vw - gap);
-    if (over > 0) {
-      a -= over;
-      b -= over;
-    }
-    if (a < gap) {
-      b += gap - a;
-      a = gap;
-    }
-    return { first: a, second: b };
-  }
-  function placeMenusSideBySide(button, firstMenu, secondMenu) {
-    adjustMenuPosition(button, firstMenu);
-    adjustMenuPosition(button, secondMenu);
-    const { first, second } = sideBySideLefts(
-      firstMenu.getBoundingClientRect(),
-      secondMenu.getBoundingClientRect(),
-      window.innerWidth
-    );
-    firstMenu.style.left = first + "px";
-    secondMenu.style.left = second + "px";
   }
 
   // src/positionManager.js
@@ -490,8 +468,12 @@
     for (const e of EDGES) if (over[e] > 0 && (!edge || over[e] > over[edge])) edge = e;
     return edge ? { edge, over: over[edge] } : null;
   }
-  function isCursorAtEdge(edge, x, y, vw, vh) {
-    return { left: x <= 1, right: x >= vw - 2, top: y <= 1, bottom: y >= vh - 2 }[edge];
+  var EDGE_CURSOR_SLACK = 4;
+  function isCursorAtEdge(edge, x, y, vw, vh, slack = EDGE_CURSOR_SLACK) {
+    return { left: x < slack, right: x >= vw - slack, top: y < slack, bottom: y >= vh - slack }[edge];
+  }
+  function cursorEdge(x, y, vw, vh) {
+    return EDGES.find((e) => isCursorAtEdge(e, x, y, vw, vh)) || null;
   }
   function clampAlong(edge, along, vw, vh) {
     const span = isVertical(edge) ? vh : vw;
@@ -595,18 +577,20 @@
   var DOME_C = 7;
   var DOME_FILLET = 12;
   var skirt = (d) => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
-  function bellField(x, d) {
-    const a = Math.hypot(x - DOME_C, d) - DOME_R;
+  var DOME_SINK = DOME_R + DOME_C;
+  var DOME_RISE_MS = 480;
+  function bellField(x, d, sink = 0) {
+    const a = Math.hypot(x - DOME_C + sink, d) - DOME_R;
     const b = x - skirt(d);
     const h = Math.max(DOME_FILLET - Math.abs(a - b), 0) / DOME_FILLET;
     return Math.min(a, b) - h * h * DOME_FILLET / 4;
   }
-  function bellHeight(d) {
-    if (bellField(0, d) > 0) return 0;
+  function bellHeight(d, sink = 0) {
+    if (bellField(0, d, sink) > 0) return 0;
     let lo = 0, hi = 40;
     for (let i = 0; i < 30; i++) {
       const m = (lo + hi) / 2;
-      if (bellField(m, d) <= 0) lo = m;
+      if (bellField(m, d, sink) <= 0) lo = m;
       else hi = m;
     }
     return lo;
@@ -655,9 +639,9 @@
     const ends = { left: [[-4, e], [-4, s]], right: [[vw + 4, e], [vw + 4, s]], top: [[e, -4], [s, -4]], bottom: [[e, vh + 4], [s, vh + 4]] }[edge];
     return `M${pts.join(" L")} L${ends[0].join(",")} L${ends[1].join(",")} Z`;
   }
-  function bellPath() {
+  function bellPath(sink = 0) {
     const pts = [];
-    for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2).toFixed(2)},${y}`);
+    for (let y = 0; y <= BLOB_H; y += 1) pts.push(`${bellHeight(y - BLOB_H / 2, sink).toFixed(2)},${y}`);
     return `M-4,0 L${pts.join(" L")} L-4,${BLOB_H} Z`;
   }
   function bell(parent) {
@@ -784,6 +768,27 @@
     function placeBlob() {
       placeOnEdge(blob, edge, along);
       dot.style.transform = `rotate(${-ROT[edge]}deg)`;
+    }
+    function riseDome(gen) {
+      const path = parts.bell.firstElementChild;
+      const draw = (k) => path.setAttribute("d", bellPath(DOME_SINK * (1 - k)));
+      if (typeof requestAnimationFrame !== "function") {
+        draw(1);
+        return;
+      }
+      draw(0);
+      let start = null;
+      const step = (now) => {
+        if (gen !== blobGen) {
+          draw(1);
+          return;
+        }
+        start ??= now;
+        const t = Math.min(1, (now - start) / DOME_RISE_MS);
+        draw(t < 1 ? easeOutBack(t) : 1);
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
     }
     function resetParts() {
       for (const el5 of Object.values(parts)) el5.style.transform = "";
@@ -1233,7 +1238,11 @@
       // where the drag would put it without clamping it to the viewport.
       press(container2, raw, clientX, clientY) {
         if (edge) return false;
-        const hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+        let hitEdge = pressedEdge(raw.left, raw.top, raw.width, raw.height, vw(), vh());
+        if (!hitEdge) {
+          const held = cursorEdge(clientX, clientY, vw(), vh());
+          if (held) hitEdge = { edge: held, over: 0 };
+        }
         if (!hitEdge) {
           clearEdgeHold();
           dryWet();
@@ -1244,9 +1253,10 @@
           becomeBlob(container2, hitEdge.edge, raw, clientX, clientY);
           return true;
         }
-        showWet(hitEdge.edge, press, raw);
+        const atEdge = isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh());
+        showWet(hitEdge.edge, atEdge ? Math.max(press, 0.5) : press, raw);
         lastPress = { container: container2, edge: hitEdge.edge, raw, clientX, clientY };
-        if (isCursorAtEdge(hitEdge.edge, clientX, clientY, vw(), vh())) {
+        if (atEdge) {
           if (!edgeHoldTimer) {
             edgeHoldTimer = setTimeout(() => {
               edgeHoldTimer = null;
@@ -1264,8 +1274,9 @@
         lastPress = null;
         dryWet();
       },
-      // Restores the blob saved on a previous visit: it slides out of the edge with a small overshoot and the
-      // orange dot fades in. Simpler than the splat of a new blob (no drops): the page is still loading.
+      // Restores the blob saved on a previous visit: the skirt is there at once and only the dome rises out of
+      // the edge with a small overshoot, then the orange dot fades in. Simpler than the splat of a new blob
+      // (no drops): the page is still loading.
       dock(ed, a) {
         blobGen++;
         clearTimeout(splatTimer);
@@ -1275,8 +1286,7 @@
         placeBlob();
         resetParts();
         blob.hidden = false;
-        const out = { left: "-28px 0", right: "28px 0", top: "0 -28px", bottom: "0 28px" }[ed];
-        animate(blob, [{ translate: out }, { translate: "0 0" }], { duration: 480, easing: "cubic-bezier(.34,1.45,.64,1)" });
+        riseDome(blobGen);
         animate(dot, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 220, fill: "backwards" });
       }
     };
@@ -1411,7 +1421,7 @@
       debugLog("Buttons unpinned from the blob");
     });
     const closeMenus = () => {
-      document.querySelectorAll(".scripts-menu-container, .actions-menu-container").forEach(hideMenuContainer);
+      document.querySelectorAll(".scripts-menu-container").forEach(hideMenuContainer);
     };
     let peekDrag = false;
     const beginDrag = (clientX, clientY, { moved = false } = {}) => {
@@ -2275,32 +2285,27 @@
   var RERENDER_MS = 10 * 60 * 1e3;
   var PEEK_MS = 1e4;
   var PEEK_AFTER_HOVER_MS = 3e3;
-  var FLYOUT_WIDTH = 320;
-  var FLYOUT_MAX_SHARE = 0.8;
-  var FLYOUT_MIN_LIST = 120;
-  var FLYOUT_EDGE = 16;
+  var NEWS_MAX_SHARE = 0.8;
+  var NEWS_MIN_LIST = 120;
+  var NEWS_EDGE = 16;
   var ui = {
     menuButton: null,
     menuContainer: null,
     buttonWrapper: null,
     pageType: "shell",
+    onLayoutChange: null,
     dot: null,
-    row: null,
-    rowSep: null,
+    column: null,
     pill: null,
-    preview: null,
-    flyout: null,
     list: null,
     peek: null,
     model: null,
-    flyoutOpen: false,
+    columnShown: false,
     loadCounted: false,
     peekChecked: false,
     subscribed: false,
     observer: null,
-    peekTimer: null,
-    rowSeen: false
-    // the row had unread items on this page; survives menu rebuilds, not reloads
+    peekTimer: null
   };
   function el3(tag, className, text) {
     const node = document.createElement(tag);
@@ -2308,103 +2313,49 @@
     if (text !== void 0) node.textContent = text;
     return node;
   }
-  function buildRow() {
-    const row = el3("button", "csl-news-row");
-    row.type = "button";
-    row.setAttribute("role", "menuitem");
-    row.setAttribute("aria-haspopup", "true");
-    row.setAttribute("aria-expanded", "false");
-    const icon = el3("span", "csl-news-row__icon");
-    icon.innerHTML = newsIcon();
-    const text = el3("span", "csl-news-row__text");
-    const title = el3("span", "csl-news-row__title", "What's new");
+  function buildColumn() {
+    const column = el3("div", "csl-news csl-news--dark csl-news-column");
+    column.setAttribute("role", "region");
+    column.setAttribute("aria-label", "Developer news");
+    column.hidden = true;
+    const head = el3("div", "csl-news-panel__head");
+    const title = el3("strong", "", "Dev tools news");
     const pill = el3("span", "csl-news-pill");
     title.appendChild(pill);
-    const preview = el3("span", "csl-news-row__preview");
-    text.append(title, preview);
-    const chevron = el3("span", "csl-news-row__chevron");
-    chevron.innerHTML = '<svg viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    row.append(icon, text, chevron);
-    row.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setFlyout(!ui.flyoutOpen);
-    });
-    return { row, pill, preview };
-  }
-  function buildFlyout() {
-    const flyout = el3("div", "csl-news csl-news--dark csl-news-flyout");
-    flyout.setAttribute("role", "region");
-    flyout.setAttribute("aria-label", "Developer news");
-    flyout.hidden = true;
-    const head = el3("div", "csl-news-panel__head");
-    const markAll = el3("button", "csl-news-linkbtn", "Mark all as read");
+    const markAll = el3("button", "csl-news-linkbtn csl-news-markread", "Mark as read");
     markAll.type = "button";
     markAll.dataset.track = "news_mark_all_read";
-    head.append(el3("strong", "", "Dev tools news"), markAll);
+    head.append(title, markAll);
     const list = el3("ul", "csl-news-list");
     const foot = el3("div", "csl-news-panel__foot");
-    const all = el3("a", "", "All news \u2192");
-    all.href = ARCHIVE_URL;
-    all.target = "_blank";
-    all.rel = "noopener noreferrer";
-    all.dataset.track = "news_archive_open";
     const topics = el3("button", "csl-news-linkbtn", "Choose topics");
     topics.type = "button";
     topics.dataset.track = "news_topics_open";
-    foot.append(all, topics);
-    flyout.append(head, list, foot);
-    trackPanelClicks(flyout, "shell");
-    flyout.addEventListener("click", (event) => event.stopPropagation());
+    foot.append(topics);
+    column.append(head, list, foot);
+    trackPanelClicks(column, "shell");
+    column.addEventListener("click", (event) => event.stopPropagation());
     markAll.addEventListener("click", () => {
       if (ui.model) markRead(ui.model.visible.map((i) => i.id)).then(render);
     });
     topics.addEventListener("click", () => openOptions());
-    return { flyout, list };
+    return { column, pill, list };
   }
-  function placeFlyout() {
-    const rect = ui.menuContainer.getBoundingClientRect();
-    const roomRight = window.innerWidth - rect.right;
-    ui.flyout.classList.toggle("csl-news-flyout--left", roomRight < FLYOUT_WIDTH + 16);
-    fitFlyoutHeight();
+  function newsListMaxHeight({ viewportHeight: viewportHeight2, columnTop, chromeHeight }) {
+    const columnMax = Math.min(viewportHeight2 * NEWS_MAX_SHARE, viewportHeight2 - Math.max(0, columnTop) - NEWS_EDGE);
+    return Math.max(NEWS_MIN_LIST, Math.floor(columnMax - chromeHeight));
   }
-  function flyoutListMaxHeight({ viewportHeight: viewportHeight2, flyoutTop, chromeHeight }) {
-    const flyoutMax = Math.min(viewportHeight2 * FLYOUT_MAX_SHARE, viewportHeight2 - Math.max(0, flyoutTop) - FLYOUT_EDGE);
-    return Math.max(FLYOUT_MIN_LIST, Math.floor(flyoutMax - chromeHeight));
-  }
-  function fitFlyoutHeight() {
-    if (!ui.flyout || ui.flyout.hidden || !ui.list) return;
-    const chromeHeight = ui.flyout.offsetHeight - ui.list.offsetHeight;
-    ui.list.style.maxHeight = `${flyoutListMaxHeight({
+  function fitColumnHeight() {
+    if (!ui.column || ui.column.hidden || !ui.list) return;
+    const chromeHeight = ui.column.offsetHeight - ui.list.offsetHeight;
+    ui.list.style.maxHeight = `${newsListMaxHeight({
       viewportHeight: window.innerHeight,
-      flyoutTop: ui.flyout.getBoundingClientRect().top,
+      columnTop: ui.column.getBoundingClientRect().top,
       chromeHeight
     })}px`;
   }
   function onWindowResize() {
-    if (ui.flyoutOpen) fitFlyoutHeight();
-  }
-  var FLYOUT_MENU_Z = 1e4;
-  function raiseMenu(on) {
-    if (on) ui.menuContainer?.style.setProperty("z-index", String(FLYOUT_MENU_Z), "important");
-    else ui.menuContainer?.style.setProperty("z-index", "9999");
-    const actions = document.querySelector(".creatio-satelite-extension-container .actions-menu-container");
-    if (actions) actions.style.visibility = on ? "hidden" : "";
-  }
-  async function setFlyout(open2) {
-    if (!ui.flyout) return;
-    const wasOpen = ui.flyoutOpen;
-    ui.flyoutOpen = open2;
-    ui.flyout.hidden = !open2;
-    ui.row?.setAttribute("aria-expanded", String(open2));
-    raiseMenu(open2);
-    if (open2) {
-      if (!wasOpen) track("news_open", { surface: "shell" });
-      placeFlyout();
-      if (ui.model) recordFirstShown(ui.model.visible.map((i) => i.id));
-    } else if (wasOpen && ui.model) {
-      await markRead(ui.model.visible.map((i) => i.id));
-    }
-    return render();
+    if (ui.columnShown) fitColumnHeight();
   }
   function hidePeek() {
     clearTimeout(ui.peekTimer);
@@ -2449,17 +2400,18 @@
       event.stopPropagation();
       hidePeek();
       if (!ui.menuContainer.classList.contains("visible")) ui.menuButton.click();
-      setFlyout(true);
     });
   }
   function onMenuVisibility() {
-    const visible = ui.menuContainer.classList.contains("visible");
-    if (visible) {
-      hidePeek();
-      if (ui.model?.unread.length) markNoticed(ui.model.unread.map((i) => i.id)).then(render);
-    } else if (ui.flyoutOpen) {
-      setFlyout(false);
-    }
+    if (!ui.menuContainer.classList.contains("visible")) return;
+    hidePeek();
+    if (ui.model?.unread.length) markNoticed(ui.model.unread.map((i) => i.id)).then(render);
+    if (ui.columnShown) onColumnSeen();
+  }
+  function onColumnSeen() {
+    track("news_open", { surface: "shell" });
+    recordFirstShown(ui.model.visible.map((i) => i.id));
+    fitColumnHeight();
   }
   var rendering = null;
   var pending = false;
@@ -2486,21 +2438,19 @@
         ui.dot.style.left = `${btn.offsetLeft + btn.offsetWidth - 7}px`;
       }
       ui.menuButton.setAttribute("aria-label", showDot ? `Clio satellite, ${unread.length} unread news` : "Clio satellite");
-      if (unread.length) ui.rowSeen = true;
-      const showRow = Boolean(model) && (unread.length > 0 || ui.rowSeen);
-      ui.row.hidden = !showRow;
-      ui.rowSep.hidden = !showRow;
-      ui.pill.hidden = unread.length === 0;
+      const showColumn = Boolean(model) && unread.length > 0;
+      ui.pill.hidden = !showColumn;
       ui.pill.textContent = String(unread.length);
       ui.pill.classList.toggle("csl-news-pill--critical", hasCritical);
-      ui.preview.textContent = unread[0]?.title || model?.visible[0]?.title || "";
-      if (!model && ui.flyoutOpen) {
-        ui.flyoutOpen = false;
-        ui.flyout.hidden = true;
-        raiseMenu(false);
-      }
-      if (model && ui.flyoutOpen) {
+      if (showColumn) {
         renderCards(ui.list, model.visible, model.ctx, { onVideoStart: (item) => markRead([item.id]).then(render) });
+      }
+      if (showColumn !== ui.columnShown) {
+        ui.columnShown = showColumn;
+        ui.column.hidden = !showColumn;
+        const menuOpen = ui.menuContainer.classList.contains("visible");
+        if (showColumn && menuOpen) onColumnSeen();
+        ui.onLayoutChange?.();
       }
       if (model && !ui.peekChecked) {
         ui.peekChecked = true;
@@ -2521,22 +2471,17 @@
       }
     }
   }
-  function attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType }) {
+  function attachShellNews({ menuButton, menuContainer, menuBody, buttonWrapper, pageType, onLayoutChange }) {
     ui.observer?.disconnect();
     hidePeek();
-    Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, flyoutOpen: false });
+    Object.assign(ui, { menuButton, menuContainer, buttonWrapper, pageType, onLayoutChange, columnShown: false });
     const dot = el3("span", "csl-news-dot");
     dot.setAttribute("aria-hidden", "true");
     dot.hidden = true;
     buttonWrapper.appendChild(dot);
-    const { row, pill, preview } = buildRow();
-    row.hidden = true;
-    const rowSep = el3("div", "csl-news-row-sep");
-    rowSep.hidden = true;
-    menuContainer.prepend(row, rowSep);
-    const { flyout, list } = buildFlyout();
-    menuContainer.appendChild(flyout);
-    Object.assign(ui, { dot, row, rowSep, pill, preview, flyout, list });
+    const { column, pill, list } = buildColumn();
+    (menuBody || menuContainer).prepend(column);
+    Object.assign(ui, { dot, column, pill, list });
     ui.observer = new MutationObserver(onMenuVisibility);
     ui.observer.observe(menuContainer, { attributes: true, attributeFilter: ["class"] });
     if (!ui.subscribed) {
@@ -2616,114 +2561,153 @@
     menuItem.appendChild(button);
     return menuItem;
   }
+  var NEWS_ARCHIVE_ICON = '<svg width="100%" height="100%" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4.2C6.6 3 4.6 2.6 1.75 2.75v9.5C4.6 12.1 6.6 12.5 8 13.7c1.4-1.2 3.4-1.6 6.25-1.45v-9.5C11.4 2.6 9.4 3 8 4.2z"/><path d="M8 4.2v9.5" stroke="var(--csl-icon-accent, #ff5722)"/></svg>';
+  function createHeaderIcon(tag, marker, label, svg) {
+    const node = document.createElement(tag);
+    node.className = "csl-menu-icon-btn";
+    node.setAttribute("data-item-marker", marker);
+    node.setAttribute("aria-label", label);
+    node.title = label;
+    if (tag === "button") node.type = "button";
+    node.innerHTML = svg;
+    return node;
+  }
+  var ICONS_TOP_CLASS = "csl-menu--icons-top";
+  function buildMenuHeader(menuContainer) {
+    const header = document.createElement("div");
+    header.className = "csl-menu-header";
+    const settings = createHeaderIcon("button", "Settings", "Settings", MENU_ICONS.Settings.svg);
+    settings.addEventListener("click", () => {
+      track("menu_click", { menu: "navigation", item: "Settings" });
+      safeSendMessage({ action: "openOptionsPage" });
+      hideMenuContainer(menuContainer);
+    });
+    const news = createHeaderIcon("a", "NewsArchive", "Developer news", NEWS_ARCHIVE_ICON);
+    news.href = ARCHIVE_URL;
+    news.target = "_blank";
+    news.rel = "noopener noreferrer";
+    news.addEventListener("click", () => {
+      track("news_archive_open", { surface: "shell" });
+      hideMenuContainer(menuContainer);
+    });
+    header.append(settings, news);
+    return header;
+  }
   function buildNavMenu() {
     const menuContainer = document.createElement("div");
     menuContainer.classList.add("scripts-menu-container");
     hideMenuContainer(menuContainer);
+    const body = document.createElement("div");
+    body.className = "csl-menu-body";
+    const columns = document.createElement("div");
+    columns.className = "csl-menu-columns";
+    const navColumn = document.createElement("div");
+    navColumn.className = "csl-menu-column csl-nav-column";
+    navColumn.setAttribute("role", "group");
+    navColumn.setAttribute("aria-label", "Navigation");
+    const actionsSection = document.createElement("div");
+    actionsSection.className = "csl-menu-column csl-actions-section";
+    actionsSection.setAttribute("role", "group");
+    actionsSection.setAttribute("aria-label", "Actions");
+    columns.append(navColumn, actionsSection);
+    body.appendChild(columns);
+    menuContainer.append(buildMenuHeader(menuContainer), body);
     SCRIPT_FILES.forEach((scriptFile) => {
       const scriptName = scriptFile.replace(".js", "");
-      if (scriptName === "Settings") {
-        const dividerContainer = document.createElement("div");
-        dividerContainer.className = "ng-star-inserted";
-        dividerContainer.setAttribute("crt-menu-view-element-item", "settings-divider");
-        dividerContainer.style.cssText = "display: block; margin: 4px 0; opacity: 1; visibility: visible;";
-        const crtDivider = document.createElement("crt-menu-divider");
-        crtDivider.className = "ng-star-inserted";
-        crtDivider.style.cssText = "display: block; margin: 0;";
-        const matDivider = document.createElement("mat-divider");
-        matDivider.setAttribute("role", "separator");
-        matDivider.className = "mat-divider mat-divider-horizontal";
-        matDivider.setAttribute("aria-orientation", "horizontal");
-        matDivider.style.cssText = "display: block !important; height: 1px !important; background-color: rgba(255, 255, 255, 0.1) !important; border: none !important; margin: 0 8px !important;";
-        crtDivider.appendChild(matDivider);
-        dividerContainer.appendChild(crtDivider);
-        menuContainer.appendChild(dividerContainer);
-      }
       const menuItem = createMenuItem(scriptName);
       menuItem.addEventListener("click", () => {
         track("menu_click", { menu: "navigation", item: scriptName });
-        if (scriptName === "Settings") {
-          safeSendMessage({ action: "openOptionsPage" });
-        } else {
-          safeSendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
-        }
+        safeSendMessage({ action: "executeScript", scriptPath: `navigation/${scriptFile}` });
         hideMenuContainer(menuContainer);
       });
-      menuContainer.appendChild(menuItem);
+      navColumn.appendChild(menuItem);
     });
-    return menuContainer;
+    return { menuContainer, menuBody: body, actionsSection };
   }
-  function buildActionsMenu(actionsMenuContainer) {
-    actionsMenuContainer.innerHTML = "";
+  function buildActionsSection(actionsSection, onChange) {
+    actionsSection.innerHTML = "";
+    ["RestartApp", "FlushRedisDB"].forEach((name) => actionsSection.appendChild(createActionItem(name, null)));
     chrome.storage.sync.get({ lastLoginProfiles: {}, userProfiles: [] }, (data) => {
       const err = getLastError();
       if (err) {
         console.error("[Clio Satellite] Failed to load profiles:", err.message);
         return;
       }
-      if (!actionsMenuContainer.isConnected) return;
+      if (!actionsSection.isConnected) return;
       const origin = window.location.origin;
       const rawEntry = data.lastLoginProfiles[origin];
       const lastUser = typeof rawEntry === "string" ? rawEntry : rawEntry?.username;
+      if (!lastUser) return;
       const profile = data.userProfiles.find((p) => p.username === lastUser);
       const autologinEnabled = profile ? profile.autologin : false;
-      const actionsList = ["RestartApp", "FlushRedisDB"];
-      if (lastUser) actionsList.push(autologinEnabled ? "DisableAutologin" : "EnableAutologin");
-      actionsList.forEach((name) => {
-        const detail = ACTION_DETAILS[name];
-        const menuItem = document.createElement("div");
-        menuItem.className = "crt-menu-item-container mat-menu-item";
-        menuItem.setAttribute("mat-menu-item", "");
-        menuItem.setAttribute("aria-disabled", "false");
-        menuItem.setAttribute("role", "menuitem");
-        menuItem.setAttribute("tabindex", "0");
-        const menuButtonEl = document.createElement("button");
-        menuButtonEl.className = "crt-menu-item mat-flat-button";
-        menuButtonEl.setAttribute("mat-flat-button", "");
-        menuButtonEl.setAttribute("data-item-marker", name);
-        const iconWrap = document.createElement("mat-icon");
-        iconWrap.setAttribute("role", "img");
-        iconWrap.className = "mat-icon notranslate mat-icon-no-color";
-        iconWrap.setAttribute("aria-hidden", "true");
-        iconWrap.setAttribute("data-mat-icon-type", "svg");
-        iconWrap.setAttribute("data-mat-icon-name", detail.name || "help");
-        iconWrap.innerHTML = detail.icon || "";
-        const caption = document.createElement("span");
-        caption.className = "caption";
-        caption.setAttribute("crttextoverflowtitle", "");
-        caption.textContent = name.replace("Autologin", " autologin").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim();
-        menuButtonEl.appendChild(iconWrap);
-        menuButtonEl.appendChild(caption);
-        menuItem.appendChild(menuButtonEl);
-        menuItem.addEventListener("click", () => {
-          track("menu_click", { menu: "actions", item: name });
-          if (name === "EnableAutologin") {
-            chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
-              const err2 = getLastError();
-              if (err2) {
-                console.error("[Clio Satellite] Failed to load profiles for autologin:", err2.message);
-                return;
-              }
-              const profiles = ds.userProfiles.map(
-                (p) => p.username === lastUser ? { ...p, autologin: true } : p
-              );
-              chrome.storage.sync.set({ userProfiles: profiles }, () => {
-                const err3 = getLastError();
-                if (err3) {
-                  console.error("[Clio Satellite] Failed to save autologin setting:", err3.message);
-                }
-              });
-            });
-          } else if (name === "DisableAutologin") {
-            safeSendMessage({ action: "disableAutologin" });
-          } else {
-            safeSendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
-          }
-          hideMenuContainer(actionsMenuContainer);
-        });
-        actionsMenuContainer.appendChild(menuItem);
-      });
+      actionsSection.querySelector("[data-csl-autologin]")?.remove();
+      const item = createActionItem(autologinEnabled ? "DisableAutologin" : "EnableAutologin", lastUser);
+      item.setAttribute("data-csl-autologin", "");
+      actionsSection.appendChild(item);
+      onChange?.();
     });
+  }
+  function applyIconsPosition(menuContainer, onChange) {
+    chrome.storage.sync.get({ menuIconsAtTop: false }, (data) => {
+      if (getLastError()) return;
+      const atTop = data.menuIconsAtTop === true;
+      if (atTop === menuContainer.classList.contains(ICONS_TOP_CLASS)) return;
+      menuContainer.classList.toggle(ICONS_TOP_CLASS, atTop);
+      onChange?.();
+    });
+  }
+  function createActionItem(name, lastUser) {
+    const detail = ACTION_DETAILS[name];
+    const menuItem = document.createElement("div");
+    menuItem.className = "crt-menu-item-container mat-menu-item";
+    menuItem.setAttribute("mat-menu-item", "");
+    menuItem.setAttribute("aria-disabled", "false");
+    menuItem.setAttribute("role", "menuitem");
+    menuItem.setAttribute("tabindex", "0");
+    const menuButtonEl = document.createElement("button");
+    menuButtonEl.className = "crt-menu-item mat-flat-button";
+    menuButtonEl.setAttribute("mat-flat-button", "");
+    menuButtonEl.setAttribute("data-item-marker", name);
+    const iconWrap = document.createElement("mat-icon");
+    iconWrap.setAttribute("role", "img");
+    iconWrap.className = "mat-icon notranslate mat-icon-no-color";
+    iconWrap.setAttribute("aria-hidden", "true");
+    iconWrap.setAttribute("data-mat-icon-type", "svg");
+    iconWrap.setAttribute("data-mat-icon-name", detail.name || "help");
+    iconWrap.innerHTML = detail.icon || "";
+    const caption = document.createElement("span");
+    caption.className = "caption";
+    caption.setAttribute("crttextoverflowtitle", "");
+    caption.textContent = name.replace("Autologin", " autologin").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim();
+    menuButtonEl.appendChild(iconWrap);
+    menuButtonEl.appendChild(caption);
+    menuItem.appendChild(menuButtonEl);
+    menuItem.addEventListener("click", () => {
+      track("menu_click", { menu: "actions", item: name });
+      if (name === "EnableAutologin") {
+        chrome.storage.sync.get({ userProfiles: [], lastLoginProfiles: {} }, (ds) => {
+          const err = getLastError();
+          if (err) {
+            console.error("[Clio Satellite] Failed to load profiles for autologin:", err.message);
+            return;
+          }
+          const profiles = ds.userProfiles.map(
+            (p) => p.username === lastUser ? { ...p, autologin: true } : p
+          );
+          chrome.storage.sync.set({ userProfiles: profiles }, () => {
+            const err2 = getLastError();
+            if (err2) {
+              console.error("[Clio Satellite] Failed to save autologin setting:", err2.message);
+            }
+          });
+        });
+      } else if (name === "DisableAutologin") {
+        safeSendMessage({ action: "disableAutologin" });
+      } else {
+        safeSendMessage({ action: "executeScript", scriptPath: "actions/" + detail.file });
+      }
+    });
+    return menuItem;
   }
   function createScriptsMenu() {
     debugLog("Creating scripts menu");
@@ -2764,35 +2748,29 @@
     menuButtonWrapper.appendChild(navCaption);
     menuButtonWrapper.appendChild(createArrowWrapper());
     buttonWrapper.appendChild(menuButton);
-    const menuContainer = buildNavMenu();
-    const actionsMenuContainer = document.createElement("div");
-    actionsMenuContainer.classList.add("actions-menu-container");
-    hideMenuContainer(actionsMenuContainer);
-    const openBothMenus = () => {
-      buildActionsMenu(actionsMenuContainer);
+    const { menuContainer, menuBody, actionsSection } = buildNavMenu();
+    const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+    const placeIfOpen = () => {
+      if (menuContainer.classList.contains("visible")) placeMenu();
+    };
+    const openMenu = () => {
+      buildActionsSection(actionsSection, placeIfOpen);
+      applyIconsPosition(menuContainer, placeIfOpen);
       showMenuContainer(menuContainer);
-      showMenuContainer(actionsMenuContainer);
       track("menu_open", { menu: "navigation" });
-      track("menu_open", { menu: "actions" });
-      placeMenusSideBySide(menuButton, menuContainer, actionsMenuContainer);
+      placeMenu();
     };
-    const hideBothMenus = () => {
-      hideMenuContainer(menuContainer);
-      hideMenuContainer(actionsMenuContainer);
-    };
+    const hideMenu = () => hideMenuContainer(menuContainer);
     menuContainer.addEventListener("click", (event) => {
-      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
-    });
-    actionsMenuContainer.addEventListener("click", (event) => {
-      if (event.target.closest('[role="menuitem"]')) hideBothMenus();
+      if (event.target.closest('[role="menuitem"]')) hideMenu();
     });
     menuButton.addEventListener("click", (event) => {
       event.stopPropagation();
-      if (menuContainer.classList.contains("visible") || actionsMenuContainer.classList.contains("visible")) {
-        hideBothMenus();
+      if (menuContainer.classList.contains("visible")) {
+        hideMenu();
         return;
       }
-      openBothMenus();
+      openMenu();
     });
     state.clickAbortController?.abort();
     state.clickAbortController = new AbortController();
@@ -2801,23 +2779,31 @@
       if (!ec) return;
       if (event.target.closest?.(".csl-edge-blob, .csl-edge-pool")) return;
       const mb = ec.querySelector(".scripts-menu-button");
-      const menus = ec.querySelectorAll(".scripts-menu-container, .actions-menu-container");
+      const menu = ec.querySelector(".scripts-menu-container");
       if (!mb || mb.contains(event.target)) return;
-      if ([...menus].some((menu) => menu.contains(event.target))) return;
-      menus.forEach(hideMenuContainer);
+      if (!menu || menu.contains(event.target)) return;
+      hideMenuContainer(menu);
     }, { capture: true, signal: state.clickAbortController.signal });
     try {
-      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openBothMenus });
+      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openMenu });
       const rootMenuContainer = document.createElement("div");
       rootMenuContainer.classList.add("creatio-satelite-menu-container");
       rootMenuContainer.appendChild(menuContainer);
-      rootMenuContainer.appendChild(actionsMenuContainer);
       extensionContainer.appendChild(rootMenuContainer);
       document.documentElement.appendChild(extensionContainer);
-      state.actionsMenuCreated = true;
       state.menuCreating = false;
       try {
-        Promise.resolve(attachShellNews({ menuButton, menuContainer, buttonWrapper, pageType })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
+        Promise.resolve(attachShellNews({
+          menuButton,
+          menuContainer,
+          menuBody,
+          buttonWrapper,
+          pageType,
+          // the news column appears and disappears with unread news: place the open menu again
+          onLayoutChange: () => {
+            if (menuContainer.classList.contains("visible")) placeMenu();
+          }
+        })).catch((error) => console.error("[Clio Satellite] Developer news failed:", error));
       } catch (error) {
         console.error("[Clio Satellite] Developer news failed:", error);
       }
@@ -2826,7 +2812,6 @@
     } catch (error) {
       console.error("[Clio Satellite] Error creating menu:", error);
       state.menuCreated = false;
-      state.actionsMenuCreated = false;
       state.menuCreating = false;
       return false;
     }

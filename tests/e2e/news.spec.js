@@ -131,9 +131,10 @@ test.describe('First run and the full feed', () => {
   test('the Shell menu has no news entries when nothing is new', async ({ page }) => {
     await loadShell(page, { syncData: { newsRead: { a: 1, b: 1 } } });
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.csl-news-row')).toBeHidden();
-    await expect(page.locator('.csl-news-all')).toHaveCount(0);
+    await expect(page.locator('.csl-news-column')).toBeHidden();
     await expect(page.locator('.csl-news-dot')).toBeHidden();
+    // all news stay one click away: the book icon in the menu header
+    await expect(page.locator('.csl-menu-icon-btn[data-item-marker="NewsArchive"]')).toBeVisible();
   });
 
   test('the panel footer links to the archive in a new tab', async ({ page }) => {
@@ -165,52 +166,22 @@ test.describe('Developer news in Shell', () => {
     await expect(page.locator('.scripts-menu-button')).toHaveAttribute('aria-label', 'Clio satellite, 2 unread news');
     await page.locator('.scripts-menu-button').click();
     await expect(dot).toBeHidden();
-    await expect(page.locator('.csl-news-row')).toBeVisible();
-    await expect(page.locator('.csl-news-row .csl-news-pill')).toHaveText('2');
+    await expect(page.locator('.csl-news-column .csl-news-pill')).toHaveText('2');
   });
 
-  test('What\'s new opens the flyout next to the menu, inside the window', async ({ page }) => {
+  test('unread news are a column on the left of the menu items, without opening anything', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const flyout = page.locator('.csl-news-flyout');
-    await expect(flyout).toBeVisible();
-    await expect(flyout.locator('.csl-news-card')).toHaveCount(2);
-    const box = await flyout.boundingBox();
+    const column = page.locator('.csl-news-column');
+    await expect(column).toBeVisible();
+    await expect(column.locator('.csl-news-card')).toHaveCount(2);
+    const box = await column.boundingBox();
+    const features = await page.locator('.scripts-menu-container [data-item-marker="Features"]').boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(features.x);
+    const panel = await page.locator('.scripts-menu-container').boundingBox();
     const viewport = page.viewportSize();
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
-  });
-
-  test('the flyout stays above the actions menu that opens beside it', async ({ page }) => {
-    await loadShell(page);
-    await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const flyout = page.locator('.csl-news-flyout');
-    await expect(flyout).toBeVisible();
-    const act = await page.locator('.actions-menu-container').boundingBox();
-    const box = await flyout.boundingBox();
-    // the actions menu stands where the flyout opens: the point in both shows the flyout
-    const x = Math.max(act.x, box.x) + 10, y = Math.max(act.y, box.y) + 10;
-    expect(x).toBeLessThan(Math.min(act.x + act.width, box.x + box.width));
-    const onTop = await page.evaluate(([px, py]) => Boolean(document.elementFromPoint(px, py)?.closest('.csl-news-flyout')), [x, y]);
-    expect(onTop).toBe(true);
-    // the actions menu does not show through the glass of the flyout
-    await expect(page.locator('.actions-menu-container')).toBeHidden();
-
-    // closing the flyout brings the actions menu back
-    await page.locator('.csl-news-row').click();
-    await expect(flyout).toBeHidden();
-    await expect(page.locator('.actions-menu-container')).toBeVisible();
-    await page.locator('.csl-news-row').click();
-    await expect(flyout).toBeVisible();
-
-    // closed with the menus, the navigation menu goes back to its usual layer
-    await page.mouse.click(5, 700);
-    await expect(flyout).toBeHidden();
-    await page.locator('.scripts-menu-button').click();
-    const z = await page.locator('.scripts-menu-container').evaluate(el => el.style.zIndex);
-    expect(z).toBe('9999');
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(viewport.width);
   });
 
   test('the news list scrolls with a slim scrollbar in the panel style', async ({ page }) => {
@@ -218,8 +189,7 @@ test.describe('Developer news in Shell', () => {
     const many = feed(Array.from({ length: 5 }, (_, i) => item(`s${i}`)));
     await loadShell(page, { newsFeed: many, syncData: { newsOnboardedAt: 1 } });
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const list = page.locator('.csl-news-flyout .csl-news-list');
+    const list = page.locator('.csl-news-column .csl-news-list');
     const bar = await list.evaluate(el => {
       const s = getComputedStyle(el, '::-webkit-scrollbar');
       const t = getComputedStyle(el, '::-webkit-scrollbar-thumb');
@@ -231,43 +201,52 @@ test.describe('Developer news in Shell', () => {
     expect(bar.color).toBe('rgba(255, 255, 255, 0.18)');
   });
 
-  test('the flyout is as tall as its news when there are few, without a scrollbar', async ({ page }) => {
+  test('the column is as tall as its news when there are few, without a scrollbar', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const list = page.locator('.csl-news-flyout .csl-news-list');
+    const list = page.locator('.csl-news-column .csl-news-list');
     await expect(list.locator('.csl-news-card')).toHaveCount(2);
     const { scroll, client } = await list.evaluate(el => ({ scroll: el.scrollHeight, client: el.clientHeight }));
     expect(scroll).toBeLessThanOrEqual(client);
   });
 
-  test('with many news the flyout stops at 80% of the window height and the list scrolls', async ({ page }) => {
+  test('with many news the column stops inside the window and the list scrolls', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 500 });
     const many = feed(Array.from({ length: 5 }, (_, i) => item(`m${i}`)));
     await loadShell(page, { newsFeed: many, syncData: { newsOnboardedAt: 1 } });
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const flyout = page.locator('.csl-news-flyout');
-    await expect(flyout.locator('.csl-news-card')).toHaveCount(5);
-    const box = await flyout.boundingBox();
-    expect(box.height).toBeLessThanOrEqual(500 * 0.8 + 1);
+    const column = page.locator('.csl-news-column');
+    await expect(column.locator('.csl-news-card')).toHaveCount(5);
+    const box = await column.boundingBox();
     expect(box.y + box.height).toBeLessThanOrEqual(500);
-    expect(box.height).toBeGreaterThan(500 * 0.5);
-    const scrolls = await flyout.locator('.csl-news-list').evaluate(el => el.scrollHeight > el.clientHeight);
+    const scrolls = await column.locator('.csl-news-list').evaluate(el => el.scrollHeight > el.clientHeight);
     expect(scrolls).toBe(true);
   });
 
-  test('closing the menu marks the flyout news read; the row stays without a count until reload', async ({ page }) => {
+  test('closing the menu keeps the news; "Mark as read" removes the column', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    await expect(page.locator('.csl-news-flyout')).toBeVisible();
+    await expect(page.locator('.csl-news-column')).toBeVisible();
     await page.mouse.click(900, 600);
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/hidden/);
     await page.locator('.scripts-menu-button').click();
-    await expect(page.locator('.csl-news-row')).toBeVisible();
-    await expect(page.locator('.csl-news-pill')).toBeHidden();
+    const column = page.locator('.csl-news-column');
+    await expect(column).toBeVisible();
+    await column.getByRole('button', { name: 'Mark as read' }).click();
+    await expect(column).toBeHidden();
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    const panel = await page.locator('.scripts-menu-container').boundingBox();
+    expect(panel.x + panel.width).toBeLessThanOrEqual(page.viewportSize().width);
+  });
+
+  test('the book icon in the menu header opens the news page in a new tab', async ({ page }) => {
+    await loadShell(page);
+    await page.locator('.scripts-menu-button').click();
+    const book = page.locator('.csl-menu-icon-btn[data-item-marker="NewsArchive"]');
+    await expect(book).toHaveAttribute('href', 'https://advance-technologies-foundation.github.io/clio-news-feed/');
+    await expect(book).toHaveAttribute('target', '_blank');
+    await expect(book).toHaveAttribute('title', 'Developer news');
   });
 
   test('a critical item shows a one-time peek card', async ({ page }) => {
@@ -277,30 +256,31 @@ test.describe('Developer news in Shell', () => {
     await expect(peek).toContainText('Update clio before Nov 1');
     await peek.locator('.csl-news-peek__read').click();
     await expect(peek).toHaveCount(0);
-    await expect(page.locator('.csl-news-flyout')).toBeVisible();
+    await expect(page.locator('.csl-news-column')).toBeVisible();
   });
 });
 
 test.describe('Developer news usage events', () => {
   const tracked = page => page.evaluate(() => window.__sentMessages.filter(m => m.action === 'trackEvent').map(m => [m.name, m.params]));
 
-  test('opening the Shell flyout, a card link and the panel controls are reported', async ({ page }) => {
+  test('the Shell news column, a card link, the book icon and the column controls are reported', async ({ page }) => {
     await loadShell(page);
     await page.locator('.scripts-menu-button').click();
-    await page.locator('.csl-news-row').click();
-    const flyout = page.locator('.csl-news-flyout');
-    await flyout.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').evaluate(a => a.addEventListener('click', e => e.preventDefault()));
-    await flyout.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').click();
-    await flyout.getByRole('link', { name: 'All news →' }).evaluate(a => a.addEventListener('click', e => e.preventDefault()));
-    await flyout.getByRole('link', { name: 'All news →' }).click();
-    await flyout.getByRole('button', { name: 'Choose topics' }).click();
-    await flyout.getByRole('button', { name: 'Mark all as read' }).click();
+    const column = page.locator('.csl-news-column');
+    await column.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').evaluate(a => a.addEventListener('click', e => e.preventDefault()));
+    await column.locator('.csl-news-card[data-news-id="a"] .csl-news-card__cta').click();
+    await column.getByRole('button', { name: 'Choose topics' }).click();
+    await column.getByRole('button', { name: 'Mark as read' }).click();
+    // the menu stays open without the column
+    const book = page.locator('.csl-menu-icon-btn[data-item-marker="NewsArchive"]');
+    await book.evaluate(a => a.addEventListener('click', e => e.preventDefault()));
+    await book.click();
     expect((await tracked(page)).filter(([name]) => name.startsWith('news_'))).toEqual([
       ['news_open', { surface: 'shell' }],
       ['news_cta_click', { surface: 'shell', news_id: 'a' }],
-      ['news_archive_open', { surface: 'shell' }],
       ['news_topics_open', { surface: 'shell' }],
       ['news_mark_all_read', { surface: 'shell' }],
+      ['news_archive_open', { surface: 'shell' }],
     ]);
   });
 
