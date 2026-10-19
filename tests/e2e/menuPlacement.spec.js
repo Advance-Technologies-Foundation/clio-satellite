@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { test, expect } from '@playwright/test';
-import { setupChromeMock, injectContentScript, waitForMenu } from './helpers.js';
+import { setupChromeMock, injectContentScript, waitForMenu, waitForMenuSettled } from './helpers.js';
 
 // Where the one menu panel opens when the buttons stand at the screen edges and near the corners,
 // with the news column (a wide panel) and without it (a narrow one).
@@ -56,6 +56,7 @@ async function openFromBlob(page, edge) {
 const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 async function expectPanelPlaced(page, { news }) {
+  await waitForMenuSettled(page);
   const panel = await page.locator('.scripts-menu-container').boundingBox();
   const buttons = await page.locator('.creatio-satelite').boundingBox();
   // the whole panel is on screen

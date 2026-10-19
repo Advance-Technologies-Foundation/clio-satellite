@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { test, expect } from '@playwright/test';
-import { setupChromeMock, injectContentScript, waitForMenu } from './helpers.js';
+import { setupChromeMock, injectContentScript, waitForMenu, waitForMenuSettled } from './helpers.js';
 
 const BASE = 'http://localhost:3737';
 
@@ -52,6 +52,7 @@ test.describe('Shell page', () => {
     await page.addStyleTag({ url: '/menu-item.css' });
     await waitForMenu(page);
     await page.locator('.scripts-menu-button').click();
+    await waitForMenuSettled(page);
     const btn = await page.locator('.scripts-menu-button').boundingBox();
     const menu = page.locator('.scripts-menu-container');
     const panel = await menu.boundingBox();
@@ -99,6 +100,7 @@ test.describe('Shell page', () => {
     await page.locator('.scripts-menu-button').click();
     const menu = page.locator('.scripts-menu-container');
     await expect(menu).toHaveClass(/csl-menu--icons-top/);
+    await waitForMenuSettled(page);
     const panel = await menu.boundingBox();
     const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
     const [features, settings, news] = [await box('Features'), await box('Settings'), await box('NewsArchive')];
