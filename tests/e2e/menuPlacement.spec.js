@@ -66,10 +66,15 @@ async function expectPanelPlaced(page, { news }) {
   // and covers none of the buttons
   expect(overlaps(panel, buttons)).toBe(false);
 
-  // the header icons stay in the top-right corner of the panel
+  // the icons stay in the bottom-right corner of the panel and cover no action
   const book = await page.locator('.csl-menu-icon-btn[data-item-marker="NewsArchive"]').boundingBox();
+  const settings = await page.locator('.csl-menu-icon-btn[data-item-marker="Settings"]').boundingBox();
   expect(panel.x + panel.width - (book.x + book.width)).toBeLessThanOrEqual(8);
-  expect(book.y - panel.y).toBeLessThanOrEqual(8);
+  expect(panel.y + panel.height - (book.y + book.height)).toBeLessThanOrEqual(8);
+  for (const action of await page.locator('.csl-actions-section [data-item-marker]').all()) {
+    const a = await action.boundingBox();
+    expect(overlaps(a, settings) || overlaps(a, book)).toBe(false);
+  }
 
   const column = page.locator('.csl-news-column');
   if (!news) {

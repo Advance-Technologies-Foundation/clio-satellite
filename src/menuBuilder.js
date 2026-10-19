@@ -106,7 +106,11 @@ function createHeaderIcon(tag, marker, label, svg) {
   return node;
 }
 
-// The header row of the panel: Settings (gear) and the news page (open book) as icons in its top-right corner
+// Settings (gear) and the news page (open book) as icons. By default they sit in the bottom-right corner of the
+// panel, over the empty end of the short actions column, so they take no room; with "menuIconsAtTop" in Options
+// they are a header row in the top-right corner instead.
+export const ICONS_TOP_CLASS = 'csl-menu--icons-top';
+
 function buildMenuHeader(menuContainer) {
   const header = document.createElement('div');
   header.className = 'csl-menu-header';
@@ -131,7 +135,7 @@ function buildMenuHeader(menuContainer) {
   return header;
 }
 
-// One panel: a header with the Settings and news icons, then a row of columns. The news column
+// One panel: the Settings and news icons, then a row of columns. The news column
 // (added by shellIndicator, shown only while there are unread news) is on the left; the navigation
 // items and the actions that change the site (RestartApp, FlushRedisDB, autologin) follow. Safe and
 // unsafe items stay apart, and as one panel they can not drift apart the way two separate menus did.
@@ -196,6 +200,18 @@ function buildActionsSection(actionsSection, onChange) {
     const item = createActionItem(autologinEnabled ? 'DisableAutologin' : 'EnableAutologin', lastUser);
     item.setAttribute('data-csl-autologin', '');
     actionsSection.appendChild(item);
+    onChange?.();
+  });
+}
+
+// Read on every open, so a change in Options applies without a page reload; the panel is placed again
+// only when the icons moved, since the header row changes its height
+function applyIconsPosition(menuContainer, onChange) {
+  chrome.storage.sync.get({ menuIconsAtTop: false }, data => {
+    if (getLastError()) return;
+    const atTop = data.menuIconsAtTop === true;
+    if (atTop === menuContainer.classList.contains(ICONS_TOP_CLASS)) return;
+    menuContainer.classList.toggle(ICONS_TOP_CLASS, atTop);
     onChange?.();
   });
 }
@@ -321,10 +337,10 @@ export function createScriptsMenu() {
 
   // The button and the docked blob open the same one menu with every item in it
   const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+  const placeIfOpen = () => { if (menuContainer.classList.contains('visible')) placeMenu(); };
   const openMenu = () => {
-    buildActionsSection(actionsSection, () => {
-      if (menuContainer.classList.contains('visible')) placeMenu();
-    });
+    buildActionsSection(actionsSection, placeIfOpen);
+    applyIconsPosition(menuContainer, placeIfOpen);
     showMenuContainer(menuContainer);
     track('menu_open', { menu: 'navigation' });
     placeMenu();

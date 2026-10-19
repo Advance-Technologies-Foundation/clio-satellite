@@ -282,3 +282,22 @@ test.describe('Options page', () => {
     await expect(page.locator('#profile-search-empty')).toBeHidden();
   });
 });
+
+test.describe('Menu settings', () => {
+  const stored = page => page.evaluate(() => new Promise(r => chrome.storage.sync.get({ menuIconsAtTop: false }, d => r(d.menuIconsAtTop))));
+
+  test('the Settings and news icons are at the bottom by default; the switch moves them to the top', async ({ page }) => {
+    await loadOptions(page);
+    const atTop = page.locator('#menu-icons-top');
+    await expect(atTop).not.toBeChecked();
+    await atTop.check();
+    expect(await stored(page)).toBe(true);
+    await atTop.uncheck();
+    expect(await stored(page)).toBe(false);
+  });
+
+  test('a stored choice is shown when the page opens', async ({ page }) => {
+    await loadOptions(page, { syncData: { menuIconsAtTop: true } });
+    await expect(page.locator('#menu-icons-top')).toBeChecked();
+  });
+});

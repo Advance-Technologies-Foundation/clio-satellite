@@ -103,7 +103,7 @@ describe('createScriptsMenu', () => {
     expect(markers(actionsColumn)).toEqual(['RestartApp', 'FlushRedisDB']);
   });
 
-  it('the panel header has the Settings and news icons in its top-right corner, Settings first', () => {
+  it('the panel has the Settings and news icons, Settings first', () => {
     createScriptsMenu();
     const { navMenu } = menu();
     const header = navMenu.firstElementChild;
@@ -117,6 +117,23 @@ describe('createScriptsMenu', () => {
     expect(news.href).toBe('https://advance-technologies-foundation.github.io/clio-news-feed/');
     expect(news.target).toBe('_blank');
     expect(news.rel).toBe('noopener noreferrer');
+  });
+
+  it('the icons are at the bottom by default and move to the top with menuIconsAtTop', async () => {
+    createScriptsMenu();
+    const { btn, navMenu } = menu();
+    btn.click();
+    expect(navMenu.classList.contains('csl-menu--icons-top')).toBe(false);
+    btn.click();
+
+    await new Promise(r => chrome.storage.sync.set({ menuIconsAtTop: true }, r));
+    btn.click();   // read again on every open, no reload needed
+    expect(navMenu.classList.contains('csl-menu--icons-top')).toBe(true);
+    btn.click();
+
+    await new Promise(r => chrome.storage.sync.set({ menuIconsAtTop: false }, r));
+    btn.click();
+    expect(navMenu.classList.contains('csl-menu--icons-top')).toBe(false);
   });
 
   it('the Settings icon opens the options page and closes the menu', () => {

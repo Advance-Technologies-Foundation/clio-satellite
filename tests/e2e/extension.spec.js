@@ -61,11 +61,14 @@ test.describe('Shell page', () => {
     expect(restart.x).toBeGreaterThanOrEqual(features.x + features.width);   // a column of its own
     expect(Math.abs(restart.y - features.y)).toBeLessThanOrEqual(1);          // starting at the same row
     expect(flush.y).toBeGreaterThan(restart.y);
-    // Settings and the news book are icons in the top-right corner of the panel, the book rightmost
-    expect(settings.y + settings.height).toBeLessThanOrEqual(features.y);
+    // Settings and the news book are icons in the bottom-right corner of the panel, the book rightmost,
+    // below the short actions column: they add no row of their own
+    expect(Math.abs(features.y - (panel.y + 7))).toBeLessThanOrEqual(2);
+    expect(settings.y).toBeGreaterThanOrEqual(flush.y + flush.height);
     expect(Math.abs(news.y - settings.y)).toBeLessThanOrEqual(1);
     expect(news.x).toBeGreaterThanOrEqual(settings.x + settings.width);
     expect(panel.x + panel.width - (news.x + news.width)).toBeLessThanOrEqual(8);
+    expect(panel.y + panel.height - (news.y + news.height)).toBeLessThanOrEqual(8);
     await expect(menu.locator('[data-item-marker="Settings"]')).toHaveAttribute('title', 'Settings');
     expect(restart.x + restart.width).toBeLessThanOrEqual(panel.x + panel.width);
     // both columns are as wide as the wider of their longest captions plus 20 px
@@ -84,6 +87,24 @@ test.describe('Shell page', () => {
     const actBox = await menu.locator('.csl-actions-section').boundingBox();
     expect(Math.abs((actBox.x - panel.x) - (panel.x + panel.width - actBox.x))).toBeLessThanOrEqual(1);
     await expect(menu.locator('[data-item-marker="Application_Managment"] .caption')).toHaveText('App Hub');
+  });
+
+  test('with "icons at the top" in Options the icons are a header row in the top-right corner', async ({ page }) => {
+    await setupChromeMock(page, { syncData: { menuIconsAtTop: true } });
+    await page.goto(`${BASE}/shell/`);
+    await injectContentScript(page);
+    await page.addStyleTag({ url: '/styles/shell.css' });
+    await page.addStyleTag({ url: '/menu-item.css' });
+    await waitForMenu(page);
+    await page.locator('.scripts-menu-button').click();
+    const menu = page.locator('.scripts-menu-container');
+    await expect(menu).toHaveClass(/csl-menu--icons-top/);
+    const panel = await menu.boundingBox();
+    const box = async marker => menu.locator(`[data-item-marker="${marker}"]`).boundingBox();
+    const [features, settings, news] = [await box('Features'), await box('Settings'), await box('NewsArchive')];
+    expect(settings.y + settings.height).toBeLessThanOrEqual(features.y);
+    expect(news.y - panel.y).toBeLessThanOrEqual(8);
+    expect(panel.x + panel.width - (news.x + news.width)).toBeLessThanOrEqual(8);
   });
 
   test('menu opens and item clicks are reported as anonymous usage events', async ({ page }) => {

@@ -366,11 +366,21 @@
   animation: creatioSateliteMenuIn 0.14s ease-out !important;
 }
 
-/* Header of the panel: Settings (gear) and the news page (open book) as icons in its top-right corner */
+/* Settings (gear) and the news page (open book) as icons. By default in the bottom-right corner of the panel,
+   over the empty end of the actions column (it has 2–3 items, the navigation column 8), so they add no height. */
 .creatio-satelite-extension-container .csl-menu-header {
+  position: absolute !important;
+  right: 6px !important;
+  bottom: 6px !important;
   display: flex !important;
   justify-content: flex-end !important;
   gap: 2px !important;
+  padding: 0 !important;
+  z-index: 1 !important;
+}
+/* "Show the Settings and news icons at the top of the menu" in Options: a header row in the top-right corner */
+.creatio-satelite-extension-container .csl-menu--icons-top .csl-menu-header {
+  position: static !important;
   padding: 0 0 4px !important;
 }
 .creatio-satelite-extension-container .csl-menu-icon-btn {

@@ -2572,6 +2572,7 @@
     node.innerHTML = svg;
     return node;
   }
+  var ICONS_TOP_CLASS = "csl-menu--icons-top";
   function buildMenuHeader(menuContainer) {
     const header = document.createElement("div");
     header.className = "csl-menu-header";
@@ -2643,6 +2644,15 @@
       const item = createActionItem(autologinEnabled ? "DisableAutologin" : "EnableAutologin", lastUser);
       item.setAttribute("data-csl-autologin", "");
       actionsSection.appendChild(item);
+      onChange?.();
+    });
+  }
+  function applyIconsPosition(menuContainer, onChange) {
+    chrome.storage.sync.get({ menuIconsAtTop: false }, (data) => {
+      if (getLastError()) return;
+      const atTop = data.menuIconsAtTop === true;
+      if (atTop === menuContainer.classList.contains(ICONS_TOP_CLASS)) return;
+      menuContainer.classList.toggle(ICONS_TOP_CLASS, atTop);
       onChange?.();
     });
   }
@@ -2740,10 +2750,12 @@
     buttonWrapper.appendChild(menuButton);
     const { menuContainer, menuBody, actionsSection } = buildNavMenu();
     const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+    const placeIfOpen = () => {
+      if (menuContainer.classList.contains("visible")) placeMenu();
+    };
     const openMenu = () => {
-      buildActionsSection(actionsSection, () => {
-        if (menuContainer.classList.contains("visible")) placeMenu();
-      });
+      buildActionsSection(actionsSection, placeIfOpen);
+      applyIconsPosition(menuContainer, placeIfOpen);
       showMenuContainer(menuContainer);
       track("menu_open", { menu: "navigation" });
       placeMenu();
