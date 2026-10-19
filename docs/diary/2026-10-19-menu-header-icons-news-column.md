@@ -9,3 +9,7 @@ Requested after reviewing PR #30 (one menu panel): Settings as a row took a line
 
 **Decision**
 The column is part of the panel (prepended to `.csl-menu-body`) rather than a flyout, so `adjustMenuPosition` places one box and nothing drifts apart. `attachShellNews` gets an `onLayoutChange` callback to place the open menu again when the column appears or disappears.
+
+**Follow-up: placement tests**
+- New `tests/e2e/menuPlacement.spec.js` (registered in `playwright.config.js`): the panel opened from a blob docked at each edge (near both corners and in the middle) and from free buttons dragged near each corner, with and without the news column. Each case checks that the panel is fully on screen, covers no button, keeps the header icons in its top-right corner, and that the news column sits left of the items and ends inside the window. Also covered: a 480 px window and "Mark as read" at the right edge.
+- Checked by hand that cards with an image or a YouTube poster fit the 300 px column (media 260×120, cropped).
