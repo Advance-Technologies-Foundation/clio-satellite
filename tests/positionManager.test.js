@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   applySavedPosition,
   saveMenuPosition,
@@ -19,6 +19,13 @@ beforeEach(() => {
   });
   Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true, configurable: true });
   Object.defineProperty(window, 'innerHeight', { value: 800, writable: true, configurable: true });
+});
+
+// Positioning schedules a retry with setTimeout. Drop pending fake timers and restore real ones
+// even when a test fails, so no retry fires after the jsdom environment is torn down.
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 describe('applySavedPosition', () => {
@@ -292,12 +299,14 @@ describe('positioning waits for the search field to stop moving', () => {
   }
 
   it('does not move the buttons while the search width is changing', () => {
+    vi.useFakeTimers();
     const { el, setRect } = setup({ width: 200, height: 32, top: 10, left: 100, right: 300, bottom: 42 });
     el.style.left = '502px';
     expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
     setRect({ width: 250, height: 32, top: 10, left: 100, right: 350, bottom: 42 });
     expect(positionFloatingContainerRelativeToSearch(el)).toBe(false);
     expect(el.style.left).toBe('502px');
+    expect(vi.getTimerCount()).toBe(2); // one retry per new rect, cleared in afterEach
   });
 
   it('retries by itself and positions once the rect is stable', () => {
