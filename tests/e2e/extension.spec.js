@@ -378,6 +378,12 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.scripts-menu-button')).toBeVisible();
   });
 
+  // Resting the mouse on the blob brings the buttons out of it (a click opens only the menu)
+  async function peekFromBlob(page, hit) {
+    await page.mouse.move(hit.x + 5, hit.y + hit.height / 2, { steps: 4 });
+    await expect(page.locator('.scripts-menu-button')).toBeVisible({ timeout: 4000 });
+  }
+
   async function dockAtLeftEdge(page) {
     await pushIntoLeftEdge(page, 40);
     await page.mouse.up();
@@ -391,7 +397,7 @@ test.describe('Edge blob', () => {
     await load(page, '/shell/');
     await waitForMenu(page);
     const hit = await dockAtLeftEdge(page);
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await peekFromBlob(page, hit);
     await page.waitForTimeout(600);
     const b = await page.locator('.creatio-satelite').boundingBox();
     await page.mouse.move(b.x + 10, b.y + 10);
@@ -431,7 +437,7 @@ test.describe('Edge blob', () => {
     await load(page, '/shell/');
     await waitForMenu(page);
     const hit = await dockAtLeftEdge(page);
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await peekFromBlob(page, hit);
     const pool = page.locator('.csl-edge-pool');
     await expect(pool).toBeVisible();
     await page.waitForTimeout(500);
@@ -470,19 +476,28 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.csl-edge-blob')).toBeHidden();
   });
 
-  test('a click on the blob brings the buttons out next to the edge with the menu open, still docked', async ({ page }) => {
+  test('a click on the blob opens the menu next to it at once, the buttons stay in the blob', async ({ page }) => {
     await load(page, '/shell/');
+    await page.addStyleTag({ content: readFileSync('menu-item.css', 'utf8') });
     await waitForMenu(page);
 
     const hit = await dockAtLeftEdge(page);
     await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
 
-    await expect(page.locator('.scripts-menu-button')).toBeVisible();
-    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-peek', 'left');
-    await expect(page.locator('.csl-edge-blob')).toBeHidden();
-    expect((await page.locator('.creatio-satelite').boundingBox()).x).toBe(8);
-    // two clicks to any action: the blob, then the menu item
+    // one click to the menu, two clicks to any action: the blob, then the menu item
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await expect(page.locator('.scripts-menu-button')).toBeHidden();
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
+    await expect(page.locator('.creatio-satelite-floating')).not.toHaveAttribute('data-edge-peek', /./);
+    const menu = await page.locator('.scripts-menu-container').boundingBox();
+    expect(menu.x).toBeGreaterThanOrEqual(hit.x + hit.width);   // beside the blob, not over it
+    expect(menu.x - (hit.x + hit.width)).toBeLessThanOrEqual(12);
+
+    // a second click on the blob closes it
+    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
   });
 
   test('the unpin button next to the buttons out of the blob frees them for good', async ({ page }) => {
@@ -493,7 +508,7 @@ test.describe('Edge blob', () => {
     await expect(unpin).toBeHidden();
 
     const hit = await dockAtLeftEdge(page);
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await peekFromBlob(page, hit);
     await expect(unpin).toBeVisible();
     await expect(unpin).toHaveAttribute('aria-label', /Unpin/);
     await page.waitForTimeout(600);
@@ -524,10 +539,11 @@ test.describe('Edge blob', () => {
 
     const hit = await dockAtLeftEdge(page);
     const start = await page.locator('.csl-edge-dot').boundingBox();
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await page.mouse.move(hit.x + 5, hit.y + hit.height / 2, { steps: 4 });   // resting on it brings the buttons out
 
+    // the flight is shorter than the poll interval of a 2-second expect: wait for the element itself
+    await page.waitForSelector('.csl-edge-flydot', { timeout: 4000 });
     const flyer = page.locator('.csl-edge-flydot');
-    await expect(flyer).toBeVisible();
     const iconDot = page.locator('.scripts-menu-button .csl-icon-dot');
     await expect(iconDot).toHaveCSS('visibility', 'hidden');
     // it lands on the icon dot and leaves the icon dot visible
@@ -557,7 +573,7 @@ test.describe('Edge blob', () => {
     await waitForMenu(page);
 
     const hit = await dockAtLeftEdge(page);
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await peekFromBlob(page, hit);
     await expect(page.locator('.scripts-menu-button')).toBeVisible();
 
     // working with the buttons: the menu is open and the mouse is on the buttons
@@ -580,7 +596,7 @@ test.describe('Edge blob', () => {
     await waitForMenu(page);
 
     const hit = await dockAtLeftEdge(page);
-    await page.mouse.click(hit.x + 5, hit.y + hit.height / 2);
+    await peekFromBlob(page, hit);
     await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
     await page.waitForTimeout(500);   // let the pop-in finish
 
@@ -591,7 +607,7 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.scripts-menu-container')).not.toHaveClass(/visible/);
   });
 
-  test('a click on a menu item of the buttons out of the blob runs it and closes the menu', async ({ page }) => {
+  test('a click on a menu item of the menu opened from the blob runs it and closes the menu', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
 
@@ -650,8 +666,8 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.csl-edge-blob')).toBeVisible();
     await page.waitForTimeout(600);   // the dome has risen
     const hit = await page.locator('.csl-edge-hit').boundingBox();
-    await page.mouse.click(hit.x + hit.width / 2, hit.y + 5);
-    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
+    await page.mouse.move(hit.x + hit.width / 2, hit.y + 5, { steps: 4 });   // resting on it brings the buttons out
+    await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/, { timeout: 4000 });
     await page.waitForTimeout(600);   // the buttons are out of the blob
     const buttons = await page.locator('.creatio-satelite').boundingBox();
     const menu = await page.locator('.scripts-menu-container').boundingBox();

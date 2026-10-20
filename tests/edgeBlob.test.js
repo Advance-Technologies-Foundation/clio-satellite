@@ -335,6 +335,28 @@ describe('createEdgeBlob — the blob', () => {
     expect(t.blobEl.style.transform).toBe('rotate(180deg)');
   });
 
+  it('with onClick a click is handed to it and the buttons stay in the blob', () => {
+    const onClick = vi.fn();
+    const t = docked({ onClick });
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    up();
+    expect(onClick).toHaveBeenCalledWith('left', expect.objectContaining({ width: expect.any(Number) }));
+    expect(t.onPeek).not.toHaveBeenCalled();
+    expect(t.blob.peeking).toBe(false);
+    expect(t.blobEl.hidden).toBe(false);
+  });
+
+  it('onPullStart is called once when the blob starts moving, onClick is not', () => {
+    const onClick = vi.fn(), onPullStart = vi.fn();
+    const t = docked({ onClick, onPullStart });
+    t.hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 10, clientY: 326, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 10, clientY: 360 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 10, clientY: 380 }));
+    up();
+    expect(onPullStart).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('a click brings the buttons out but keeps them docked', () => {
     const t = docked();
     saveBlobState('shell', 'left', 326);

@@ -211,15 +211,37 @@ describe('createScriptsMenu', () => {
     };
   }
 
-  it('a click on the docked blob opens the menu with the actions in it', () => {
-    const { hit, navMenu } = dockedMenu();
-    expect(document.querySelector('.creatio-satelite-floating').getAttribute('data-edge-docked')).toBe('left');
+  const clickBlob = (hit) => {
     hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('mouseup', { clientX: 5, clientY: 400, bubbles: true }));
     hit.dispatchEvent(new MouseEvent('click', { clientX: 5, clientY: 400, bubbles: true }));
-    vi.advanceTimersByTime(400);   // the menu opens once the buttons are out of the blob
+  };
+
+  it('a click on the docked blob opens the menu with the actions in it at once, the buttons stay in the blob', () => {
+    const { hit, navMenu } = dockedMenu();
+    const floating = document.querySelector('.creatio-satelite-floating');
+    expect(floating.getAttribute('data-edge-docked')).toBe('left');
+    clickBlob(hit);
     expect(navMenu.classList.contains('visible')).toBe(true);
     expect(markers(navMenu)).toContain('FlushRedisDB');
+    expect(floating.getAttribute('data-edge-docked')).toBe('left');
+    expect(floating.hasAttribute('data-edge-peek')).toBe(false);
+    expect(document.querySelector('.csl-edge-blob').hidden).toBe(false);
+  });
+
+  it('a second click on the docked blob closes the menu it opened', () => {
+    const { hit, navMenu } = dockedMenu();
+    clickBlob(hit);
+    clickBlob(hit);
+    expect(navMenu.classList.contains('visible')).toBe(false);
+  });
+
+  it('pulling the docked blob closes the menu it opened', () => {
+    const { hit, navMenu } = dockedMenu();
+    clickBlob(hit);
+    hit.dispatchEvent(new MouseEvent('mousedown', { clientX: 5, clientY: 400, bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mousemove', { clientX: 5, clientY: 440, bubbles: true }));
+    expect(navMenu.classList.contains('visible')).toBe(false);
   });
 
   it('resting the mouse on the docked blob also opens the menu', () => {

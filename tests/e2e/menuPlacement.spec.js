@@ -50,21 +50,26 @@ async function openFromBlob(page, edge) {
   const y = edge === 'top' ? hit.y + inset : edge === 'bottom' ? hit.y + hit.height - inset : hit.y + hit.height / 2;
   await page.mouse.click(x, y);
   await expect(page.locator('.scripts-menu-container')).toHaveClass(/visible/);
-  await page.waitForTimeout(600);   // the buttons are out of the blob and the menu is placed
+  // the menu opens next to the blob, the buttons stay in it
+  await expect(page.locator('.scripts-menu-button')).toBeHidden();
+  await page.waitForTimeout(300);   // the menu is placed
 }
+
+const BLOB = '.csl-edge-hit';
 
 const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-async function expectPanelPlaced(page, { news }) {
+// `anchor` is what the panel was opened from: the buttons, or the docked blob (the buttons stay in it)
+async function expectPanelPlaced(page, { news, anchor = '.creatio-satelite' }) {
   await waitForMenuSettled(page);
   const panel = await page.locator('.scripts-menu-container').boundingBox();
-  const buttons = await page.locator('.creatio-satelite').boundingBox();
+  const buttons = await page.locator(anchor).boundingBox();
   // the whole panel is on screen
   expect(panel.x).toBeGreaterThanOrEqual(0);
   expect(panel.y).toBeGreaterThanOrEqual(0);
   expect(panel.x + panel.width).toBeLessThanOrEqual(VW + 0.5);
   expect(panel.y + panel.height).toBeLessThanOrEqual(VH + 0.5);
-  // and covers none of the buttons
+  // and covers none of the buttons (or the blob)
   expect(overlaps(panel, buttons)).toBe(false);
 
   // the icons stay in the bottom-right corner of the panel and cover no action
@@ -102,7 +107,7 @@ for (const news of [true, false]) {
         test(`buttons docked at the ${edge} edge ${where}`, async ({ page }) => {
           await loadShell(page, { news, blob: { edge, along } });
           await openFromBlob(page, edge);
-          await expectPanelPlaced(page, { news });
+          await expectPanelPlaced(page, { news, anchor: BLOB });
         });
       }
     }
@@ -144,10 +149,10 @@ for (const news of [true, false]) {
 test('marking the news read at the right edge places the narrower panel again, still on screen', async ({ page }) => {
   await loadShell(page, { news: true, blob: { edge: 'right', along: 0.5 } });
   await openFromBlob(page, 'right');
-  const wide = await expectPanelPlaced(page, { news: true });
+  const wide = await expectPanelPlaced(page, { news: true, anchor: BLOB });
   await page.locator('.csl-news-column').getByRole('button', { name: 'Mark as read' }).click();
   await expect(page.locator('.csl-news-column')).toBeHidden();
-  const narrow = await expectPanelPlaced(page, { news: false });
+  const narrow = await expectPanelPlaced(page, { news: false, anchor: BLOB });
   expect(narrow.width).toBeLessThan(wide.width);
 });
 

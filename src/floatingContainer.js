@@ -40,8 +40,9 @@ function createUnpinButton() {
   return btn;
 }
 
-// onPeekShown() - the buttons came out of the docked blob and finished popping in
-export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown } = {}) {
+// onPeekShown()          - the buttons came out of the docked blob and finished popping in
+// onBlobClick(edge, box) - the docked blob was clicked; the buttons stay in it (without it a click brings them out)
+export function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown, onBlobClick } = {}) {
   resizeAbortController?.abort();
   resizeAbortController = new AbortController();
   const isShell = pageType === 'shell';
@@ -292,6 +293,9 @@ export function setupFloatingContainer(pageType, buttonWrapper, extensionContain
     pageType,
     signal: resizeAbortController.signal,
     tearDistance,
+    onClick: onBlobClick,
+    // the menu opened from the blob stays where the blob was: closed once the blob moves
+    onPullStart: closeMenus,
     onBlob: () => {
       tearDistance();
       endDrag?.();
