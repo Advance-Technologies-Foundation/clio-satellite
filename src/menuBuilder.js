@@ -2,7 +2,7 @@ import { debugLog, getLastError } from './debug.js';
 import { state } from './state.js';
 import { getCreatioPageType } from './pageDetection.js';
 import { SCRIPT_FILES, SCRIPT_LABELS, MENU_ICONS, ACTION_DETAILS } from './menuConfig.js';
-import { hideMenuContainer, showMenuContainer, adjustMenuPosition } from './menuVisibility.js';
+import { hideMenuContainer, showMenuContainer, adjustMenuPosition, adjustMenuPositionAtEdge } from './menuVisibility.js';
 import { setupFloatingContainer } from './floatingContainer.js';
 import { attachShellNews } from './news/shellIndicator.js';
 import { ARCHIVE_URL } from './news/newsCards.js';
@@ -335,10 +335,15 @@ export function createScriptsMenu() {
 
   const { menuContainer, menuBody, actionsSection } = buildNavMenu();
 
-  // The button and the docked blob open the same one menu with every item in it
-  const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+  // The button and the docked blob open the same one menu with every item in it.
+  // A click on the blob opens it next to the blob, the buttons stay hidden in it.
+  let blobAnchor = null;   // { edge, box } of the blob the open menu came from
+  const placeMenu = () => (blobAnchor
+    ? adjustMenuPositionAtEdge(blobAnchor.edge, blobAnchor.box, menuContainer)
+    : adjustMenuPosition(menuButton, menuContainer));
   const placeIfOpen = () => { if (menuContainer.classList.contains('visible')) placeMenu(); };
-  const openMenu = () => {
+  const openMenu = (anchor = null) => {
+    blobAnchor = anchor;
     buildActionsSection(actionsSection, placeIfOpen);
     applyIconsPosition(menuContainer, placeIfOpen);
     showMenuContainer(menuContainer);
@@ -374,7 +379,13 @@ export function createScriptsMenu() {
   }, { capture: true, signal: state.clickAbortController.signal });
 
   try {
-    setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openMenu });
+    setupFloatingContainer(pageType, buttonWrapper, extensionContainer, {
+      onPeekShown: () => openMenu(),
+      onBlobClick: (edge, box) => {
+        if (blobAnchor && menuContainer.classList.contains('visible')) hideMenu();
+        else openMenu({ edge, box });
+      },
+    });
 
     const rootMenuContainer = document.createElement('div');
     rootMenuContainer.classList.add('creatio-satelite-menu-container');

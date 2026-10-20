@@ -74,3 +74,39 @@ export function adjustMenuPosition(relatedContainer, container) {
   container.style.top = `${rect.bottom + 8}px`;
   container.style.left = `${rect.left}px`;
 }
+
+// Where the menu opened from the docked blob stands: beside the blob, away from its edge, centred on it
+// along the edge and kept on screen. `blob` is the box of the blob, `menu` the size of the menu.
+export function menuPositionAtEdge(edge, blob, menu, vw, vh, gap = 8) {
+  const clamp = (v, max) => Math.max(gap, Math.min(max, v));
+  const alongX = clamp(blob.left + blob.width / 2 - menu.width / 2, vw - menu.width - gap);
+  const alongY = clamp(blob.top + blob.height / 2 - menu.height / 2, vh - menu.height - gap);
+  switch (edge) {
+    case 'left': return { left: blob.left + blob.width + gap, top: alongY };
+    case 'right': return { left: Math.max(0, blob.left - menu.width - gap), top: alongY };
+    case 'top': return { left: alongX, top: blob.top + blob.height + gap };
+    default: return { left: alongX, top: Math.max(0, blob.top - menu.height - gap) };
+  }
+}
+
+export function adjustMenuPositionAtEdge(edge, blob, container) {
+  const extensionContainer = document.querySelector('.creatio-satelite-extension-container');
+  if (extensionContainer && container.parentNode !== extensionContainer) extensionContainer.appendChild(container);
+  container.style.right = '';
+  container.style.bottom = '';
+  container.style.transform = 'none';
+  container.style.position = 'fixed';
+  container.style.zIndex = '9999';
+  container.style.visibility = 'hidden';
+  // measured at the left edge of the screen, where nothing squeezes it (see adjustMenuPosition)
+  container.style.top = '0px';
+  container.style.left = '0px';
+  container.offsetHeight; // force reflow
+  const menuRect = container.getBoundingClientRect();
+  const vw = document.documentElement.clientWidth || window.innerWidth;
+  const vh = document.documentElement.clientHeight || window.innerHeight;
+  const pos = menuPositionAtEdge(edge, blob, menuRect, vw, vh);
+  container.style.top = pos.top + 'px';
+  container.style.left = pos.left + 'px';
+  container.style.visibility = 'visible';
+}

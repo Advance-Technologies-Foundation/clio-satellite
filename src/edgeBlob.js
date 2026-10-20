@@ -323,9 +323,10 @@ function cancelAnimations(el) {
  * The drag code reports how far the buttons are pushed past an edge (press / release);
  * the controller shows the wet spot, makes the blob and handles the blob itself.
  *
- * The buttons stay docked until the blob is pulled off the edge. A click on the blob, or
- * resting the mouse on it for PEEK_HOVER_MS, only brings the buttons out for a while ("peek");
- * they go back into the blob PEEK_IDLE_MS after the mouse left them and their menus.
+ * The buttons stay docked until the blob is pulled off the edge. Resting the mouse on the blob for
+ * PEEK_HOVER_MS only brings the buttons out for a while ("peek"); they go back into the blob
+ * PEEK_IDLE_MS after the mouse left them and their menus. A click on the blob does the same,
+ * unless onClick is given: then the click is handed to it and the buttons stay in the blob.
  *
  * Options:
  *  container                 - the floating buttons, squashed back into the blob when a peek ends
@@ -340,13 +341,15 @@ function cancelAnimations(el) {
  *  onTearOff(clientX, clientY) - the blob was pulled off the edge: show the buttons under the cursor and keep dragging
  *  onUndock()                - the buttons out of the blob were dragged out of their pool: they stay free, the drag goes on
  *  onSnapBack(box)           - the buttons were dragged less than a button height and let go: put them back at `box`
+ *  onClick(edge, box)        - the blob was clicked (not pulled); `box` is the clickable area of the blob
+ *  onPullStart()             - the blob started moving under the mouse (along the edge or away from it)
  */
 export function createEdgeBlob({
   root, container, pageType, signal,
   tearDistance = () => TEAR_DISTANCE,
   iconDot = () => container?.querySelector('.csl-icon-dot'),
   buttons = () => container?.firstElementChild || container,
-  onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack,
+  onBlob, onPeek, onPeekEnd, onTearOff, onUndock, onSnapBack, onClick, onPullStart,
 }) {
   ensureStyles();
 
@@ -874,6 +877,7 @@ export function createEdgeBlob({
     if (!pull || !edge) return;
     const dx = e.clientX - pull.sx, dy = e.clientY - pull.sy;
     if (!pull.moved && Math.hypot(dx, dy) < 4) return;
+    if (!pull.moved) onPullStart?.();
     pull.moved = true;
     along = clampAlong(edge, pull.startAlong + (isVertical(edge) ? dy : dx), vw(), vh());
     placeBlob();
@@ -909,8 +913,9 @@ export function createEdgeBlob({
     const p = pull;
     pull = null;
     if (!edge) return;
-    if (!p.moved) {   // a click brings the buttons out for a while; only a pull undocks them
-      peek();
+    if (!p.moved) {   // a click opens what onClick opens, or brings the buttons out for a while; only a pull undocks them
+      if (onClick) onClick(edge, hit.getBoundingClientRect());
+      else peek();
       return;
     }
     springBack();

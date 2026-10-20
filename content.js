@@ -262,6 +262,41 @@
     container.style.top = `${rect.bottom + 8}px`;
     container.style.left = `${rect.left}px`;
   }
+  function menuPositionAtEdge(edge, blob, menu, vw, vh, gap = 8) {
+    const clamp2 = (v, max) => Math.max(gap, Math.min(max, v));
+    const alongX = clamp2(blob.left + blob.width / 2 - menu.width / 2, vw - menu.width - gap);
+    const alongY = clamp2(blob.top + blob.height / 2 - menu.height / 2, vh - menu.height - gap);
+    switch (edge) {
+      case "left":
+        return { left: blob.left + blob.width + gap, top: alongY };
+      case "right":
+        return { left: Math.max(0, blob.left - menu.width - gap), top: alongY };
+      case "top":
+        return { left: alongX, top: blob.top + blob.height + gap };
+      default:
+        return { left: alongX, top: Math.max(0, blob.top - menu.height - gap) };
+    }
+  }
+  function adjustMenuPositionAtEdge(edge, blob, container) {
+    const extensionContainer = document.querySelector(".creatio-satelite-extension-container");
+    if (extensionContainer && container.parentNode !== extensionContainer) extensionContainer.appendChild(container);
+    container.style.right = "";
+    container.style.bottom = "";
+    container.style.transform = "none";
+    container.style.position = "fixed";
+    container.style.zIndex = "9999";
+    container.style.visibility = "hidden";
+    container.style.top = "0px";
+    container.style.left = "0px";
+    container.offsetHeight;
+    const menuRect = container.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = document.documentElement.clientHeight || window.innerHeight;
+    const pos = menuPositionAtEdge(edge, blob, menuRect, vw, vh);
+    container.style.top = pos.top + "px";
+    container.style.left = pos.left + "px";
+    container.style.visibility = "visible";
+  }
 
   // src/positionManager.js
   var STABLE_CHECK_MS = 120;
@@ -701,7 +736,9 @@
     onPeekEnd,
     onTearOff,
     onUndock,
-    onSnapBack
+    onSnapBack,
+    onClick,
+    onPullStart
   }) {
     ensureStyles();
     const svg = gooFilter();
@@ -1159,6 +1196,7 @@
       if (!pull || !edge) return;
       const dx = e.clientX - pull.sx, dy = e.clientY - pull.sy;
       if (!pull.moved && Math.hypot(dx, dy) < 4) return;
+      if (!pull.moved) onPullStart?.();
       pull.moved = true;
       along = clampAlong(edge, pull.startAlong + (isVertical(edge) ? dy : dx), vw(), vh());
       placeBlob();
@@ -1188,7 +1226,8 @@
       pull = null;
       if (!edge) return;
       if (!p.moved) {
-        peek();
+        if (onClick) onClick(edge, hit.getBoundingClientRect());
+        else peek();
         return;
       }
       springBack();
@@ -1312,7 +1351,7 @@
     btn.style.display = "none";
     return btn;
   }
-  function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown } = {}) {
+  function setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown, onBlobClick } = {}) {
     resizeAbortController?.abort();
     resizeAbortController = new AbortController();
     const isShell = pageType === "shell";
@@ -1526,6 +1565,9 @@
       pageType,
       signal: resizeAbortController.signal,
       tearDistance,
+      onClick: onBlobClick,
+      // the menu opened from the blob stays where the blob was: closed once the blob moves
+      onPullStart: closeMenus,
       onBlob: () => {
         tearDistance();
         endDrag?.();
@@ -2749,11 +2791,13 @@
     menuButtonWrapper.appendChild(createArrowWrapper());
     buttonWrapper.appendChild(menuButton);
     const { menuContainer, menuBody, actionsSection } = buildNavMenu();
-    const placeMenu = () => adjustMenuPosition(menuButton, menuContainer);
+    let blobAnchor = null;
+    const placeMenu = () => blobAnchor ? adjustMenuPositionAtEdge(blobAnchor.edge, blobAnchor.box, menuContainer) : adjustMenuPosition(menuButton, menuContainer);
     const placeIfOpen = () => {
       if (menuContainer.classList.contains("visible")) placeMenu();
     };
-    const openMenu = () => {
+    const openMenu = (anchor = null) => {
+      blobAnchor = anchor;
       buildActionsSection(actionsSection, placeIfOpen);
       applyIconsPosition(menuContainer, placeIfOpen);
       showMenuContainer(menuContainer);
@@ -2785,7 +2829,13 @@
       hideMenuContainer(menu);
     }, { capture: true, signal: state.clickAbortController.signal });
     try {
-      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, { onPeekShown: openMenu });
+      setupFloatingContainer(pageType, buttonWrapper, extensionContainer, {
+        onPeekShown: () => openMenu(),
+        onBlobClick: (edge, box) => {
+          if (blobAnchor && menuContainer.classList.contains("visible")) hideMenu();
+          else openMenu({ edge, box });
+        }
+      });
       const rootMenuContainer = document.createElement("div");
       rootMenuContainer.classList.add("creatio-satelite-menu-container");
       rootMenuContainer.appendChild(menuContainer);
