@@ -417,7 +417,7 @@ test.describe('Edge blob', () => {
   test('a blob on the right edge stays above a fixed panel of the page', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
-      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
+      chrome.storage.local.set({ 'menuEdgeBlob_shell': { edge: 'right', along: 0.5, timestamp: Date.now() } });
     });
     await page.goto(`${BASE}/shell/`);
     await page.evaluate(() => {
@@ -469,7 +469,7 @@ test.describe('Edge blob', () => {
     const free = await page.locator('.creatio-satelite').boundingBox();
     expect(free.x).toBeGreaterThan(150);
     // no blob comes back, not even on the next visit
-    const key = 'menuEdgeBlob_shell_http://localhost:3737';
+    const key = 'menuEdgeBlob_shell';
     expect(await page.evaluate(k => new Promise(r => chrome.storage.local.get([k], res => r(res[k] ?? null))), key)).toBeNull();
     await page.mouse.move(600, 600);
     await page.waitForTimeout(500);
@@ -523,7 +523,7 @@ test.describe('Edge blob', () => {
     const after = await page.locator('.scripts-menu-button').boundingBox();
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);
-    const key = 'menuEdgeBlob_shell_http://localhost:3737';
+    const key = 'menuEdgeBlob_shell';
     expect(await page.evaluate(k => new Promise(r => chrome.storage.local.get([k], res => r(res[k] ?? null))), key)).toBeNull();
     // the buttons stay out: no countdown, no blob
     await page.mouse.move(600, 600);
@@ -658,7 +658,7 @@ test.describe('Edge blob', () => {
   test('at the right end of the top edge the menu ends in line with the unpin button', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
-      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'top', along: 0.99, timestamp: Date.now() } });
+      chrome.storage.local.set({ 'menuEdgeBlob_shell': { edge: 'top', along: 0.99, timestamp: Date.now() } });
     });
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);
@@ -678,7 +678,7 @@ test.describe('Edge blob', () => {
   test('the blob from the previous visit keeps its skirt in place and only raises the dome', async ({ page }) => {
     await setupChromeMock(page);
     await page.addInitScript(() => {
-      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { edge: 'right', along: 0.5, timestamp: Date.now() } });
+      chrome.storage.local.set({ 'menuEdgeBlob_shell': { edge: 'right', along: 0.5, timestamp: Date.now() } });
     });
     await page.goto(`${BASE}/shell/`);
     await injectContentScript(page);

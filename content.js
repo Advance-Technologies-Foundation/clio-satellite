@@ -527,7 +527,8 @@
     return { x, y: vh - height - gap };
   }
   var POOL_PAD = 6;
-  var blobKey = (pageType) => `menuEdgeBlob_${pageType}_${window.location.origin}`;
+  var blobKey = (pageType) => `menuEdgeBlob_${pageType}`;
+  var legacyBlobKey = (pageType) => `menuEdgeBlob_${pageType}_${window.location.origin}`;
   function saveBlobState(pageType, edge, along) {
     const span = isVertical(edge) ? window.innerHeight : window.innerWidth;
     chrome.storage.local.set({ [blobKey(pageType)]: { edge, along: along / span, timestamp: Date.now() } }, () => {
@@ -536,9 +537,11 @@
     });
   }
   function loadBlobState(pageType, callback) {
-    chrome.storage.local.get([blobKey(pageType)], (result) => {
+    const key = blobKey(pageType);
+    const legacyKey = legacyBlobKey(pageType);
+    chrome.storage.local.get([key, legacyKey], (result) => {
       const err = getLastError();
-      const saved = err ? null : result[blobKey(pageType)];
+      const saved = err ? null : result[key] || result[legacyKey];
       if (!saved || !EDGES.includes(saved.edge) || typeof saved.along !== "number") {
         callback(null);
         return;
@@ -548,9 +551,13 @@
     });
   }
   function clearBlobState(pageType) {
-    chrome.storage.local.remove([blobKey(pageType)], () => {
-      const err = getLastError();
-      if (err) console.error("[Clio Satellite] Failed to clear edge blob:", err.message);
+    const legacyPrefix = `${blobKey(pageType)}_`;
+    chrome.storage.local.get(null, (all) => {
+      const legacyKeys = getLastError() ? [legacyBlobKey(pageType)] : Object.keys(all || {}).filter((k) => k.startsWith(legacyPrefix));
+      chrome.storage.local.remove([blobKey(pageType), ...legacyKeys], () => {
+        const err = getLastError();
+        if (err) console.error("[Clio Satellite] Failed to clear edge blob:", err.message);
+      });
     });
   }
   var CSS = `

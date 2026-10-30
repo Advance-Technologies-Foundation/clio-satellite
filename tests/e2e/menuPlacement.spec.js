@@ -31,7 +31,7 @@ async function loadShell(page, { news, blob = null }) {
   });
   if (blob) {
     await page.addInitScript(state => {
-      chrome.storage.local.set({ 'menuEdgeBlob_shell_http://localhost:3737': { ...state, timestamp: Date.now() } });
+      chrome.storage.local.set({ 'menuEdgeBlob_shell': { ...state, timestamp: Date.now() } });
     }, blob);
   }
   await page.goto(`${BASE}/shell/`);
