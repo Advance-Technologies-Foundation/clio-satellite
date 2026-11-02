@@ -86,10 +86,13 @@ export function buttonsPositionFor(edge, along, width, height, vw, vh, gap = EDG
 export const POOL_PAD = 6;
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
-// Stored per page type and origin, like the drag position. `along` is a fraction of the
-// edge length, so the blob stays on the same spot after the window is resized.
+// Stored per page type for the whole browser, not per site: buttons hidden in the blob on one
+// Creatio site stay in the blob on every other one. `along` is a fraction of the edge length,
+// so the blob stays on the same spot after the window is resized.
 
-const blobKey = pageType => `menuEdgeBlob_${pageType}_${window.location.origin}`;
+const blobKey = pageType => `menuEdgeBlob_${pageType}`;
+// Before v2.16 the state was kept per site; still read so a blob docked then is not lost
+const legacyBlobKey = pageType => `menuEdgeBlob_${pageType}_${window.location.origin}`;
 
 export function saveBlobState(pageType, edge, along) {
   const span = isVertical(edge) ? window.innerHeight : window.innerWidth;
@@ -100,9 +103,11 @@ export function saveBlobState(pageType, edge, along) {
 }
 
 export function loadBlobState(pageType, callback) {
-  chrome.storage.local.get([blobKey(pageType)], (result) => {
+  const key = blobKey(pageType);
+  const legacyKey = legacyBlobKey(pageType);
+  chrome.storage.local.get([key, legacyKey], (result) => {
     const err = getLastError();
-    const saved = err ? null : result[blobKey(pageType)];
+    const saved = err ? null : (result[key] || result[legacyKey]);
     if (!saved || !EDGES.includes(saved.edge) || typeof saved.along !== 'number') {
       callback(null);
       return;
@@ -112,10 +117,16 @@ export function loadBlobState(pageType, callback) {
   });
 }
 
+// Also removes the per-site records of every site, so a blob docked before v2.16 on another site
+// does not come back there after the buttons were freed here
 export function clearBlobState(pageType) {
-  chrome.storage.local.remove([blobKey(pageType)], () => {
-    const err = getLastError();
-    if (err) console.error('[Clio Satellite] Failed to clear edge blob:', err.message);
+  const legacyPrefix = `${blobKey(pageType)}_`;
+  chrome.storage.local.get(null, (all) => {
+    const legacyKeys = getLastError() ? [legacyBlobKey(pageType)] : Object.keys(all || {}).filter(k => k.startsWith(legacyPrefix));
+    chrome.storage.local.remove([blobKey(pageType), ...legacyKeys], () => {
+      const err = getLastError();
+      if (err) console.error('[Clio Satellite] Failed to clear edge blob:', err.message);
+    });
   });
 }
 

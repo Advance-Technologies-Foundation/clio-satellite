@@ -27,7 +27,8 @@ import {
 
 const VW = 1280;
 const VH = 800;
-const KEY = 'menuEdgeBlob_shell_https://app.example.com';
+const KEY = 'menuEdgeBlob_shell';
+const LEGACY_KEY = 'menuEdgeBlob_shell_https://app.example.com';
 
 beforeEach(() => {
   Object.defineProperty(window, 'location', {
@@ -147,6 +148,44 @@ describe('blob state storage', () => {
     const cb = vi.fn();
     loadBlobState('shell', cb);
     expect(cb).toHaveBeenCalledWith(null);
+  });
+
+  it('shares one record between all sites', () => {
+    saveBlobState('shell', 'left', 400);
+    window.location = { origin: 'https://other.example.com', href: 'https://other.example.com/shell/' };
+    const cb = vi.fn();
+    loadBlobState('shell', cb);
+    expect(cb).toHaveBeenCalledWith({ edge: 'left', along: 400 });
+  });
+
+  it('reads the per-site record saved before v2.16 when there is no shared one', () => {
+    chrome.storage.local.set({ [LEGACY_KEY]: { edge: 'top', along: 0.25 } });
+    const cb = vi.fn();
+    loadBlobState('shell', cb);
+    expect(cb).toHaveBeenCalledWith({ edge: 'top', along: 320 });
+  });
+
+  it('prefers the shared record over a per-site one', () => {
+    chrome.storage.local.set({ [LEGACY_KEY]: { edge: 'top', along: 0.25 } });
+    saveBlobState('shell', 'left', 400);
+    const cb = vi.fn();
+    loadBlobState('shell', cb);
+    expect(cb).toHaveBeenCalledWith({ edge: 'left', along: 400 });
+  });
+
+  it('clearBlobState also removes the per-site records of every site, not of other page types', () => {
+    const otherSite = 'menuEdgeBlob_shell_https://other.example.com';
+    const configuration = 'menuEdgeBlob_configuration_https://other.example.com';
+    chrome.storage.local.set({
+      [LEGACY_KEY]: { edge: 'top', along: 0.25 },
+      [otherSite]: { edge: 'right', along: 0.5 },
+      [configuration]: { edge: 'right', along: 0.5 },
+    });
+    saveBlobState('shell', 'left', 400);
+    clearBlobState('shell');
+    const cb = vi.fn();
+    chrome.storage.local.get([KEY, LEGACY_KEY, otherSite, configuration], cb);
+    expect(Object.keys(cb.mock.calls[0][0])).toEqual([configuration]);
   });
 
   it('clearBlobState removes the record', () => {

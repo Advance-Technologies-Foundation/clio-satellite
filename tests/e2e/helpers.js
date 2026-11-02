@@ -21,7 +21,7 @@ export async function setupChromeMock(page, { syncData = {}, newsFeed = null } =
         local: {
           get: (keys, cb) => {
             const r = {};
-            (Array.isArray(keys) ? keys : Object.keys(keys)).forEach(k => {
+            (keys === null ? Object.keys(local) : Array.isArray(keys) ? keys : Object.keys(keys)).forEach(k => {
               if (k in local) r[k] = local[k];
             });
             cb(r);

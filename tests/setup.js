@@ -9,7 +9,7 @@ global.chrome = {
     local: {
       get: vi.fn((keys, callback) => {
         const result = {};
-        const keyList = Array.isArray(keys) ? keys : Object.keys(keys);
+        const keyList = keys === null ? Object.keys(localStore) : Array.isArray(keys) ? keys : Object.keys(keys);
         keyList.forEach(k => { if (k in localStore) result[k] = localStore[k]; });
         callback(result);
       }),
