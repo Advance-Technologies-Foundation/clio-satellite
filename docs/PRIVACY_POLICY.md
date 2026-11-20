@@ -17,6 +17,7 @@ The Clio Satellite Extension stores the following information in Chrome storage:
 - Display aliases for profiles
 - Autologin preferences for different sites
 - Last used profile information
+- A local autologin diagnostic log (time, Creatio site address and the steps the login page took, never passwords; the last 100 entries). It stays in this browser's local extension storage, is not synced and is never sent anywhere.
 
 **Important**: Profiles and settings are kept in Chrome sync storage, so when you are signed in to Chrome with sync turned on, Chrome syncs them between your own devices through your Google account (handled by Google under the Google Privacy Policy). This information is never sent to servers operated by the Extension developers or to any other third party.
 

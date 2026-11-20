@@ -24,6 +24,7 @@
   }
 
   const { usernameField, passwordField, loginButton } = getLoginElements();
+  waitForLoginElements.attempts = (waitForLoginElements.attempts || 0) + 1;
 
   if (usernameField && passwordField && loginButton) {
     // Create login profiles container
@@ -137,16 +138,26 @@
         const key = window.location.origin;
         const entry = map[key];
         const lastUser = typeof entry === 'string' ? entry : entry?.username;
-        if (lastUser) {
-          profileSelect.value = lastUser;
-          lastProfileValue = profileSelect.value;
-
-          // Trigger autologin if enabled
-          const selectedOption = profileSelect.options[profileSelect.selectedIndex];
-          if (selectedOption.dataset.autologin === 'true') {
-            loginCaption.click();
-          }
+        if (!lastUser) {
+          autologinLog('autologin-skipped', { reason: 'no last used profile for this site', profiles: availableProfiles.length });
+          return;
         }
+        profileSelect.value = lastUser;
+        // The last used profile may have been deleted or no longer match this URL
+        const selectedOption = profileSelect.options[profileSelect.selectedIndex];
+        if (!selectedOption || selectedOption.value !== lastUser) {
+          profileSelect.value = lastProfileValue;
+          autologinLog('autologin-skipped', { reason: 'last used profile is not in the list for this site', profiles: availableProfiles.length });
+          return;
+        }
+        lastProfileValue = profileSelect.value;
+
+        if (selectedOption.dataset.autologin !== 'true') {
+          autologinLog('autologin-skipped', { reason: 'autologin is off for the last used profile' });
+          return;
+        }
+        autologinLog('autologin-start', { formAttempts: waitForLoginElements.attempts });
+        loginCaption.click();
       });
     });
 
@@ -207,7 +218,7 @@
 
     registerLoginEvents(loginCaption);
 
-    console.log('Login form elements found and profile selector added');
+    autologinLog('form-found', { formAttempts: waitForLoginElements.attempts, profileSelectorAdded: true });
   } else {
     // If elements aren't found yet, try again after a delay
     setTimeout(waitForLoginElements, 500);
