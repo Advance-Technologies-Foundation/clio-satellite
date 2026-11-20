@@ -61,15 +61,28 @@ export function cursorEdge(x, y, vw, vh) {
   return EDGES.find(e => isCursorAtEdge(e, x, y, vw, vh)) || null;
 }
 
-// Position of the blob centre along the edge, kept fully on screen
+// Position of the blob centre along the edge. The blob goes right into a corner: there the centre of its dome
+// (DOME_C from the edge it sits on) is as far from the other edge too, so the dome fills the corner and the
+// orange dot stays whole on screen; only the thin skirt runs past the corner and is cut off by the viewport.
+// Within CORNER_SNAP of a corner the blob sticks to it, so it does not have to be put there to the pixel.
+export const CORNER_SNAP = 30;
 export function clampAlong(edge, along, vw, vh) {
   const span = isVertical(edge) ? vh : vw;
-  return clamp(along, BLOB_H / 2, span - BLOB_H / 2);
+  if (along < CORNER_SNAP) return CORNER_INSET;
+  if (along > span - CORNER_SNAP) return span - CORNER_INSET;
+  return along;
 }
 
+// Where the blob of a box of buttons goes: at the middle of the box, or into the corner when the box was
+// pushed into the other edge too (`rect` is not clamped to the viewport, so it can stand past both edges)
 export function alongForRect(edge, rect, vw, vh) {
-  const along = isVertical(edge) ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
-  return clampAlong(edge, along, vw, vh);
+  const vertical = isVertical(edge);
+  const start = vertical ? rect.top : rect.left;
+  const size = vertical ? rect.height : rect.width;
+  const span = vertical ? vh : vw;
+  if (start < 0) return CORNER_INSET;
+  if (start + size > span) return span - CORNER_INSET;
+  return clampAlong(edge, start + size / 2, vw, vh);
 }
 
 // Where the buttons stand when they come out of a blob at (edge, along)
@@ -199,6 +212,8 @@ const skirt = d => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
 // `sink` (px) moves the dome into the edge: at DOME_SINK only the skirt is left, so the dome can rise
 // out of the edge while the skirt stays where it is
 export const DOME_SINK = DOME_R + DOME_C;
+// How far (px) the blob centre stays from a corner: the dome is then as far from both edges
+export const CORNER_INSET = DOME_C;
 // How long the dome of a restored blob takes to rise out of the edge
 export const DOME_RISE_MS = 480;
 function bellField(x, d, sink = 0) {

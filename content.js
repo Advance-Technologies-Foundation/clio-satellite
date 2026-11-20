@@ -510,13 +510,21 @@
   function cursorEdge(x, y, vw, vh) {
     return EDGES.find((e) => isCursorAtEdge(e, x, y, vw, vh)) || null;
   }
+  var CORNER_SNAP = 30;
   function clampAlong(edge, along, vw, vh) {
     const span = isVertical(edge) ? vh : vw;
-    return clamp(along, BLOB_H / 2, span - BLOB_H / 2);
+    if (along < CORNER_SNAP) return CORNER_INSET;
+    if (along > span - CORNER_SNAP) return span - CORNER_INSET;
+    return along;
   }
   function alongForRect(edge, rect, vw, vh) {
-    const along = isVertical(edge) ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
-    return clampAlong(edge, along, vw, vh);
+    const vertical = isVertical(edge);
+    const start = vertical ? rect.top : rect.left;
+    const size = vertical ? rect.height : rect.width;
+    const span = vertical ? vh : vw;
+    if (start < 0) return CORNER_INSET;
+    if (start + size > span) return span - CORNER_INSET;
+    return clampAlong(edge, start + size / 2, vw, vh);
   }
   function buttonsPositionFor(edge, along, width, height, vw, vh, gap = EDGE_GAP) {
     const x = clamp(along - width / 2, 8, vw - width - 8);
@@ -620,6 +628,7 @@
   var DOME_FILLET = 12;
   var skirt = (d) => 3 * Math.exp(-(d * d) / (2 * 22 * 22));
   var DOME_SINK = DOME_R + DOME_C;
+  var CORNER_INSET = DOME_C;
   var DOME_RISE_MS = 480;
   function bellField(x, d, sink = 0) {
     const a = Math.hypot(x - DOME_C + sink, d) - DOME_R;

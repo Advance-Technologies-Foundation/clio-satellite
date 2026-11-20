@@ -13,6 +13,8 @@ import {
   cursorEdge,
   EDGE_CURSOR_SLACK,
   clampAlong,
+  CORNER_INSET,
+  CORNER_SNAP,
   alongForRect,
   buttonsPositionFor,
   saveBlobState,
@@ -90,9 +92,18 @@ describe('isCursorAtEdge', () => {
 });
 
 describe('clampAlong / alongForRect', () => {
-  it('keeps the whole blob on screen', () => {
-    expect(clampAlong('left', 0, VW, VH)).toBe(50);
-    expect(clampAlong('left', VH, VW, VH)).toBe(VH - 50);
+  it('puts the blob right into a corner, its dome as far from both edges', () => {
+    expect(clampAlong('left', 0, VW, VH)).toBe(CORNER_INSET);
+    expect(clampAlong('left', VH, VW, VH)).toBe(VH - CORNER_INSET);
+    expect(clampAlong('top', -40, VW, VH)).toBe(CORNER_INSET);
+    expect(clampAlong('bottom', VW + 40, VW, VH)).toBe(VW - CORNER_INSET);
+    expect(CORNER_INSET).toBe(7);   // the dome centre is 7 px from the edge it sits on
+  });
+
+  it('sticks to a corner within CORNER_SNAP of it', () => {
+    expect(clampAlong('left', CORNER_SNAP - 1, VW, VH)).toBe(CORNER_INSET);
+    expect(clampAlong('left', CORNER_SNAP, VW, VH)).toBe(CORNER_SNAP);
+    expect(clampAlong('top', VW - CORNER_SNAP + 1, VW, VH)).toBe(VW - CORNER_INSET);
     expect(clampAlong('top', 500, VW, VH)).toBe(500);
   });
 
@@ -100,6 +111,13 @@ describe('clampAlong / alongForRect', () => {
     const rect = { left: 0, top: 300, width: 220, height: 52 };
     expect(alongForRect('left', rect, VW, VH)).toBe(326);
     expect(alongForRect('top', rect, VW, VH)).toBe(110);
+  });
+
+  it('puts the blob into the corner when the buttons were pushed into the other edge too', () => {
+    expect(alongForRect('left', { left: -30, top: -10, width: 220, height: 52 }, VW, VH)).toBe(CORNER_INSET);
+    expect(alongForRect('left', { left: -30, top: VH - 50, width: 220, height: 52 }, VW, VH)).toBe(VH - CORNER_INSET);
+    expect(alongForRect('bottom', { left: VW - 200, top: VH, width: 220, height: 52 }, VW, VH)).toBe(VW - CORNER_INSET);
+    expect(alongForRect('left', { left: -30, top: 10, width: 220, height: 52 }, VW, VH)).toBe(36);
   });
 });
 

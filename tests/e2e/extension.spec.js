@@ -633,6 +633,57 @@ test.describe('Edge blob', () => {
     await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
   });
 
+  test('the blob slides along the edge into the corner', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+
+    const hit = await dockAtLeftEdge(page);
+    const y = hit.y + hit.height / 2;
+    await page.mouse.move(hit.x + 5, y);
+    await page.mouse.down();
+    await page.mouse.move(hit.x + 5, 1, { steps: 10 });   // up to the top of the screen, along the edge
+    await page.mouse.up();
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
+    const corner = await page.locator('.csl-edge-hit').boundingBox();
+    expect(Math.round(corner.y + corner.height / 2)).toBe(7);   // the dome sits right in the corner
+
+    const saved = await page.evaluate(() => new Promise(r => chrome.storage.local.get(['menuEdgeBlob_shell'], d => r(d.menuEdgeBlob_shell))));
+    expect(saved.edge).toBe('left');
+    expect(saved.along * 800).toBeCloseTo(7, 0);
+  });
+
+  test('a blob saved in the corner comes back in the corner', async ({ page }) => {
+    await setupChromeMock(page);
+    await page.addInitScript(() => {
+      chrome.storage.local.set({ 'menuEdgeBlob_shell': { edge: 'left', along: 7 / 800, timestamp: Date.now() } });
+    });
+    await page.goto(`${BASE}/shell/`);
+    await injectContentScript(page);
+    await expect(page.locator('.csl-edge-blob')).toBeVisible();
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    expect(Math.round(hit.y + hit.height / 2)).toBe(7);
+  });
+
+  test('buttons pushed into the bottom-left corner become a blob right in that corner', async ({ page }) => {
+    await load(page, '/shell/');
+    await waitForMenu(page);
+    const box = await page.locator('.creatio-satelite').boundingBox();
+    const grabX = box.x + 60, grabY = box.y + box.height / 2;
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.mouse.move(400, 400, { steps: 8 });
+    // diagonally into the corner: past the bottom and the left edge at once
+    const bottomY = 800 - (box.y + box.height - grabY);   // cursor y at which the buttons touch the bottom edge
+    const touchX = grabX - box.x;
+    await page.mouse.move(touchX + 30, bottomY - 30, { steps: 8 });
+    await page.mouse.move(touchX - 30, bottomY + 30, { steps: 10 });
+    await expect(page.locator('.creatio-satelite-floating')).toHaveAttribute('data-edge-docked', 'left');
+    await page.mouse.up();
+    await page.waitForTimeout(800);
+    const hit = await page.locator('.csl-edge-hit').boundingBox();
+    expect(Math.round(hit.y + hit.height / 2)).toBe(800 - 7);
+  });
+
   test('pulling the blob away from the edge tears it off into the buttons that keep following the mouse', async ({ page }) => {
     await load(page, '/shell/');
     await waitForMenu(page);
